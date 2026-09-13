@@ -2681,17 +2681,18 @@
       "queryState": "state=wizard-step1",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step1.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step1-browser-2026-09-05.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step1-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step1",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step1-current-diff-2026-09-13.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-09-13 automated diff exists; the new context panel is visible and manual visual review remains open",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -2710,8 +2711,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-18",
-        "conclusion": "Wizard step-one semantics exist, but supporting validation panel, form geometry, typography, and spacing differ. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-13",
+        "conclusion": "The current capture includes the Figma context panel node 977:3 with complete draft-validation copy and has no horizontal overflow. Whole-page pixel differences in shell, form geometry, typography, and spacing remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -2725,17 +2726,18 @@
       "queryState": "state=wizard-step2",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step2.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step2-browser-2026-09-05.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step2-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step2",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step2-current-diff-2026-09-13.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-09-13 automated diff exists; the new context panel is visible and manual visual review remains open",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -2754,8 +2756,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current browser capture has no root or text overflow, but automatic pixel comparison shows substantial visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-13",
+        "conclusion": "The current capture includes the Figma context panel node 980:3 with complete constraint-summary copy and has no horizontal overflow. Whole-page pixel differences in shell, form geometry, typography, and spacing remain; retain DIFF_REVIEW."
       }
     },
     {
@@ -2769,17 +2771,18 @@
       "queryState": "state=wizard-step3",
       "browserViewport": "1440x1024",
       "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step3.png",
-      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step3-browser-2026-09-05.png",
+      "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step3-browser-2026-09-13.png",
       "diffJson": ".qa/figma-pixel-acceptance/figma-105-diff-results.json#meal-plan-wizard-step3",
+      "latestDiffJson": ".qa/figma-pixel-acceptance/recaptured/meal-plan-wizard-step3-current-diff-2026-09-13.json",
       "status": "DIFF_REVIEW",
       "manualReviewConclusion": "VISUAL_DIFFERENCES_CONFIRMED",
-      "evidenceNote": "Automated diff exists; see manual visual review conclusion",
+      "evidenceNote": "2026-09-13 automated diff exists; the new context panel is visible and manual visual review remains open",
       "geometryCheck": {
         "status": "PASS",
         "expectedViewport": "1440x1024",
         "actualViewport": "1440x1024",
         "expectedDpr": 1,
-        "actualDpr": 1.0000000149011612,
+        "actualDpr": 1,
         "viewportPass": true,
         "dprPass": true,
         "bodyOverflow": false,
@@ -2798,8 +2801,8 @@
       "manualReview": {
         "status": "VISUAL_DIFFERENCES_CONFIRMED",
         "reviewer": "Codex",
-        "reviewedAt": "2026-08-22",
-        "conclusion": "Current browser capture has no root or text overflow, but automatic pixel comparison shows substantial visual differences. Retain DIFF_REVIEW."
+        "reviewedAt": "2026-09-13",
+        "conclusion": "The current capture includes the Figma context panel node 981:3 with complete generation-review copy and has no horizontal overflow. Whole-page pixel differences in shell, form geometry, typography, and spacing remain; retain DIFF_REVIEW."
       }
     },
     {

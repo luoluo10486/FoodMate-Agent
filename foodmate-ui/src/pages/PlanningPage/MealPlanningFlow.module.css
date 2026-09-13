@@ -363,6 +363,7 @@
 
 .wizardPage {
   display: flex;
+  position: relative;
   min-width: 0;
   min-height: 0;
   height: 100%;
@@ -476,6 +477,124 @@
   flex: 1;
   justify-content: center;
   align-items: start;
+}
+
+/* 向导右侧面板对应当前 Figma 三个画板的状态摘要，面板仅在桌面设计稿空间内展示。 */
+.wizardContextPanel {
+  position: absolute;
+  top: 152px;
+  right: 30px;
+  z-index: 1;
+  display: flex;
+  box-sizing: border-box;
+  width: 200px;
+  height: 365px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 16px 14px;
+  overflow: hidden;
+  border: 1px solid;
+  border-radius: 14px;
+  font-family: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: normal;
+  text-align: left;
+}
+
+.wizardContextPanelDraft {
+  border-color: #deeddb;
+  background: #fafcfa;
+}
+
+.wizardContextPanelConstraint {
+  border-color: #f0deb8;
+  background: #fcfaf5;
+}
+
+.wizardContextPanelReview {
+  border-color: #dbebde;
+  background: #fafcfa;
+}
+
+.wizardContextTitle,
+.wizardContextItem {
+  width: 172px;
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.wizardContextTitle {
+  height: 20px;
+  color: #2b332e;
+  font-size: 15px;
+  line-height: 20px;
+}
+
+.wizardContextPanelConstraint .wizardContextTitle {
+  color: #383629;
+}
+
+.wizardContextItem {
+  color: #59665e;
+  font-size: 12px;
+  line-height: normal;
+}
+
+.wizardContextItemBody {
+  color: #59665e;
+}
+
+.wizardContextPanelConstraint .wizardContextItemBody {
+  color: #5e6357;
+}
+
+.wizardContextPanelReview .wizardContextItemBody {
+  color: #5e665e;
+}
+
+.wizardContextItemSuccess {
+  color: #408f4a;
+}
+
+.wizardContextItemAccent {
+  color: #b8662e;
+}
+
+.wizardContextItemWarning {
+  color: #8c784a;
+}
+
+.wizardContextItemMuted {
+  color: #858c85;
+}
+
+.wizardContextItem18 {
+  height: 18px;
+}
+
+.wizardContextItem20 {
+  height: 20px;
+}
+
+.wizardContextItem28 {
+  height: 28px;
+}
+
+.wizardContextItem32 {
+  height: 32px;
+}
+
+.wizardContextItem34 {
+  height: 34px;
+}
+
+.wizardContextItem40 {
+  height: 40px;
 }
 
 .wizardCard {
@@ -1421,6 +1540,13 @@
 
   .stepperLine {
     width: 40px;
+  }
+}
+
+@media (max-width: 1399px) {
+  /* 低于 Figma 1440 画板时隐藏摘要面板，避免压住主卡片和输入控件。 */
+  .wizardContextPanel {
+    display: none;
   }
 }
 

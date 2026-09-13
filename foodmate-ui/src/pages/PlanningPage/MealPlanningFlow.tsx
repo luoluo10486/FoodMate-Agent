@@ -382,6 +382,104 @@ function FlowStepper({ currentStep, onNavigate }: { currentStep: number; onNavig
   );
 }
 
+type WizardContextPanelTone = 'body' | 'success' | 'accent' | 'warning' | 'muted';
+type WizardContextPanelHeight = '18' | '20' | '28' | '32' | '34' | '40';
+
+const wizardContextPanels = {
+  1: {
+    nodeId: '977:3',
+    name: 'meal-plan::draft-and-validation',
+    title: '草稿与必填校验',
+    surface: 'draft',
+    items: [
+      { text: '必填项  ✓  已完成', tone: 'success', height: '18' },
+      { text: '日期关系  ✓  06-01 至 06-07', tone: 'body', height: '18' },
+      { text: '能量 / 蛋白目标  ✓  2,200 / 130g', tone: 'body', height: '18' },
+      { text: '预算范围  ✓  ¥120 / 天', tone: 'body', height: '18' },
+      { text: '当前状态：草稿  ·  可保存后稍后继续', tone: 'muted', height: '28' },
+    ],
+  },
+  2: {
+    nodeId: '980:3',
+    name: 'meal-plan::constraint-summary',
+    title: '约束已记录',
+    surface: 'constraint',
+    items: [
+      { text: '偏好：低碳水  ·  高蛋白  ·  中 / 日轻食', tone: 'body', height: '32' },
+      { text: '过敏源：花生  ·  甲壳类  ·  乳制品', tone: 'accent', height: '28' },
+      { text: '单餐耗时上限：30 分钟', tone: 'body', height: '20' },
+      { text: '发现冲突时：展示影响范围与放宽建议，用户可选择后再生成。', tone: 'warning', height: '40' },
+      { text: '当前状态：草稿  ·  可保存后稍后继续', tone: 'muted', height: '28' },
+    ],
+  },
+  3: {
+    nodeId: '981:3',
+    name: 'meal-plan::generation-review',
+    title: '生成前检查',
+    surface: 'review',
+    items: [
+      { text: '✓ 目标、日期、预算、过敏源均已确认', tone: 'success', height: '34' },
+      { text: '生成将创建 7 天餐表、营养摘要和购物清单。', tone: 'body', height: '32' },
+      { text: '预计耗时：10–15 秒  ·  状态：queued → running', tone: 'body', height: '28' },
+      { text: '失败时保留约束草稿，可重试或返回修改约束。', tone: 'warning', height: '32' },
+      { text: '确认后进入生成中页面；生成完成可查看计划与购物清单。', tone: 'muted', height: '40' },
+    ],
+  },
+} as const satisfies Record<
+  1 | 2 | 3,
+  {
+    nodeId: string;
+    name: string;
+    title: string;
+    surface: 'draft' | 'constraint' | 'review';
+    items: Array<{ text: string; tone: WizardContextPanelTone; height: WizardContextPanelHeight }>;
+  }
+>;
+
+function WizardContextPanel({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const panel = wizardContextPanels[currentStep];
+  const surfaceClass =
+    panel.surface === 'constraint'
+      ? styles.wizardContextPanelConstraint
+      : panel.surface === 'review'
+        ? styles.wizardContextPanelReview
+        : styles.wizardContextPanelDraft;
+  const toneClasses: Record<WizardContextPanelTone, string> = {
+    body: styles.wizardContextItemBody,
+    success: styles.wizardContextItemSuccess,
+    accent: styles.wizardContextItemAccent,
+    warning: styles.wizardContextItemWarning,
+    muted: styles.wizardContextItemMuted,
+  };
+  const heightClasses: Record<WizardContextPanelHeight, string> = {
+    '18': styles.wizardContextItem18,
+    '20': styles.wizardContextItem20,
+    '28': styles.wizardContextItem28,
+    '32': styles.wizardContextItem32,
+    '34': styles.wizardContextItem34,
+    '40': styles.wizardContextItem40,
+  };
+
+  return (
+    <aside
+      className={`${styles.wizardContextPanel} ${surfaceClass}`}
+      aria-label={panel.title}
+      data-figma-node-id={panel.nodeId}
+      data-name={panel.name}
+    >
+      <p className={styles.wizardContextTitle}>{panel.title}</p>
+      {panel.items.map((item) => (
+        <p
+          className={`${styles.wizardContextItem} ${toneClasses[item.tone]} ${heightClasses[item.height]}`}
+          key={item.text}
+        >
+          {item.text}
+        </p>
+      ))}
+    </aside>
+  );
+}
+
 function WizardShell({
   currentStep,
   onNavigate,
@@ -395,6 +493,7 @@ function WizardShell({
     <div className={styles.wizardPage}>
       <FlowStepper currentStep={currentStep} onNavigate={onNavigate} />
       <div className={styles.wizardGrid}>{children}</div>
+      <WizardContextPanel currentStep={currentStep} />
     </div>
   );
 }

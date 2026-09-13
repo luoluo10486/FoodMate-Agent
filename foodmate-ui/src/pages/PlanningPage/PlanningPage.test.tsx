@@ -62,14 +62,18 @@ describe('PlanningPage', () => {
     expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
   });
 
-  it('keeps wizard fixtures aligned with the single-card Figma composition', () => {
-    const wizardStates = ['wizard-step1', 'wizard-step2', 'wizard-step3'] as const;
-    for (const state of wizardStates) {
+  it('keeps wizard fixtures aligned with the current Figma context panels', () => {
+    const wizardStates = [
+      ['wizard-step1', '草稿与必填校验', '977:3', '必填项 ✓ 已完成'],
+      ['wizard-step2', '约束已记录', '980:3', '过敏源：花生 · 甲壳类 · 乳制品'],
+      ['wizard-step3', '生成前检查', '981:3', '✓ 目标、日期、预算、过敏源均已确认'],
+    ] as const;
+    for (const [state, panelTitle, panelNodeId, panelCopy] of wizardStates) {
       const { unmount } = renderPage(`/planning?state=${state}`);
 
-      expect(screen.queryByText('草稿与必填校验')).not.toBeInTheDocument();
-      expect(screen.queryByText('约束已记录')).not.toBeInTheDocument();
-      expect(screen.queryByText('生成前检查')).not.toBeInTheDocument();
+      const contextPanel = screen.getByRole('complementary', { name: panelTitle });
+      expect(contextPanel).toHaveAttribute('data-figma-node-id', panelNodeId);
+      expect(contextPanel).toHaveTextContent(panelCopy);
       expect(document.querySelectorAll('img[data-avatar-source]')).toHaveLength(2);
       expect(
         [...document.querySelectorAll('img[data-avatar-source]')].every(

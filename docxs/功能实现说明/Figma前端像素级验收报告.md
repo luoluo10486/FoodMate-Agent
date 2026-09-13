@@ -3343,3 +3343,19 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 用户消息浅黄色气泡正文固定使用 `#000000` 语义 Token，解决浅色前景导致的可读性问题。
 - [x] Agent 绿色方块继续按 Figma 语义登记为状态标识，不计入人物头像资源审计；认证页面 `*-user.svg` 继续只作为输入框装饰图标。
 - [ ] 本批次不改变任何 PNG diff 结论；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以头像运行时核验替代像素级验收。
+
+## 2026-09-13 Meal Planning 向导 Step 1/2/3 局部复核
+
+本次仅复核实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH` 中的 `692:2801`、`692:2934`、`692:3078` 三个画板。实时设计稿实际包含右侧状态面板，覆盖早期“单卡、无右侧面板”的记录；本节以实时画板为准，不代表其余 102 个画板已重新验收。
+
+| 画板 | 右侧 Figma 节点 | 浏览器证据 | diff | 结论 |
+| --- | --- | --- | --- | --- |
+| `meal-plan-wizard-step1` | `977:3` | `dpr1-meal-plan-wizard-step1-browser-2026-09-13.png` | `22.5625% / MAE 4.197707 / RMSE 22.423570 / max 251` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step2` | `980:3` | `dpr1-meal-plan-wizard-step2-browser-2026-09-13.png` | `25.4375% / MAE 5.405299 / RMSE 25.522226 / max 254` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step3` | `981:3` | `dpr1-meal-plan-wizard-step3-browser-2026-09-13.png` | `26.5771% / MAE 5.429956 / RMSE 25.670396 / max 255` | `DIFF_REVIEW` |
+
+- [x] 三项浏览器截图均为 `1440×1024`、DPR `1`、字体 `loaded`，且 `bodyOverflow=false`；Figma 与浏览器 PNG 尺寸一致。
+- [x] 三个右侧面板均完成节点元数据、面板位置、文字换行和主卡片无遮挡的人工复核；没有发现尺寸错配或横向溢出。
+- [x] 差异证据来源为 `scripts/png-diff.mjs`；详细 JSON 已登记在 `figma-105-diff-results.json` 及三个 `*-current-diff-2026-09-13.json` 文件中。
+- [ ] 三项整页 diff 均非零，保留 `DIFF_REVIEW`；不能用局部结构修复或人工“看起来接近”替代像素级 `PASS`。
+- [ ] 当前全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 实体包、CSS/Unicode 映射、来源和许可证仍为 `BLOCKED`。
