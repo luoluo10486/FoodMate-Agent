@@ -129,4 +129,20 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
                     "RUNTIME_CONTRACT_INVALID", "run_id must be numeric");
         }
     }
+
+    /** 失败 Run 的重试必须由 Java 根据已接收的 retryable 事件和 checkpoint 事实裁决。 */
+    @PostMapping("/{runId}/retry")
+    public ApiResponse<RuntimeRecoveryService.RecoveryResult> retry(
+            @PathVariable String runId, HttpServletRequest request) {
+        long parsedRunId;
+        try {
+            parsedRunId = Long.parseLong(runId);
+        } catch (NumberFormatException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "run_id must be numeric");
+        }
+        return ApiResponse.success(
+                recovery.retryFailedRun(user(request).userId(), parsedRunId),
+                TraceContextHolder.currentOrNew());
+    }
 }

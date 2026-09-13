@@ -3,10 +3,11 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ChatPage } from './ChatPage';
 
-const { cancelAgentRun, loadSessionMessages, openAgentRunStream } = vi.hoisted(() => ({
+const { cancelAgentRun, loadSessionMessages, openAgentRunStream, retryAgentRun } = vi.hoisted(() => ({
   cancelAgentRun: vi.fn(),
   loadSessionMessages: vi.fn(),
   openAgentRunStream: vi.fn(),
+  retryAgentRun: vi.fn(),
 }));
 
 vi.mock('../../services/sessionService', async () => {
@@ -18,7 +19,7 @@ vi.mock('../../services/agentRunService', async () => {
   const actual = await vi.importActual<typeof import('../../services/agentRunService')>(
     '../../services/agentRunService',
   );
-  return { ...actual, cancelAgentRun, openAgentRunStream };
+  return { ...actual, cancelAgentRun, openAgentRunStream, retryAgentRun };
 });
 
 vi.mock('../../services/authService', async () => {
@@ -51,23 +52,26 @@ describe('ChatPage 真实历史会话回放', () => {
     cancelAgentRun.mockReset();
     loadSessionMessages.mockReset();
     openAgentRunStream.mockReset();
-    openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
-      onEvent('run.completed', {
-        event_type: 'run.completed',
-        answer: '基于已发布公共知识库完成回答。',
-        citations: [
-          {
-            citation_id: 'citation-1',
-            document_id: 'document-1',
-            title: '公共营养指南',
-            version: 'v1',
-            section_path: '健康饮食',
-            snippet: '优先选择多样化且少加工的食物。',
-          },
-        ],
-      });
-      return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
-    });
+    retryAgentRun.mockReset();
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent('run.completed', {
+          event_type: 'run.completed',
+          answer: '基于已发布公共知识库完成回答。',
+          citations: [
+            {
+              citation_id: 'citation-1',
+              document_id: 'document-1',
+              title: '公共营养指南',
+              version: 'v1',
+              section_path: '健康饮食',
+              snippet: '优先选择多样化且少加工的食物。',
+            },
+          ],
+        });
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
   });
 
   it('从历史消息恢复最近 Run 并回放安全引用', async () => {
@@ -106,6 +110,145 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByLabelText('知识库引用')).toBeInTheDocument();
     expect(screen.getAllByText('基于已发布公共知识库完成回答。')).toHaveLength(1);
     expect(screen.getByText('优先选择多样化且少加工的食物。')).not.toBeVisible();
+  });
+
+  it('只有 retryable 失败才显示重试并调用专用接口', async () => {
+    const close = vi.fn();
+    let streamCount = 0;
+    openAgentRunStream.mockImplementation(
+      (
+        _runId: string,
+        onEvent: (type: string, payload: unknown, eventId: string) => void,
+        options: {
+          onStateChange?: (connection: {
+            state: string;
+            attempt: number;
+            maxAttempts: number;
+            lastEventId?: string;
+          }) => void;
+        },
+      ) => {
+        streamCount += 1;
+        options.onStateChange?.({
+          state: 'connected',
+          attempt: streamCount,
+          maxAttempts: 5,
+          lastEventId: 'failed-event',
+        });
+        if (streamCount === 1) {
+          onEvent(
+            'run.failed',
+            { event_type: 'run.failed', code: 'TOOL_RESULT_TIMEOUT', retryable: true },
+            'failed-event',
+          );
+        }
+        return {
+          close,
+          getConnection: () => ({ state: 'closed', attempt: streamCount, maxAttempts: 5, lastEventId: 'failed-event' }),
+        };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '请重试工具调用。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+    retryAgentRun.mockResolvedValue({ run_id: 'run-1', dispatch_id: 'dsp-retry', attempt: 2, status: 'queued' });
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const retryButton = await screen.findByRole('button', { name: '重试' });
+    retryButton.click();
+    await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('run-1'));
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
+    expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'failed-event' });
+  });
+
+  it('非 retryable 失败不显示重试入口', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent('run.failed', { event_type: 'run.failed', code: 'INVALID_REQUEST', retryable: false }, 'failed-event');
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '请求失败。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await screen.findByText('运行失败（错误码：INVALID_REQUEST）。');
+    expect(screen.queryByRole('button', { name: '重试' })).not.toBeInTheDocument();
+  });
+
+  it('安全降级结果保留追问入口但隐藏完整引用', async () => {
+    openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
+      onEvent('run.completed', {
+        event_type: 'run.completed',
+        answer: '这是基于有限数据的安全降级回答。',
+        result_type: 'safety_degraded',
+        citations: [
+          {
+            citation_id: 'citation-1',
+            document_id: 'document-1',
+            title: '不应展示的完整引用',
+            version: 'v1',
+            snippet: '不应展示的引用片段',
+          },
+        ],
+      });
+      return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+    });
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '请分析我的饮食。',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('安全降级提示')).toBeInTheDocument();
+    expect(screen.getByText('这是基于有限数据的安全降级回答。')).toBeInTheDocument();
+    expect(screen.queryByLabelText('知识库引用')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toBeInTheDocument();
   });
 
   it('根据真实运行事件展示路由意图、工具名称和执行耗时', async () => {

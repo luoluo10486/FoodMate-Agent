@@ -23,7 +23,16 @@ public interface RuntimeRecoveryMapper {
                    d.active_epoch AS previousEpoch,
                    d.deadline_at AS deadline,
                    COALESCE((SELECT MAX(revision) FROM agent_run_budget_snapshots b WHERE b.agent_run_id=r.agent_run_id), 0) AS budgetRevision,
-                   o.payload_json::text AS payload
+                   o.payload_json::text AS payload,
+                   COALESCE((
+                       SELECT CASE WHEN e.payload_json->>'retryable' = 'true' THEN TRUE ELSE FALSE END
+                       FROM runtime_event_inbox_v2 e
+                       WHERE e.agent_run_id=r.agent_run_id
+                         AND e.dispatch_id=d.dispatch_id
+                         AND e.event_type='run.failed'
+                       ORDER BY e.event_seq DESC
+                       LIMIT 1
+                   ), FALSE) AS retryableFailure
             FROM agent_runs r
             JOIN sessions s ON s.session_id=r.session_id AND s.user_id=#{userId} AND s.is_deleted=FALSE
             JOIN agent_run_dispatches d ON d.agent_run_dispatch_id=r.active_dispatch_id
@@ -139,6 +148,6 @@ public interface RuntimeRecoveryMapper {
     void markOutboxQueued(long runId, String dispatchId, int priority);
 
     @Update(
-            "UPDATE agent_runs SET status='queued', result_type=NULL, error_code=NULL, active_dispatch_id=#{dispatchRowId}, updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=#{runId} AND status NOT IN ('completed','failed','cancelled','superseded')")
+            "UPDATE agent_runs SET status='queued', result_type=NULL, error_code=NULL, active_dispatch_id=#{dispatchRowId}, updated_at=CURRENT_TIMESTAMP WHERE agent_run_id=#{runId} AND status NOT IN ('completed','cancelled','superseded')")
     void markRunQueued(long runId, long dispatchRowId);
 }

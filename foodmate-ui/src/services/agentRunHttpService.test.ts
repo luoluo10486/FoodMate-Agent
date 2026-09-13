@@ -10,6 +10,7 @@ import {
   recoverAgentRun,
   recoverAgentRunFromCheckpoint,
   rejectAgentWrite,
+  retryAgentRun,
   submitAgentFeedback,
 } from './agentRunService';
 
@@ -92,6 +93,25 @@ describe('agentRunService HTTP APIs', () => {
       completed_invocation_ids: ['inv-1'],
     });
     expect(fetchMock.mock.calls[1][0]).toBe('/api/agent-runs/42/recover-from-checkpoint');
+  });
+
+  it('uses the dedicated retry endpoint for a retryable failed Run', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(ok({ run_id: '42', dispatch_id: 'dsp-retry', attempt: 3, status: 'queued' })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(retryAgentRun('42')).resolves.toEqual({
+      run_id: '42',
+      dispatch_id: 'dsp-retry',
+      attempt: 3,
+      status: 'queued',
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/agent-runs/42/retry');
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
   });
 
   it('maps feedback and approval operations to the existing endpoints', async () => {

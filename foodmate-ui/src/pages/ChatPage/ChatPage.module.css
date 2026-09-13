@@ -2196,6 +2196,21 @@
   line-height: 18px;
 }
 
+.runtimeErrorBlock,
+.safetyDegradedNotice {
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+}
+
+.runtimeErrorBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.runtimeErrorBlock > button {
+  justify-self: start;
+}
+
 .connectionNotice {
   display: flex;
   width: min(560px, calc(100% - 48px));
@@ -2241,6 +2256,8 @@
   .fixtureCancelledWrap,
   .fixtureReconnectWrap,
   .fixtureActionMessage,
+  .runtimeErrorBlock,
+  .safetyDegradedNotice,
   .connectionNotice {
     width: calc(100% - 48px);
   }

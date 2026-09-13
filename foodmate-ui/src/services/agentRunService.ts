@@ -6,6 +6,8 @@ export type AgentRunEvent = {
   event_id?: string;
   sse_event_id?: string;
   event_type?: string;
+  code?: string;
+  message?: string;
   status?: string;
   intent?: string;
   complexity?: string;
@@ -26,6 +28,12 @@ export type AgentRunEvent = {
   error_code?: string;
   error_message?: string;
   result_type?: string;
+  usage?: {
+    tokens?: number;
+    cost_cny?: number | string;
+    model_calls?: number;
+    steps?: number;
+  };
   requires_confirmation?: boolean;
   budget_actions?: { requires_confirmation?: boolean };
   confirmation_ref?: string;
@@ -263,6 +271,13 @@ export async function recoverAgentRun(runId: string, request: AgentRecoveryReque
 
 export async function recoverAgentRunFromCheckpoint(runId: string): Promise<AgentRecoveryResult> {
   return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+    method: 'POST',
+  });
+}
+
+/** 失败重试由 Java 根据 Runtime 的 retryable 事件和持久化事实裁决。 */
+export async function retryAgentRun(runId: string): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/retry`, {
     method: 'POST',
   });
 }

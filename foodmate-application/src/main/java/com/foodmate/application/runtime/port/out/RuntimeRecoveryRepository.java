@@ -55,7 +55,32 @@ public interface RuntimeRecoveryRepository {
             long previousEpoch,
             Instant deadline,
             int budgetRevision,
-            String payload) {}
+            String payload,
+            boolean retryableFailure) {
+        /** 保持既有恢复测试和调用方的构造兼容；普通 checkpoint 恢复不依赖失败标记。 */
+        public RecoveryRun(
+                String status,
+                long sessionId,
+                long dispatchRowId,
+                String previousDispatchId,
+                int previousAttempt,
+                long previousEpoch,
+                Instant deadline,
+                int budgetRevision,
+                String payload) {
+            this(
+                    status,
+                    sessionId,
+                    dispatchRowId,
+                    previousDispatchId,
+                    previousAttempt,
+                    previousEpoch,
+                    deadline,
+                    budgetRevision,
+                    payload,
+                    false);
+        }
+    }
 
     record CheckpointFact(
             int version,

@@ -48,6 +48,7 @@ import {
   openAgentRunStream,
   rejectAgentWrite,
   recoverAgentRunFromCheckpoint,
+  retryAgentRun,
   type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
@@ -81,7 +82,11 @@ function runtimeErrorMessage(payload: { code?: string; error_message?: string; m
   if (payload.code === 'RUNTIME_CAPACITY_EXCEEDED') return '当前运行队列已满，请稍后重试。';
   if (payload.code === 'RUNTIME_QUEUE_TIMEOUT') return '请求排队超时，请稍后重试。';
   if (payload.code === 'MODEL_PROVIDER_UNAVAILABLE') return '模型服务暂时不可用，请稍后重试。';
-  return payload.error_message ?? payload.message ?? 'Agent 运行失败。';
+  return (
+    payload.error_message ??
+    payload.message ??
+    (payload.code ? `运行失败（错误码：${payload.code}）。` : 'Agent 运行失败。')
+  );
 }
 
 function formatMessageTime(value: string) {
@@ -1836,6 +1841,9 @@ function RealChatPage() {
   const [assistantTime, setAssistantTime] = useState('');
   const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
+  const [retryAvailable, setRetryAvailable] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [safetyDegraded, setSafetyDegraded] = useState(false);
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
   const [approval, setApproval] = useState<{
@@ -1883,6 +1891,9 @@ function RealChatPage() {
     setAssistantTime('');
     setAssistantMessageId(undefined);
     setCitations([]);
+    setRetryAvailable(false);
+    setRetrying(false);
+    setSafetyDegraded(false);
     setBudgetConfirmation(false);
     setCheckpointAvailable(false);
     setApproval(undefined);
@@ -1983,11 +1994,15 @@ function RealChatPage() {
         if (eventType === 'run.completed') {
           setCancelling(false);
           setCancelAcknowledged(false);
+          setRetryAvailable(false);
+          setRetrying(false);
           setRunStatus('completed');
           setCheckpointAvailable(false);
           setApproval(undefined);
           setAssistantTime((current) => current || new Date().toISOString());
           if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
+          const degraded = payload.result_type === 'safety_degraded';
+          setSafetyDegraded(degraded);
           if (sessionId) {
             void loadSessionMessages(sessionId).then((rows) => {
               const assistant = rows.find(
@@ -1997,15 +2012,17 @@ function RealChatPage() {
             });
           }
           setCitations(
-            (payload.citations ?? []).map((citation) => ({
-              id: citation.citation_id,
-              title: citation.title,
-              snippet: citation.snippet,
-              source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
-            })),
+            degraded
+              ? []
+              : (payload.citations ?? []).map((citation) => ({
+                  id: citation.citation_id,
+                  title: citation.title,
+                  snippet: citation.snippet,
+                  source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
+                })),
           );
           setBudgetConfirmation(
-            payload.result_type === 'safety_degraded' &&
+            degraded &&
               (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true),
           );
           return;
@@ -2032,6 +2049,9 @@ function RealChatPage() {
           setCancelAcknowledged(false);
           setRunStatus('failed');
           setCheckpointAvailable(false);
+          setSafetyDegraded(false);
+          setRetrying(false);
+          setRetryAvailable(payload.retryable === true);
           setError(runtimeErrorMessage(payload));
           return;
         }
@@ -2040,6 +2060,8 @@ function RealChatPage() {
           setCancelling(false);
           setCancelAcknowledged(false);
           setCheckpointAvailable(false);
+          setRetryAvailable(false);
+          setRetrying(false);
           return;
         }
         if (eventType === 'run.superseded') {
@@ -2095,6 +2117,9 @@ function RealChatPage() {
     if (!content || sending) return;
     setError(undefined);
     setSending(true);
+    setRetryAvailable(false);
+    setSafetyDegraded(false);
+    setBudgetConfirmation(false);
     try {
       let target = sessionId;
       if (!target) {
@@ -2118,6 +2143,36 @@ function RealChatPage() {
     } finally {
       setSending(false);
     }
+  };
+
+  const retryFailed = () => {
+    if (!activeRunId || !retryAvailable || retrying) return;
+    const resumeCursor = connection.lastEventId;
+    streamRef.current?.close();
+    streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: false };
+    setRetrying(true);
+    setRetryAvailable(false);
+    setError(undefined);
+    void retryAgentRun(activeRunId)
+      .then(() => {
+        if (!mountedRef.current) return;
+        setRunStatus('queued');
+        setToolCalls([]);
+        setAssistantText('');
+        setAssistantTime('');
+        setCitations([]);
+        setSafetyDegraded(false);
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!mountedRef.current) return;
+        setRetryAvailable(true);
+        setError(reason instanceof Error ? reason.message : '重试请求失败');
+      })
+      .finally(() => {
+        if (mountedRef.current) setRetrying(false);
+      });
   };
 
   const realRun: AgentRunView = {
@@ -2187,7 +2242,24 @@ function RealChatPage() {
       {!loading && mappedMessages.length === 0 ? (
         <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
       ) : null}
-      {error ? <ErrorState message={error} /> : null}
+      {error ? (
+        <div className={styles.runtimeErrorBlock}>
+          <ErrorState message={error} />
+          {retryAvailable ? (
+            <Button disabled={retrying} onClick={retryFailed} variant="outline">
+              {retrying ? '正在重试...' : '重试'}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {safetyDegraded ? (
+        <Alert className={styles.safetyDegradedNotice} role="status" variant="warning">
+          <AlertTitle>安全降级提示</AlertTitle>
+          <AlertDescription>
+            当前回答基于有限数据，个人条件或外部工具未完整应用；本次结果不代表完整分析，后续追问仍会发送到当前会话。
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {connection.state === 'reconnecting' ? (
         <div className={styles.connectionNotice} role="status" aria-live="polite">
           <LoaderCircle aria-hidden="true" />
@@ -2219,7 +2291,10 @@ function RealChatPage() {
       ) : null}
       {mappedMessages.map((message) => (
         <MessageBubble key={message.id} message={message}>
-          {message.role === 'assistant' && message.agentRunId === activeRunId && runStatus === 'completed' ? (
+          {message.role === 'assistant' &&
+          message.agentRunId === activeRunId &&
+          runStatus === 'completed' &&
+          !safetyDegraded ? (
             <CitationList citations={citations} />
           ) : null}
           {message.role === 'assistant' && message.agentRunId ? (
@@ -2237,7 +2312,7 @@ function RealChatPage() {
             agentRunId: activeRunId,
           }}
         >
-          {runStatus === 'completed' ? <CitationList citations={citations} /> : null}
+          {runStatus === 'completed' && !safetyDegraded ? <CitationList citations={citations} /> : null}
           {assistantMessageId && activeRunId ? (
             <AgentFeedback runId={activeRunId} messageId={assistantMessageId} />
           ) : null}

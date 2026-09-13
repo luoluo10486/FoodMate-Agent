@@ -108,4 +108,26 @@ class V1AgentRunControllerTest {
 
         verify(recovery).recoverFromPersistedCheckpoint(7L, 1L);
     }
+
+    @Test
+    void retryEndpointAuthenticatesUserAndUsesDedicatedService() throws Exception {
+        when(recovery.retryFailedRun(7L, 1L))
+                .thenReturn(new RuntimeRecoveryService.RecoveryResult("1", "d-retry", 3, "queued"));
+
+        mockMvc.perform(
+                        post("/api/agent-runs/1/retry")
+                                .cookie(new Cookie("foodmate_session", "session-token")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.dispatch_id", is("d-retry")))
+                .andExpect(jsonPath("$.data.attempt", is(3)));
+
+        verify(recovery).retryFailedRun(7L, 1L);
+    }
+
+    @Test
+    void retryEndpointRequiresSessionCookie() throws Exception {
+        mockMvc.perform(post("/api/agent-runs/1/retry"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)));
+    }
 }

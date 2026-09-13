@@ -21,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -130,21 +131,42 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                         request.checkpointDigest(),
                         effectiveInvocationIds);
 
-        String previousDispatchId = run.previousDispatchId();
         String dispatchId = "dsp_" + UUID.randomUUID().toString().replace("-", "");
         int attempt = run.previousAttempt() + 1;
         String payload =
                 withRecoveryContext(
                         run.payload(),
                         effectiveRequest,
-                        previousDispatchId,
+                        run.previousDispatchId(),
                         dispatchId,
                         attempt,
                         run.deadline(),
                         run.budgetRevision(),
                         completedToolResults);
-        String requestHash = digestWithoutRequestHash(payload);
-        payload = replaceRequestHash(payload, requestHash);
+        return enqueueAttempt(
+                run,
+                request.userId(),
+                request.runId(),
+                payload,
+                "agent_run.checkpoint.recover",
+                request.checkpointDigest(),
+                Map.of(
+                        "checkpoint_version", request.checkpointVersion(),
+                        "completed_invocation_count", effectiveInvocationIds.size()));
+    }
+
+    private RecoveryResult enqueueAttempt(
+            RecoveryRun run,
+            long userId,
+            long runId,
+            String rawPayload,
+            String auditAction,
+            String confirmationDigest,
+            Map<String, Object> auditDetails) {
+        String requestHash = digestWithoutRequestHash(rawPayload);
+        String payload = replaceRequestHash(rawPayload, requestHash);
+        String dispatchId = readDispatchId(payload);
+        int attempt = readAttempt(payload);
         long dispatchRowId = ids.nextId();
         long epoch = run.previousEpoch() + 1;
 
@@ -152,7 +174,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
         store.expireOutbox(run.dispatchRowId());
         store.insertDispatch(
                 dispatchRowId,
-                request.runId(),
+                runId,
                 dispatchId,
                 attempt,
                 epoch,
@@ -161,7 +183,7 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
         store.insertOutbox(
                 ids.nextId(),
                 dispatchRowId,
-                request.runId(),
+                runId,
                 dispatchId,
                 attempt,
                 run.deadline(),
@@ -169,31 +191,60 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                 payload,
                 requestHash);
         AgentAdmissionService.Admission admissionResult =
-                admission.admit(
-                        Long.toString(request.runId()),
-                        request.userId(),
-                        run.sessionId(),
-                        queuePriority);
+                admission.admit(Long.toString(runId), userId, run.sessionId(), queuePriority);
         if (admissionResult.state() == AgentAdmissionService.State.QUEUED)
-            store.markOutboxQueued(request.runId(), dispatchId, queuePriority);
-        store.markRunQueued(request.runId(), dispatchRowId);
+            store.markOutboxQueued(runId, dispatchId, queuePriority);
+        store.markRunQueued(runId, dispatchRowId);
         RecoveryResult result =
-                new RecoveryResult(Long.toString(request.runId()), dispatchId, attempt, "queued");
-        if (audit != null)
+                new RecoveryResult(Long.toString(runId), dispatchId, attempt, "queued");
+        if (audit != null) {
+            Map<String, Object> details = new HashMap<>(auditDetails);
+            details.put("attempt", attempt);
             audit.record(
-                    request.userId(),
+                    userId,
                     "agent_run",
-                    Long.toString(request.runId()),
-                    "agent_run.checkpoint.recover",
+                    Long.toString(runId),
+                    auditAction,
                     "success",
                     null,
-                    request.checkpointDigest(),
+                    confirmationDigest,
                     null,
-                    Map.of(
-                            "checkpoint_version", request.checkpointVersion(),
-                            "completed_invocation_count", effectiveInvocationIds.size(),
-                            "attempt", attempt));
+                    details);
+        }
         return result;
+    }
+
+    private String withNewAttempt(String payload, Instant deadline, int attempt) {
+        try {
+            ObjectNode root = (ObjectNode) mapper.readTree(payload);
+            root.put("dispatch_id", "dsp_" + UUID.randomUUID().toString().replace("-", ""));
+            root.put("attempt", attempt);
+            root.put("request_id", "req_" + UUID.randomUUID().toString().replace("-", ""));
+            root.put("deadline_at", deadline.toString());
+            return mapper.writeValueAsString(root);
+        } catch (JsonProcessingException | ClassCastException exception) {
+            throw error("RUNTIME_CONTRACT_INVALID", "stored dispatch payload is invalid");
+        }
+    }
+
+    private String readDispatchId(String payload) {
+        try {
+            String value = mapper.readTree(payload).path("dispatch_id").asText("");
+            if (value.isBlank()) throw new IllegalArgumentException("dispatch_id is missing");
+            return value;
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
+            throw error("RUNTIME_CONTRACT_INVALID", "dispatch payload is invalid");
+        }
+    }
+
+    private int readAttempt(String payload) {
+        try {
+            int value = mapper.readTree(payload).path("attempt").asInt(0);
+            if (value < 1) throw new IllegalArgumentException("attempt is invalid");
+            return value;
+        } catch (JsonProcessingException | IllegalArgumentException exception) {
+            throw error("RUNTIME_CONTRACT_INVALID", "dispatch payload is invalid");
+        }
     }
 
     /** 已确认的工具或预算恢复使用的正式触发入口：Java 读取持久化 checkpoint 事件，不信任浏览器重建 checkpoint 元数据。 */
@@ -213,6 +264,89 @@ public class RuntimeRecoveryServiceImpl implements RuntimeRecoveryService {
                         checkpoint.version(),
                         checkpoint.digest(),
                         readInvocationIds(checkpoint.completedInvocationIdsJson())));
+    }
+
+    @Transactional
+    @Override
+    public RecoveryResult retryFailedRun(long userId, long runId) {
+        try {
+            return retryFailedRunInternal(userId, runId);
+        } catch (RuntimeException exception) {
+            if (audit != null)
+                audit.recordFailure(
+                        userId,
+                        "agent_run",
+                        Long.toString(runId),
+                        "agent_run.retry",
+                        "failed",
+                        runtimeErrorCode(exception),
+                        null,
+                        null,
+                        Map.of("exception_type", exception.getClass().getSimpleName()));
+            throw exception;
+        }
+    }
+
+    private RecoveryResult retryFailedRunInternal(long userId, long runId) {
+        if (store == null) throw error("RUNTIME_UNAVAILABLE", "database is not configured");
+        RecoveryRun run = store.lockRun(runId, userId);
+        if (run == null) throw error("RUNTIME_NOT_FOUND", "run does not belong to user");
+        if (!RunStatus.FAILED.code().equals(run.status()))
+            throw error("RUNTIME_STATE_CONFLICT", "only a failed Run can be retried");
+        if (!run.retryableFailure())
+            throw error("RUNTIME_RETRY_NOT_ALLOWED", "the failed Run is not retryable");
+        if (run.deadline() == null || !run.deadline().isAfter(Instant.now()))
+            throw error("RUNTIME_DEADLINE_EXCEEDED", "Run deadline has expired");
+        if (run.payload() == null || run.payload().isBlank())
+            throw error("RUNTIME_CONTRACT_INVALID", "previous dispatch payload is missing");
+
+        String payload;
+        Map<String, Object> auditDetails = new HashMap<>();
+        CheckpointFact checkpoint = store.latestCheckpoint(runId, run.previousDispatchId());
+        if (checkpoint == null) {
+            // 没有当前 dispatch 的 checkpoint 时，只能重放尚未进入工具副作用边界的原始命令。
+            payload = withNewAttempt(run.payload(), run.deadline(), run.previousAttempt() + 1);
+            auditDetails.put("checkpoint_reused", false);
+        } else {
+            RecoveryRequest request =
+                    new RecoveryRequest(
+                            userId,
+                            runId,
+                            checkpoint.version(),
+                            checkpoint.digest(),
+                            readInvocationIds(checkpoint.completedInvocationIdsJson()));
+            validateCheckpoint(request, run, checkpoint);
+            List<String> completedToolResults = store.completedToolResults(runId);
+            List<String> effectiveInvocationIds = mergeInvocationIds(request, completedToolResults);
+            List<String> persistedInvocations = store.completedInvocationIds(runId);
+            if (persistedInvocations == null
+                    || !Set.copyOf(effectiveInvocationIds).containsAll(persistedInvocations))
+                throw error(
+                        "RECOVERY_COMPLETED_INVOCATIONS_MISMATCH",
+                        "recovery request does not include all completed invocations");
+            RecoveryRequest effectiveRequest =
+                    new RecoveryRequest(
+                            userId,
+                            runId,
+                            checkpoint.version(),
+                            checkpoint.digest(),
+                            effectiveInvocationIds);
+            String dispatchId = "dsp_" + UUID.randomUUID().toString().replace("-", "");
+            payload =
+                    withRecoveryContext(
+                            run.payload(),
+                            effectiveRequest,
+                            run.previousDispatchId(),
+                            dispatchId,
+                            run.previousAttempt() + 1,
+                            run.deadline(),
+                            run.budgetRevision(),
+                            completedToolResults);
+            auditDetails.put("checkpoint_reused", true);
+            auditDetails.put("checkpoint_version", checkpoint.version());
+            auditDetails.put("completed_invocation_count", effectiveInvocationIds.size());
+        }
+        return enqueueAttempt(run, userId, runId, payload, "agent_run.retry", null, auditDetails);
     }
 
     private void validateCheckpoint(
