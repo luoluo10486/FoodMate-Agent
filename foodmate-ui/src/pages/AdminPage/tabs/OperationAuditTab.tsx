@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Download, Eye, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -20,6 +20,7 @@ import {
   type AdminExportStatus,
 } from '../../../services/adminService';
 import styles from '../AdminPage.module.css';
+import { isAbortError } from '../../../services/apiClient';
 
 type AuditSource = {
   key: string;
@@ -62,6 +63,22 @@ type AuditRecord = {
   errorCode: string;
   clientInfo: string;
 };
+
+type ExportDisplayState = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'consumed' | 'unknown';
+
+function exportDisplayState(job: AdminExportStatus): ExportDisplayState {
+  if (job.download_consumed_at) return 'consumed';
+  const normalizedStatus = job.status.toLowerCase();
+  if (normalizedStatus === 'completed' && job.expires_at) {
+    const expiresAt = Date.parse(job.expires_at);
+    if (!Number.isNaN(expiresAt) && expiresAt <= Date.now()) return 'expired';
+  }
+  if (normalizedStatus === 'queued' || normalizedStatus === 'running' || normalizedStatus === 'completed') {
+    return normalizedStatus;
+  }
+  if (normalizedStatus === 'failed' || normalizedStatus === 'expired') return normalizedStatus;
+  return 'unknown';
+}
 
 const pageSize = 8;
 
@@ -714,20 +731,38 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
   const [exportJob, setExportJob] = useState<AdminExportStatus>();
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  const [listLoading, setListLoading] = useState(isRealMode);
+  const [listRetryNonce, setListRetryNonce] = useState(0);
   const [auditReport, setAuditReport] = useState<AdminAuditReport>();
   const [auditReportLoading, setAuditReportLoading] = useState(false);
   const [auditReportError, setAuditReportError] = useState('');
+  const listRequestVersion = useRef(0);
+  const listController = useRef<AbortController>();
+  const reportRequestVersion = useRef(0);
+  const reportController = useRef<AbortController>();
+  const exportRequestVersion = useRef(0);
+  const exportController = useRef<AbortController>();
+  const exportTimer = useRef<number>();
 
   const loadAuditReport = useCallback(async () => {
     if (!isRealMode || !canViewAudit) return;
+    reportController.current?.abort();
+    const controller = new AbortController();
+    reportController.current = controller;
+    const version = ++reportRequestVersion.current;
     setAuditReportLoading(true);
     setAuditReportError('');
+    setAuditReport(undefined);
     try {
-      setAuditReport(await loadAdminAuditReport());
+      const report = await loadAdminAuditReport(controller.signal);
+      if (controller.signal.aborted || version !== reportRequestVersion.current) return;
+      setAuditReport(report);
     } catch (error) {
+      if (controller.signal.aborted || version !== reportRequestVersion.current || isAbortError(error)) return;
+      setAuditReport(undefined);
       setAuditReportError(error instanceof Error ? error.message : '运营审计报告加载失败');
     } finally {
-      setAuditReportLoading(false);
+      if (!controller.signal.aborted && version === reportRequestVersion.current) setAuditReportLoading(false);
     }
   }, [isRealMode]);
 
@@ -737,71 +772,129 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
     void loadAuditReport();
   }, [loadAuditReport, refreshNonce]);
 
+  const beginExportRequest = useCallback(() => {
+    exportController.current?.abort();
+    if (exportTimer.current !== undefined) {
+      window.clearTimeout(exportTimer.current);
+      exportTimer.current = undefined;
+    }
+    const controller = new AbortController();
+    exportController.current = controller;
+    const version = ++exportRequestVersion.current;
+    return { controller, version };
+  }, []);
+
+  const trackExport = useCallback(
+    (jobId: number) => {
+      const { controller, version } = beginExportRequest();
+      setExportBusy(true);
+
+      const poll = async (): Promise<void> => {
+        try {
+          const status = await loadAdminExportStatus(jobId, controller.signal);
+          if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+          setExportJob(status);
+          const state = exportDisplayState(status);
+          setExportMessage(`导出任务 #${status.export_job_id} 当前状态：${state}`);
+          if (state === 'queued' || state === 'running') {
+            exportTimer.current = window.setTimeout(() => void poll(), 1000);
+            return;
+          }
+          setExportBusy(false);
+        } catch (error) {
+          if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+          setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
+          setExportBusy(false);
+        }
+      };
+
+      void poll();
+    },
+    [beginExportRequest],
+  );
+
   const createExport = async () => {
+    const { controller, version } = beginExportRequest();
     setExportBusy(true);
+    setExportJob(undefined);
     setExportMessage('');
     try {
       const created = await requestAdminExport(
         'operation-audits',
         { query: query.trim() || undefined, status: resultFilter === 'all' ? undefined : resultFilter },
         ['operator_id', 'action', 'target_type', 'target_id', 'result', 'request_id', 'trace_id', 'created_at'],
+        controller.signal,
       );
-      const status = await loadAdminExportStatus(created.export_job_id);
-      setExportJob(status);
-      setExportMessage(`导出任务 #${created.export_job_id} 已创建，当前状态：${status.status}`);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportMessage(`导出任务 #${created.export_job_id} 已创建，正在读取服务端状态...`);
+      trackExport(created.export_job_id);
     } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
       setExportMessage(error instanceof Error ? error.message : '导出任务创建失败');
-    } finally {
       setExportBusy(false);
     }
   };
 
   const refreshExport = async () => {
     if (!exportJob) return;
-    setExportBusy(true);
-    try {
-      const status = await loadAdminExportStatus(exportJob.export_job_id);
-      setExportJob(status);
-      setExportMessage(`导出任务 #${status.export_job_id} 当前状态：${status.status}`);
-    } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
-    } finally {
-      setExportBusy(false);
-    }
+    trackExport(exportJob.export_job_id);
   };
 
   const consumeExport = async () => {
-    if (!exportJob || exportJob.status !== 'completed') return;
+    if (!exportJob || exportDisplayState(exportJob) !== 'completed') return;
+    const { controller, version } = beginExportRequest();
     setExportBusy(true);
     try {
-      const result = await downloadAdminExport(exportJob.export_job_id);
+      const result = await downloadAdminExport(exportJob.export_job_id, controller.signal);
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
-      setExportJob({ ...exportJob, download_consumed_at: new Date().toISOString() });
-      setExportMessage('下载链接已生成，下载资格已消费一次。');
+      const status = await loadAdminExportStatus(exportJob.export_job_id, controller.signal);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportJob(status);
+      setExportMessage(
+        exportDisplayState(status) === 'consumed'
+          ? '下载链接已生成，下载资格已消费一次。'
+          : '下载链接已生成，服务端状态仍在确认。',
+      );
     } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
       setExportMessage(error instanceof Error ? error.message : '导出下载失败');
     } finally {
-      setExportBusy(false);
+      if (!controller.signal.aborted && version === exportRequestVersion.current) setExportBusy(false);
     }
   };
 
   useEffect(() => {
     if (!isRealMode) return;
-    loadAdminOperationAuditsPage({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: resultFilter,
-      action: actionFilter,
-      targetType: targetFilter,
-      from:
-        timeFilter === 'all'
-          ? undefined
-          : new Date(
-              Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-    })
+    listController.current?.abort();
+    const controller = new AbortController();
+    listController.current = controller;
+    const version = ++listRequestVersion.current;
+    // 条件变化后先清空旧结果，避免新请求完成前继续展示过期的服务端事实。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setListLoading(true);
+    setLoadError('');
+    setRealRows([]);
+    setTotalRows(0);
+
+    void loadAdminOperationAuditsPage(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: resultFilter,
+        action: actionFilter,
+        targetType: targetFilter,
+        from:
+          timeFilter === 'all'
+            ? undefined
+            : new Date(
+                Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
+              ).toISOString(),
+      },
+      controller.signal,
+    )
       .then((result) => {
+        if (controller.signal.aborted || version !== listRequestVersion.current) return;
         setLoadError('');
         setRealRows(
           result.items.map((row, index) =>
@@ -815,11 +908,29 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
         setTotalRows(result.total);
       })
       .catch((error) => {
+        if (controller.signal.aborted || version !== listRequestVersion.current || isAbortError(error)) return;
         setRealRows([]);
         setTotalRows(0);
         setLoadError(error instanceof Error ? error.message : '操作审计加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && version === listRequestVersion.current) setListLoading(false);
       });
-  }, [actionFilter, isRealMode, page, query, refreshNonce, resultFilter, targetFilter, timeFilter]);
+    return () => controller.abort();
+  }, [actionFilter, isRealMode, listRetryNonce, page, query, refreshNonce, resultFilter, targetFilter, timeFilter]);
+
+  useEffect(
+    () => () => {
+      reportController.current?.abort();
+      listController.current?.abort();
+      exportController.current?.abort();
+      if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current);
+      reportRequestVersion.current += 1;
+      listRequestVersion.current += 1;
+      exportRequestVersion.current += 1;
+    },
+    [],
+  );
 
   const rows = isRealMode ? realRows : mockRows;
 
@@ -917,6 +1028,9 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
       {loadError ? (
         <div className={styles.auditError} role="alert">
           {loadError}
+          <Button variant="outline" size="sm" onClick={() => setListRetryNonce((current) => current + 1)}>
+            重试
+          </Button>
         </div>
       ) : null}
       <section className={styles.auditFilters} aria-label="操作审计筛选">
@@ -991,13 +1105,13 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
         {isRealMode && exportMessage ? (
           <div className={styles.auditExportStatus} role="status">
             <span>{exportMessage}</span>
-            {exportJob && exportJob.status !== 'completed' && exportJob.status !== 'failed' ? (
+            {exportJob && ['queued', 'running'].includes(exportDisplayState(exportJob)) ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void refreshExport()}>
                 <RefreshCw aria-hidden="true" />
                 检查状态
               </Button>
             ) : null}
-            {exportJob?.status === 'completed' && !exportJob.download_consumed_at ? (
+            {exportJob && exportDisplayState(exportJob) === 'completed' ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void consumeExport()}>
                 <Download aria-hidden="true" />
                 下载 JSON
@@ -1005,7 +1119,11 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
             ) : null}
           </div>
         ) : null}
-        {visibleRows.length ? (
+        {listLoading ? (
+          <div className={styles.auditEmptyState} role="status">
+            正在读取服务端操作审计...
+          </div>
+        ) : visibleRows.length ? (
           <DataTable
             className={styles.auditTableScroll}
             tableClassName={styles.auditTable}

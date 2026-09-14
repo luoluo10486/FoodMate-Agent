@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Copy, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { AdminOnlyNotice } from './AdminComponents';
 import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import { loadAdminDeletedResourcesPage, restoreAdminResource } from '../../../services/adminService';
+import { isAbortError } from '../../../services/apiClient';
 
 const deletedTotal = 19;
 const pageSize = 4;
@@ -133,9 +134,8 @@ export function DeletedSection({
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce?: number;
 }) {
-  const [rows, setRows] = useState<DeletedRow[]>(
-    import.meta.env.VITE_AGENT_MODE === 'real' ? [] : (adminDeletedRows as DeletedRow[]),
-  );
+  const isReal = import.meta.env.VITE_AGENT_MODE === 'real';
+  const [rows, setRows] = useState<DeletedRow[]>(isReal ? [] : (adminDeletedRows as DeletedRow[]));
   const [resourceFilter, setResourceFilter] = useState('all');
   const [deletedByFilter, setDeletedByFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState('30d');
@@ -143,32 +143,54 @@ export function DeletedSection({
   const [page, setPage] = useState(1);
   const [selectedRow, setSelectedRow] = useState<DeletedRow>();
   const [loadError, setLoadError] = useState('');
-  const [totalResources, setTotalResources] = useState(import.meta.env.VITE_AGENT_MODE === 'real' ? 0 : deletedTotal);
+  const [loading, setLoading] = useState(isReal);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const [totalResources, setTotalResources] = useState(isReal ? 0 : deletedTotal);
+  const requestVersion = useRef(0);
 
   useEffect(() => {
-    if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-    loadAdminDeletedResourcesPage({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      resourceType: resourceFilter,
-      from: timeFilter === 'all' ? undefined : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
-    })
+    if (!isReal) return;
+    const controller = new AbortController();
+    const version = ++requestVersion.current;
+    // 条件变化后先清空旧结果，避免新请求完成前继续展示过期的服务端事实。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setLoadError('');
+    setRows([]);
+    setTotalResources(0);
+
+    void loadAdminDeletedResourcesPage(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        resourceType: resourceFilter,
+        from: timeFilter === 'all' ? undefined : new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+      },
+      controller.signal,
+    )
       .then((result) => {
+        if (controller.signal.aborted || version !== requestVersion.current) return;
         setLoadError('');
         setRows(result.items);
         setTotalResources(result.total);
       })
       .catch((error) => {
+        if (controller.signal.aborted || version !== requestVersion.current || isAbortError(error)) return;
         setRows([]);
         setTotalResources(0);
         setLoadError(error instanceof Error ? error.message : '软删除资源加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && version === requestVersion.current) setLoading(false);
       });
-  }, [page, query, refreshNonce, resourceFilter, timeFilter]);
+
+    return () => controller.abort();
+  }, [isReal, page, query, refreshNonce, resourceFilter, retryNonce, timeFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
-    if (import.meta.env.VITE_AGENT_MODE === 'real') return rows;
+    if (isReal) return rows;
     return rows.filter((row) => {
       const matchesType = resourceFilter === 'all' || resourceTypeKey(row.resourceType) === resourceFilter;
       const matchesDeletedBy = deletedByFilter === 'all' || row.deletedBy === deletedByFilter;
@@ -178,17 +200,13 @@ export function DeletedSection({
         matchesType && matchesDeletedBy && matchesTime && (!normalizedQuery || searchable.includes(normalizedQuery))
       );
     });
-  }, [deletedByFilter, query, resourceFilter, rows, timeFilter]);
+  }, [deletedByFilter, isReal, query, resourceFilter, rows, timeFilter]);
 
   const hasFilter =
     resourceFilter !== 'all' || deletedByFilter !== 'all' || timeFilter !== '30d' || Boolean(query.trim());
-  const totalResults =
-    import.meta.env.VITE_AGENT_MODE === 'real' ? totalResources : hasFilter ? filteredRows.length : deletedTotal;
+  const totalResults = isReal ? totalResources : hasFilter ? filteredRows.length : deletedTotal;
   const pageCount = Math.max(1, Math.ceil(totalResults / pageSize));
-  const visibleRows =
-    import.meta.env.VITE_AGENT_MODE === 'real'
-      ? filteredRows
-      : filteredRows.slice((page - 1) * pageSize, page * pageSize);
+  const visibleRows = isReal ? filteredRows : filteredRows.slice((page - 1) * pageSize, page * pageSize);
   const rangeStart = totalResults === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, totalResults);
 
@@ -280,7 +298,9 @@ export function DeletedSection({
                 execute: async () => {
                   await restoreAdminResource(record.resourceType, record.resourceId, record.revision ?? 1);
                 },
-                onApply: () => setRows((current) => current.filter((item) => item.key !== record.key)),
+                onApply: () => {
+                  if (!isReal) setRows((current) => current.filter((item) => item.key !== record.key));
+                },
               })
             }
           >
@@ -298,6 +318,14 @@ export function DeletedSection({
       {loadError ? (
         <div className={styles.auditError} role="alert">
           {loadError}
+          <Button variant="outline" size="sm" onClick={() => setRetryNonce((current) => current + 1)}>
+            重试
+          </Button>
+        </div>
+      ) : null}
+      {loading ? (
+        <div className={styles.auditReportLoading} role="status">
+          正在读取软删除资源...
         </div>
       ) : null}
       <section className={styles.deletedFilters} aria-label="删除资源筛选">
@@ -376,9 +404,7 @@ export function DeletedSection({
           >
             上一页
           </Button>
-          {Array.from({ length: import.meta.env.VITE_AGENT_MODE === 'real' ? 1 : pageCount }, (_, index) =>
-            import.meta.env.VITE_AGENT_MODE === 'real' ? page : index + 1,
-          ).map((value) => (
+          {Array.from({ length: isReal ? 1 : pageCount }, (_, index) => (isReal ? page : index + 1)).map((value) => (
             <Button
               variant="outline"
               className={`${styles.deletedPageButton} ${page === value ? styles.deletedPageActive : ''}`}

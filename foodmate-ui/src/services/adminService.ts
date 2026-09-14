@@ -694,9 +694,10 @@ type AdminDeletedQueryItem = {
 
 export async function loadAdminDeletedResourcesPage(
   params: AdminQueryParams = {},
+  signal?: AbortSignal,
 ): Promise<AdminPageResult<AdminDeletedRow>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await loadAdminQuery<AdminDeletedQueryItem>('deleted', params);
+  const data = await loadAdminQuery<AdminDeletedQueryItem>('deleted', params, signal);
   return {
     items: data.items.map((row, index) => ({
       key: `deleted-${row.resource_id ?? index}`,
@@ -722,12 +723,17 @@ export async function loadAdminDeletedResources(): Promise<AdminDeletedRow[]> {
 
 export async function loadAdminOperationAuditsPage(
   params: AdminQueryParams = {},
+  signal?: AbortSignal,
 ): Promise<AdminPageResult<AdminOperationAuditResponse>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await loadAdminQuery<AdminOperationAuditResponse>('operation-audits', {
-    size: 20,
-    ...params,
-  });
+  const data = await loadAdminQuery<AdminOperationAuditResponse>(
+    'operation-audits',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
   return data;
 }
 
@@ -749,9 +755,9 @@ export type AdminAuditReport = {
   }>;
 };
 
-export async function loadAdminAuditReport(): Promise<AdminAuditReport> {
+export async function loadAdminAuditReport(signal?: AbortSignal): Promise<AdminAuditReport> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminAuditReport>('/api/admin/audit-reports/current');
+  return apiRequest<AdminAuditReport>('/api/admin/audit-reports/current', readRequestInit(signal));
 }
 
 export type AdminDlqReplayResult = {
@@ -886,9 +892,11 @@ export async function requestAdminExport(
   resource: string,
   filters: { query?: string; status?: string; visibility?: string; sort?: string; direction?: 'asc' | 'desc' } = {},
   fields?: string[],
+  signal?: AbortSignal,
 ) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   return apiRequest<{ export_job_id: number }>('/api/admin/exports', {
+    ...readRequestInit(signal),
     method: 'POST',
     headers: { 'Idempotency-Key': randomIdempotencyKey(`admin-export-${resource}`) },
     body: JSON.stringify({
@@ -899,14 +907,17 @@ export async function requestAdminExport(
   });
 }
 
-export async function loadAdminExportStatus(jobId: number) {
+export async function loadAdminExportStatus(jobId: number, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminExportStatus>(`/api/admin/exports/${jobId}`);
+  return apiRequest<AdminExportStatus>(`/api/admin/exports/${jobId}`, readRequestInit(signal));
 }
 
-export async function downloadAdminExport(jobId: number) {
+export async function downloadAdminExport(jobId: number, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<{ download_url: string }>(`/api/admin/exports/${jobId}/download`, { method: 'POST' });
+  return apiRequest<{ download_url: string }>(`/api/admin/exports/${jobId}/download`, {
+    ...readRequestInit(signal),
+    method: 'POST',
+  });
 }
 
 export type AdminUserRow = {
@@ -1416,13 +1427,19 @@ async function modelGovernanceWrite<T>(
   });
 }
 
-export async function loadModelGovernance(query: ModelGovernanceUsageQuery = {}): Promise<ModelGovernanceView> {
+export async function loadModelGovernance(
+  query: ModelGovernanceUsageQuery = {},
+  signal?: AbortSignal,
+): Promise<ModelGovernanceView> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real model governance API is disabled');
   const search = new URLSearchParams();
   if (query.from) search.set('from', query.from);
   if (query.to) search.set('to', query.to);
   const suffix = search.toString();
-  return apiRequest<ModelGovernanceView>(`/api/admin/model-governance${suffix ? `?${suffix}` : ''}`);
+  return apiRequest<ModelGovernanceView>(
+    `/api/admin/model-governance${suffix ? `?${suffix}` : ''}`,
+    readRequestInit(signal),
+  );
 }
 
 export async function updateModelProviderStatus(provider: ModelGovernanceProvider, status: string) {

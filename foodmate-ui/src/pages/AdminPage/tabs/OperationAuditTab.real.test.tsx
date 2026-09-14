@@ -139,4 +139,38 @@ describe('OperationAuditSection real mode', () => {
       fetchMock.mock.calls.filter(([request]) => String(request) === '/api/admin/audit-reports/current'),
     ).toHaveLength(2);
   });
+
+  it('clears the real audit list on failure and retries the same server query', async () => {
+    let listAttempts = 0;
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = new URL(String(input), 'http://foodmate.local').pathname;
+      if (path === '/api/admin/audit-reports/current') return Promise.resolve(ok(auditReport));
+      if (path === '/api/admin/queries/operation-audits') {
+        listAttempts += 1;
+        if (listAttempts === 1) {
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                success: false,
+                error: { code: 'AUDIT_QUERY_UNAVAILABLE', message: '审计列表暂不可用' },
+              }),
+              { status: 503, headers: { 'Content-Type': 'application/json' } },
+            ),
+          );
+        }
+        return Promise.resolve(ok({ items: [auditRow], total: 1, page: 1, size: 8 }));
+      }
+      return Promise.resolve(ok({ items: [], total: 0, page: 1, size: 8 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderAudit();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('审计列表暂不可用');
+    expect(screen.queryByText('查看运行详情')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: '重试' }));
+
+    expect(await screen.findByText('查看运行详情')).toBeInTheDocument();
+    expect(listAttempts).toBe(2);
+  });
 });

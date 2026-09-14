@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -28,6 +28,7 @@ import {
   type ModelGovernanceView,
 } from '../../../services/adminService';
 import { getAuthUser } from '../../../services/authService';
+import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
 
@@ -148,24 +149,39 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
   const [formError, setFormError] = useState('');
   const [priceForm, setPriceForm] = useState<PriceFormState>(initialPriceForm);
   const [budgetForm, setBudgetForm] = useState<BudgetFormState>(initialBudgetForm);
+  const requestVersion = useRef(0);
+  const requestController = useRef<AbortController>();
 
   const refresh = useCallback(async () => {
     if (!isReal) return;
+    requestController.current?.abort();
+    const controller = new AbortController();
+    requestController.current = controller;
+    const version = ++requestVersion.current;
     setLoading(true);
     setError('');
+    setData(undefined);
     try {
-      setData(await loadModelGovernance());
+      const nextData = await loadModelGovernance({}, controller.signal);
+      if (controller.signal.aborted || version !== requestVersion.current) return;
+      setData(nextData);
     } catch (cause) {
+      if (controller.signal.aborted || version !== requestVersion.current || isAbortError(cause)) return;
+      setData(undefined);
       setError(cause instanceof Error ? cause.message : '模型治理数据加载失败');
     } finally {
-      setLoading(false);
+      if (!controller.signal.aborted && version === requestVersion.current) setLoading(false);
     }
   }, [isReal]);
 
   useEffect(() => {
-    // Refresh is an external data subscription whose initial state is intentionally set by the loader.
+    // 读取请求属于页面生命周期，切换刷新批次或卸载页面时必须取消旧请求。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
+    return () => {
+      requestController.current?.abort();
+      requestVersion.current += 1;
+    };
   }, [refresh, refreshNonce]);
 
   const requestProviderStatus = (provider: ModelGovernanceProvider) => {

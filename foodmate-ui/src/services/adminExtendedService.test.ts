@@ -4,7 +4,10 @@ import {
   createModelBudget,
   createModelPrice,
   loadAdminAuditReport,
+  loadAdminDeletedResourcesPage,
   loadAdminQuery,
+  loadAdminExportStatus,
+  loadAdminOperationAuditsPage,
   loadModelGovernance,
   loadRetentionPurge,
   loadRetentionPurgePreflight,
@@ -53,6 +56,37 @@ describe('admin extended APIs', () => {
       '/api/admin/queries/runs?page=2&size=20',
       expect.objectContaining({ method: 'GET', signal: controller.signal }),
     );
+  });
+
+  it('forwards cancellation through admin lifecycle reads', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = new URL(String(input), 'http://foodmate.local').pathname;
+      if (path.includes('/queries/')) return Promise.resolve(ok({ items: [], total: 0, page: 1, size: 4 }));
+      if (path === '/api/admin/audit-reports/current')
+        return Promise.resolve(ok({ generated_at: '', stale_threshold_minutes: 15, status: 'healthy', checks: [] }));
+      return Promise.resolve(
+        ok({
+          export_job_id: 4,
+          resource: 'operation-audits',
+          status: 'queued',
+          expires_at: null,
+          completed_at: null,
+          download_consumed_at: null,
+          failure_code: null,
+        }),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAdminDeletedResourcesPage({}, controller.signal);
+    await loadAdminOperationAuditsPage({}, controller.signal);
+    await loadAdminAuditReport(controller.signal);
+    await loadAdminExportStatus(4, controller.signal);
+
+    expect(fetchMock.mock.calls).toHaveLength(4);
+    for (const [, init] of fetchMock.mock.calls)
+      expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
   });
 
   it('uses the document id in the knowledge reindex route', async () => {

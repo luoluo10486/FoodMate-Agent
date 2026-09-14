@@ -181,4 +181,40 @@ describe('ModelGovernanceSection real mode', () => {
     expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/^model-budget-create-/);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
   });
+
+  it('clears stale governance data when a refreshed read fails', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        ok({
+          ...governanceView,
+          providers: [
+            {
+              provider_id: 11,
+              provider_code: 'cloud-primary',
+              status: 'active',
+              configured: true,
+              fingerprint: 'sha256:test',
+              revision: 3,
+            },
+          ],
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({ success: false, error: { code: 'GOVERNANCE_UNAVAILABLE', message: '治理数据暂不可用' } }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    renderGovernance();
+    expect(await screen.findByText('cloud-primary')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '刷新' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('治理数据暂不可用');
+    expect(screen.queryByText('cloud-primary')).not.toBeInTheDocument();
+  });
 });
