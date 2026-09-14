@@ -806,6 +806,9 @@ export function PlanningPage() {
   const shoppingActionRequestId = useRef(0);
   const shoppingActionController = useRef<AbortController>();
   const planActionRequestId = useRef(0);
+  const planActionController = useRef<AbortController>();
+  const submitPlanRequestId = useRef(0);
+  const submitPlanController = useRef<AbortController>();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -819,6 +822,11 @@ export function PlanningPage() {
       shoppingActionController.current?.abort();
       shoppingActionController.current = undefined;
       planActionRequestId.current += 1;
+      planActionController.current?.abort();
+      planActionController.current = undefined;
+      submitPlanRequestId.current += 1;
+      submitPlanController.current?.abort();
+      submitPlanController.current = undefined;
     };
   }, []);
 
@@ -861,6 +869,8 @@ export function PlanningPage() {
   useEffect(() => {
     // 路由或默认计划变化时，旧的写操作结果不得回写到当前计划。
     planActionRequestId.current += 1;
+    planActionController.current?.abort();
+    planActionController.current = undefined;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPlanActionId(undefined);
     setPlanActionError(undefined);
@@ -1010,21 +1020,24 @@ export function PlanningPage() {
 
   const runPlanAction = async <T,>(
     mealPlanId: string,
-    action: () => Promise<T>,
+    action: (signal: AbortSignal) => Promise<T>,
     fallback: string,
   ): Promise<{ value: T; requestId: number }> => {
-    if (planActionId) throw new Error('当前已有餐食计划操作进行中');
+    if (planActionId || planActionController.current) throw new Error('当前已有餐食计划操作进行中');
     const requestId = ++planActionRequestId.current;
+    const controller = new AbortController();
+    planActionController.current = controller;
     setPlanActionId(mealPlanId);
     setPlanActionError(undefined);
     try {
-      return { value: await action(), requestId };
+      return { value: await action(controller.signal), requestId };
     } catch (error: unknown) {
-      if (mountedRef.current && requestId === planActionRequestId.current)
+      if (mountedRef.current && requestId === planActionRequestId.current && !isAbortError(error))
         setPlanActionError(planningErrorMessage(error, fallback));
       throw error;
     } finally {
       if (mountedRef.current && requestId === planActionRequestId.current) setPlanActionId(undefined);
+      if (planActionController.current === controller) planActionController.current = undefined;
     }
   };
 
@@ -1038,7 +1051,7 @@ export function PlanningPage() {
   };
 
   const saveDraft = async () => {
-    if (savingDraft) return;
+    if (savingDraft || planActionId || planActionController.current) return;
     const requestId = ++planActionRequestId.current;
     const editingPlan = editingPlanId
       ? realPlans.find((plan) => plan.meal_plan_id === editingPlanId && !plan.deleted)
@@ -1047,22 +1060,30 @@ export function PlanningPage() {
       setCreatePlanError('编辑的餐食计划已不存在，请重新打开计划列表。');
       return;
     }
+    const controller = new AbortController();
+    planActionController.current = controller;
     setSavingDraft(true);
     setCreatePlanError(undefined);
     try {
       const savedPlan = editingPlan
-        ? await updateMealPlan(editingPlan.meal_plan_id, editingPlan.revision, mealPlanDraftToUpdateRequest(realDraft))
-        : await createMealPlan(realDraft);
+        ? await updateMealPlan(
+            editingPlan.meal_plan_id,
+            editingPlan.revision,
+            mealPlanDraftToUpdateRequest(realDraft),
+            controller.signal,
+          )
+        : await createMealPlan(realDraft, controller.signal);
       if (!mountedRef.current || requestId !== planActionRequestId.current) return;
       replacePlanInState(savedPlan);
       setEditingPlanId(undefined);
       setPlanReloadNonce((value) => value + 1);
       navigate(`/planning?planId=${encodeURIComponent(savedPlan.meal_plan_id)}`);
     } catch (error: unknown) {
-      if (mountedRef.current && requestId === planActionRequestId.current)
+      if (mountedRef.current && requestId === planActionRequestId.current && !isAbortError(error))
         setCreatePlanError(planningErrorMessage(error, '餐食计划保存失败，请重试。'));
     } finally {
       if (mountedRef.current && requestId === planActionRequestId.current) setSavingDraft(false);
+      if (planActionController.current === controller) planActionController.current = undefined;
     }
   };
 
@@ -1071,7 +1092,7 @@ export function PlanningPage() {
     try {
       const result = await runPlanAction(
         selectedPlan.meal_plan_id,
-        () => validateMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
+        (signal) => validateMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision, signal),
         '计划校验失败，请重试。',
       );
       if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
@@ -1087,7 +1108,7 @@ export function PlanningPage() {
     try {
       const result = await runPlanAction(
         selectedPlan.meal_plan_id,
-        () => saveMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
+        (signal) => saveMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision, signal),
         '计划保存失败，请重试。',
       );
       if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
@@ -1101,7 +1122,7 @@ export function PlanningPage() {
   const deleteRealPlan = async (plan: MealPlan) => {
     const result = await runPlanAction(
       plan.meal_plan_id,
-      () => deleteMealPlan(plan.meal_plan_id, plan.revision),
+      (signal) => deleteMealPlan(plan.meal_plan_id, plan.revision, signal),
       '餐食计划删除失败，请重试。',
     );
     if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
@@ -1114,7 +1135,7 @@ export function PlanningPage() {
     try {
       const result = await runPlanAction(
         plan.meal_plan_id,
-        () => restoreMealPlan(plan.meal_plan_id, plan.revision),
+        (signal) => restoreMealPlan(plan.meal_plan_id, plan.revision, signal),
         '餐食计划恢复失败，请重试。',
       );
       if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
@@ -1153,16 +1174,24 @@ export function PlanningPage() {
 
   const submitRealPlan = async () => {
     if (creatingPlan) return;
+    submitPlanController.current?.abort();
+    const requestId = ++submitPlanRequestId.current;
+    const controller = new AbortController();
+    submitPlanController.current = controller;
     setCreatingPlan(true);
     setCreatePlanError(undefined);
     try {
-      const session = await createSession(realDraft.planName.trim() || '餐食计划生成');
-      await sendUserMessage(session.session_id, buildMealPlanPrompt(realDraft));
+      const session = await createSession(realDraft.planName.trim() || '餐食计划生成', controller.signal);
+      await sendUserMessage(session.session_id, buildMealPlanPrompt(realDraft), controller.signal);
+      if (!mountedRef.current || controller.signal.aborted || requestId !== submitPlanRequestId.current) return;
       navigate(`/chat/${encodeURIComponent(session.session_id)}`);
     } catch (error: unknown) {
-      setCreatePlanError(error instanceof Error ? error.message : '计划创建失败，请检查参数后重试');
+      if (!isAbortError(error) && mountedRef.current && requestId === submitPlanRequestId.current) {
+        setCreatePlanError(error instanceof Error ? error.message : '计划创建失败，请检查参数后重试');
+      }
     } finally {
-      setCreatingPlan(false);
+      if (mountedRef.current && requestId === submitPlanRequestId.current) setCreatingPlan(false);
+      if (submitPlanController.current === controller) submitPlanController.current = undefined;
     }
   };
 

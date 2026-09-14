@@ -96,12 +96,13 @@ export async function loadMealPlans(signal?: AbortSignal): Promise<MealPlan[]> {
   return plans.map(normalizeMealPlan);
 }
 
-export async function createMealPlan(draft: MealPlanDraft): Promise<MealPlan> {
+export async function createMealPlan(draft: MealPlanDraft, signal?: AbortSignal): Promise<MealPlan> {
   const days = planDays(draft.startDate, draft.endDate);
   return apiRequest<MealPlan>('/api/meal-plans', {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey('meal-plan-create') },
     body: JSON.stringify(draftToPlanRequest(draft, days)),
+    signal,
   }).then(normalizeMealPlan);
 }
 
@@ -118,50 +119,56 @@ export async function updateMealPlan(
   mealPlanId: string,
   revision: number,
   request: MealPlanUpdateRequest,
+  signal?: AbortSignal,
 ): Promise<MealPlan> {
   const plan = await apiRequest<MealPlan>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}?revision=${revision}`, {
     method: 'PATCH',
     headers: { 'Idempotency-Key': idempotencyKey('meal-plan-update') },
     body: JSON.stringify(request),
+    signal,
   });
   return normalizeMealPlan(plan);
 }
 
-export async function validateMealPlan(mealPlanId: string, revision: number): Promise<MealPlan> {
+export async function validateMealPlan(mealPlanId: string, revision: number, signal?: AbortSignal): Promise<MealPlan> {
   const plan = await apiRequest<MealPlan>(
     `/api/meal-plans/${encodeURIComponent(mealPlanId)}/validate?revision=${revision}`,
     {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('meal-plan-validate') },
+      signal,
     },
   );
   return normalizeMealPlan(plan);
 }
 
-export async function saveMealPlan(mealPlanId: string, revision: number): Promise<MealPlan> {
+export async function saveMealPlan(mealPlanId: string, revision: number, signal?: AbortSignal): Promise<MealPlan> {
   const plan = await apiRequest<MealPlan>(
     `/api/meal-plans/${encodeURIComponent(mealPlanId)}/save?revision=${revision}`,
     {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('meal-plan-save') },
+      signal,
     },
   );
   return normalizeMealPlan(plan);
 }
 
-export async function deleteMealPlan(mealPlanId: string, revision: number): Promise<void> {
+export async function deleteMealPlan(mealPlanId: string, revision: number, signal?: AbortSignal): Promise<void> {
   await apiRequest<void>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}?revision=${revision}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey('meal-plan-delete') },
+    signal,
   });
 }
 
-export async function restoreMealPlan(mealPlanId: string, revision: number): Promise<MealPlan> {
+export async function restoreMealPlan(mealPlanId: string, revision: number, signal?: AbortSignal): Promise<MealPlan> {
   const plan = await apiRequest<MealPlan>(
     `/api/meal-plans/${encodeURIComponent(mealPlanId)}/restore?revision=${revision}`,
     {
       method: 'POST',
       headers: { 'Idempotency-Key': idempotencyKey('meal-plan-restore') },
+      signal,
     },
   );
   return normalizeMealPlan(plan);

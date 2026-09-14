@@ -32,18 +32,22 @@ describe('planningService lifecycle APIs', () => {
         Promise.resolve(new Response(JSON.stringify({ success: true, data: response }), { status: 200 })),
       );
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await createMealPlan({
-      planName: '一周计划',
-      startDate: '2026-09-13',
-      endDate: '2026-09-14',
-      people: '2',
-      calories: '2200',
-      protein: '130',
-      budget: '120',
-      allergens: ['花生'],
-      dislikes: ['香菜'],
-    });
+    await createMealPlan(
+      {
+        planName: '一周计划',
+        startDate: '2026-09-13',
+        endDate: '2026-09-14',
+        people: '2',
+        calories: '2200',
+        protein: '130',
+        budget: '120',
+        allergens: ['花生'],
+        dislikes: ['香菜'],
+      },
+      controller.signal,
+    );
 
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toMatchObject({
@@ -56,6 +60,7 @@ describe('planningService lifecycle APIs', () => {
       dislikes: ['香菜'],
     });
     expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/^meal-plan-create-/);
+    expect(init.signal).toBe(controller.signal);
   });
 
   it('uses revision and idempotency headers for the plan lifecycle', async () => {
@@ -73,12 +78,13 @@ describe('planningService lifecycle APIs', () => {
         Promise.resolve(new Response(JSON.stringify({ success: true, data: response }), { status: 200 })),
       );
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await updateMealPlan('10', 1, { people: 1, days: 1, days_plan: [] });
-    await validateMealPlan('10', 2);
-    await saveMealPlan('10', 3);
-    await deleteMealPlan('10', 4);
-    await restoreMealPlan('10', 5);
+    await updateMealPlan('10', 1, { people: 1, days: 1, days_plan: [] }, controller.signal);
+    await validateMealPlan('10', 2, controller.signal);
+    await saveMealPlan('10', 3, controller.signal);
+    await deleteMealPlan('10', 4, controller.signal);
+    await restoreMealPlan('10', 5, controller.signal);
 
     expect(fetchMock.mock.calls.map(([path, init]) => [path, init.method])).toEqual([
       ['/api/meal-plans/10?revision=1', 'PATCH'],
@@ -89,6 +95,7 @@ describe('planningService lifecycle APIs', () => {
     ]);
     for (const [, init] of fetchMock.mock.calls.slice(0, 5) as Array<[string, RequestInit]>) {
       expect(new Headers(init.headers).get('Idempotency-Key')).toMatch(/^meal-plan-/);
+      expect(init.signal).toBe(controller.signal);
     }
   });
 

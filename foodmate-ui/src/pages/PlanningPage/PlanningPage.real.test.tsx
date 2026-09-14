@@ -233,8 +233,8 @@ describe('PlanningPage real mode', () => {
     await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
     await user.click(screen.getByRole('button', { name: '提交给 Agent 生成' }));
 
-    await waitFor(() => expect(createSession).toHaveBeenCalledWith('我的本地餐食计划'));
-    expect(sendUserMessage).toHaveBeenCalledWith('session-702', expect.any(String));
+    await waitFor(() => expect(createSession).toHaveBeenCalledWith('我的本地餐食计划', expect.any(AbortSignal)));
+    expect(sendUserMessage).toHaveBeenCalledWith('session-702', expect.any(String), expect.any(AbortSignal));
     const prompt = vi.mocked(sendUserMessage).mock.calls[0][1];
     expect(prompt).toContain('计划名称：我的本地餐食计划');
     expect(prompt).toContain('规划日期：2026-08-24 至 2026-08-30（共 7 天）');
@@ -351,6 +351,7 @@ describe('PlanningPage real mode', () => {
         protein: '130',
         budget: '120',
       }),
+      expect.any(AbortSignal),
     );
     expect(updateMealPlan).not.toHaveBeenCalled();
   });
@@ -374,6 +375,7 @@ describe('PlanningPage real mode', () => {
         days: 1,
         days_plan: plan.days_plan,
       }),
+      expect.any(AbortSignal),
     );
     expect(createMealPlan).not.toHaveBeenCalled();
   });
@@ -390,9 +392,9 @@ describe('PlanningPage real mode', () => {
 
     expect(await screen.findByRole('heading', { name: '服务端增肌计划' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '校验计划' }));
-    await waitFor(() => expect(validateMealPlan).toHaveBeenCalledWith('706', 3));
+    await waitFor(() => expect(validateMealPlan).toHaveBeenCalledWith('706', 3, expect.any(AbortSignal)));
     await user.click(screen.getByRole('button', { name: '保存计划' }));
-    await waitFor(() => expect(saveMealPlan).toHaveBeenCalledWith('706', 4));
+    await waitFor(() => expect(saveMealPlan).toHaveBeenCalledWith('706', 4, expect.any(AbortSignal)));
   });
 
   it('keeps the delete dialog open after a revision conflict', async () => {
@@ -408,6 +410,27 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
+  it('cancels a pending plan mutation when the page unmounts', async () => {
+    const pending = deferred<void>();
+    vi.mocked(deleteMealPlan).mockImplementation((_mealPlanId, _revision, signal) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return pending.promise;
+    });
+    const user = userEvent.setup();
+    const view = renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '服务端增肌计划更多操作' }));
+    await user.click(screen.getByRole('menuitem', { name: '删除计划' }));
+    await user.click(screen.getByRole('button', { name: '确认删除' }));
+    await waitFor(() => expect(deleteMealPlan).toHaveBeenCalledTimes(1));
+
+    const signal = vi.mocked(deleteMealPlan).mock.calls[0][2];
+    view.unmount();
+    expect(signal?.aborted).toBe(true);
+    pending.resolve();
+    await Promise.resolve();
+  });
+
   it('restores a deleted plan and regenerates its shopping list from the server', async () => {
     const deletedPlan = { ...plan, meal_plan_id: '707', deleted: true, status: 'saved' };
     vi.mocked(loadMealPlans).mockResolvedValue([deletedPlan]);
@@ -418,7 +441,7 @@ describe('PlanningPage real mode', () => {
     await user.click(await screen.findByRole('tab', { name: '已删除' }));
     await user.click(screen.getByRole('button', { name: '服务端增肌计划更多操作' }));
     await user.click(screen.getByRole('menuitem', { name: '恢复计划' }));
-    await waitFor(() => expect(restoreMealPlan).toHaveBeenCalledWith('707', 3));
+    await waitFor(() => expect(restoreMealPlan).toHaveBeenCalledWith('707', 3, expect.any(AbortSignal)));
 
     deletedRender.unmount();
     vi.mocked(loadMealPlans).mockResolvedValue([plan]);
