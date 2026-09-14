@@ -317,7 +317,7 @@ export function useRealAgentReplay(
   );
 
   const openStream = useCallback(
-    (runId: string, cursor?: string, preserveContent = false) => {
+    (runId: string, cursor?: string, preserveContent = false, signal?: AbortSignal) => {
       closeStream();
       if (!preserveContent) {
         setAssistantText('');
@@ -331,6 +331,7 @@ export function useRealAgentReplay(
         },
         cursor,
         {
+          signal,
           maxAttempts,
           reconnectDelayMs: options.reconnectDelayMs,
           onStateChange: (nextConnection) => {
@@ -384,7 +385,7 @@ export function useRealAgentReplay(
         return true;
       }
       setRunning(true);
-      openStream(runId, lastEventIdRef.current, preserveContent);
+      openStream(runId, lastEventIdRef.current, preserveContent, signal);
       return false;
     },
     [acceptEvent, closeStream, maxAttempts, openStream, publishConnection],

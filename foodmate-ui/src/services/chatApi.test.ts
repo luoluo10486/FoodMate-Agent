@@ -147,4 +147,23 @@ describe('chatApi HTTP contract', () => {
     expect(stream.getConnection().lastEventId).toBe('message-2');
     stream.close();
   });
+
+  it('closes the Chat stream and cancels pending reconnect when the lifecycle signal aborts', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const controller = new AbortController();
+    const stream = streamChatRun('42', () => undefined, undefined, {
+      signal: controller.signal,
+      reconnectDelayMs: 10,
+    });
+
+    const source = FakeEventSource.instances[0];
+    source.fail();
+    controller.abort();
+    vi.advanceTimersByTime(20);
+
+    expect(source.closed).toBe(true);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(stream.getConnection().state).toBe('closed');
+  });
 });

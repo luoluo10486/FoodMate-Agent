@@ -92,6 +92,8 @@ export async function cancelChatRun(runId: string, signal?: AbortSignal): Promis
 }
 
 export type ChatStreamOptions = {
+  /** 绑定 ChatRun 生命周期，取消后关闭流并阻止后续重连。 */
+  signal?: AbortSignal;
   maxAttempts?: number;
   reconnectDelayMs?: number;
   onStateChange?: (connection: AgentStreamConnection) => void;
@@ -131,6 +133,7 @@ export function streamChatRun(
     path: `/api/chat/runs/${encodeURIComponent(runId)}/stream`,
     eventTypes: chatEventTypes,
     lastEventId: lastEventId === undefined ? undefined : String(lastEventId),
+    signal: options.signal,
     maxAttempts: options.maxAttempts,
     reconnectDelayMs: options.reconnectDelayMs,
     onStateChange: options.onStateChange,

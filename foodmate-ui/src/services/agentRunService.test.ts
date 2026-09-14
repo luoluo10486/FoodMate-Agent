@@ -327,4 +327,26 @@ describe('openAgentRunStream', () => {
     expect(FakeEventSource.instances).toHaveLength(1);
     expect(states.at(-1)).toBe('closed:1');
   });
+
+  it('closes the stream and cancels pending reconnect when the lifecycle signal aborts', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const controller = new AbortController();
+    const states: string[] = [];
+    const stream = openAgentRunStream('42', () => undefined, {
+      signal: controller.signal,
+      reconnectDelayMs: 10,
+      onStateChange: (connection) => states.push(connection.state),
+    });
+
+    const source = FakeEventSource.instances[0];
+    source.fail();
+    controller.abort();
+    vi.advanceTimersByTime(20);
+
+    expect(source.closed).toBe(true);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    expect(stream.getConnection().state).toBe('closed');
+    expect(states.at(-1)).toBe('closed');
+  });
 });
