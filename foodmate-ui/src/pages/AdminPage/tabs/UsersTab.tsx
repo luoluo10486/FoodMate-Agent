@@ -326,6 +326,8 @@ export function UsersSection({
         await updateAdminUserStatus(record.userId, status, record.revision ?? 1, signal);
       },
       onApply: () => {
+        // 真实模式由 refreshNonce 触发服务端回读，不能直接修改本地 Fixture 数据。
+        if (!isMockMode) return;
         setUsers((current) =>
           current.map((user) =>
             user.userId === record.userId
@@ -347,6 +349,8 @@ export function UsersSection({
         await revokeAdminUserSessions(record.userId, record.revision ?? 1, signal);
       },
       onApply: () => {
+        // 真实模式的会话状态必须来自用户详情接口，避免污染共享 Fixture 数组。
+        if (!isMockMode) return;
         adminUserSessionRows
           .filter((session) => session.userId === record.userId)
           .forEach((session) => {
@@ -713,6 +717,7 @@ function UserDetailCard({
   const avatarSource = resolveAvatarUrl(user.avatarUrl, profile?.gender || user.gender);
   // Figma 用户详情使用登记的默认头像；真实用户详情仍允许展示后端上传头像。
   const isFixtureUser = isMockMode || user.key.startsWith('figma-');
+  const canPreviewCredentialReset = isMockMode;
 
   return (
     <Card className={styles.userDetailCard}>
@@ -841,16 +846,28 @@ function UserDetailCard({
         <Button
           variant="outline"
           className={styles.userCredentialButton}
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent('foodmate:admin-notice', {
-                detail: { message: '重置凭证接口尚未接入，未执行任何操作。' },
-              }),
-            )
+          type="button"
+          disabled={!canPreviewCredentialReset}
+          aria-describedby={!canPreviewCredentialReset ? 'user-credential-reset-hint' : undefined}
+          title={!canPreviewCredentialReset ? '后端当前未提供凭证重置接口' : undefined}
+          onClick={
+            canPreviewCredentialReset
+              ? () =>
+                  window.dispatchEvent(
+                    new CustomEvent('foodmate:admin-notice', {
+                      detail: { message: 'Fixture 仅展示凭证重置入口，真实接口尚未提供。' },
+                    }),
+                  )
+              : undefined
           }
         >
           重置凭证
         </Button>
+        {!canPreviewCredentialReset ? (
+          <span id="user-credential-reset-hint" className={styles.userCredentialHint}>
+            后端当前未提供凭证重置接口
+          </span>
+        ) : null}
         <Button variant="outline" className={styles.userRevokeButton} disabled={!canManage} onClick={onRevoke}>
           撤销所有会话
         </Button>

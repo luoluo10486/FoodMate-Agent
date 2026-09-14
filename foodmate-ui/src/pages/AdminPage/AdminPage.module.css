@@ -3813,6 +3813,14 @@
   border: 1px solid #f4f6f5 !important;
 }
 
+.userCredentialHint {
+  margin: -4px 0 0;
+  color: #858c85;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .userRevokeButton {
   border: 1px solid #ff7576 !important;
   color: #d67676 !important;
