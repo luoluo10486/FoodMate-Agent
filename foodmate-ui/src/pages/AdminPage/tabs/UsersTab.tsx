@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -9,11 +9,11 @@ import {
   History,
   MoreHorizontal,
   Monitor,
+  RefreshCw,
   Search,
   ShieldCheck,
   Utensils,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import styles from '../AdminPage.module.css';
+import { isAbortError } from '../../../services/apiClient';
 import { AdminOnlyNotice } from './AdminComponents';
 import {
   type UserBusinessSessionRow,
@@ -190,9 +191,11 @@ const operationHistoryColumns: TableColumnProps<UserOperationHistoryRow>[] = [
 export function UsersSection({
   onAction,
   figmaFixture = false,
+  refreshNonce = 0,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   figmaFixture?: boolean;
+  refreshNonce?: number;
 }) {
   const isFigmaFixture = figmaFixture && isMockMode;
   const [selectedUser, setSelectedUser] = useState<AdminUserView | undefined>(
@@ -200,6 +203,8 @@ export function UsersSection({
   );
   const [users, setUsers] = useState<AdminUserView[]>(isMockMode ? figmaUserRows : []);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(!isMockMode);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('active');
@@ -210,61 +215,86 @@ export function UsersSection({
   const [selectedDetail, setSelectedDetail] = useState<AdminUserDetail>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [detailRetryNonce, setDetailRetryNonce] = useState(0);
+  const listRequestIdRef = useRef(0);
+  const detailRequestIdRef = useRef(0);
   const selectedUserId = selectedUser?.userId;
   const displayedTotalUsers = isFigmaFixture ? 1284 : totalUsers;
 
   useEffect(() => {
     if (isMockMode) return;
-    let active = true;
-    loadAdminUsersPage({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      role: roleFilter,
-      status: filtersChanged ? statusFilter : undefined,
-    })
+    const requestId = ++listRequestIdRef.current;
+    const controller = new AbortController();
+    // 列表查询由当前 effect 独占，筛选或刷新时取消上一条请求。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setLoadError('');
+    loadAdminUsersPage(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        role: roleFilter,
+        status: filtersChanged ? statusFilter : undefined,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
-        setLoadError('');
+        if (controller.signal.aborted || requestId !== listRequestIdRef.current) return;
         const items = result.items as AdminUserView[];
         setUsers(items);
         setTotalUsers(result.total);
         setSelectedUser(items[0]);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== listRequestIdRef.current) return;
         setUsers([]);
         setTotalUsers(0);
         setSelectedUser(undefined);
         setLoadError(error instanceof Error ? error.message : '用户列表加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === listRequestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      listRequestIdRef.current += 1;
+      controller.abort();
     };
-  }, [filtersChanged, page, query, roleFilter, statusFilter]);
+  }, [filtersChanged, page, query, refreshNonce, retryNonce, roleFilter, statusFilter]);
 
   useEffect(() => {
-    if (isMockMode || !selectedUserId) return;
-    let active = true;
+    const requestId = ++detailRequestIdRef.current;
+    if (isMockMode || !selectedUserId) {
+      // 用户列表为空或切换到 Fixture 时不保留上一条详情请求状态。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDetailLoading(false);
+      setDetailError('');
+      setSelectedDetail(undefined);
+      return;
+    }
+    const controller = new AbortController();
     // 详情单独加载，避免用户列表接口被迫携带会话和审计明细。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetailLoading(true);
     setDetailError('');
     setSelectedDetail(undefined);
-    loadAdminUserDetail(selectedUserId)
+    loadAdminUserDetail(selectedUserId, controller.signal)
       .then((detail) => {
-        if (active) setSelectedDetail(detail);
+        if (controller.signal.aborted || requestId !== detailRequestIdRef.current) return;
+        setSelectedDetail(detail);
       })
       .catch((error) => {
-        if (active) setDetailError(error instanceof Error ? error.message : '用户详情加载失败');
+        if (controller.signal.aborted || isAbortError(error) || requestId !== detailRequestIdRef.current) return;
+        setSelectedDetail(undefined);
+        setDetailError(error instanceof Error ? error.message : '用户详情加载失败');
       })
       .finally(() => {
-        if (active) setDetailLoading(false);
+        if (!controller.signal.aborted && requestId === detailRequestIdRef.current) setDetailLoading(false);
       });
     return () => {
-      active = false;
+      detailRequestIdRef.current += 1;
+      controller.abort();
     };
-  }, [selectedUserId]);
+  }, [detailRetryNonce, selectedUserId]);
 
   const visibleUsers = useMemo(() => {
     if (!isMockMode) return users;
@@ -391,7 +421,15 @@ export function UsersSection({
           </Button>
         </div>
 
-        {loadError ? <Badge variant="destructive">{loadError}</Badge> : null}
+        {loadError ? (
+          <div className={styles.auditError} role="alert">
+            <span>{loadError}</span>
+            <Button variant="outline" size="sm" disabled={loading} onClick={() => setRetryNonce((value) => value + 1)}>
+              <RefreshCw aria-hidden="true" />
+              重试
+            </Button>
+          </div>
+        ) : null}
         {!canManage ? (
           <div className={styles.readOnlyNotice} role="status">
             <ShieldCheck aria-hidden="true" />
@@ -421,7 +459,9 @@ export function UsersSection({
               onRevoke={() => revokeSessions(user)}
             />
           ))}
-          {!visibleUsers.length ? <div className={styles.usersTableEmpty}>暂无匹配用户</div> : null}
+          {!visibleUsers.length ? (
+            <div className={styles.usersTableEmpty}>{loading ? '正在加载用户列表...' : '暂无匹配用户'}</div>
+          ) : null}
         </div>
 
         <div className={styles.usersPagination}>
@@ -435,7 +475,7 @@ export function UsersSection({
               variant="outline"
               size="sm"
               type="button"
-              disabled={page <= 1}
+              disabled={loading || page <= 1}
               aria-label="上一页"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
@@ -468,7 +508,7 @@ export function UsersSection({
               variant="outline"
               size="sm"
               type="button"
-              disabled={page >= Math.max(1, Math.ceil(displayedTotalUsers / pageSize))}
+              disabled={loading || page >= Math.max(1, Math.ceil(displayedTotalUsers / pageSize))}
               onClick={() =>
                 setPage((current) => Math.min(Math.max(1, Math.ceil(displayedTotalUsers / pageSize)), current + 1))
               }
@@ -487,6 +527,7 @@ export function UsersSection({
             detailLoading={detailLoading}
             detailError={detailError}
             figmaFixture={isFigmaFixture}
+            onRetryDetail={() => setDetailRetryNonce((value) => value + 1)}
             onRevoke={() => revokeSessions(selectedUser)}
           />
         ) : (
@@ -624,6 +665,7 @@ function UserDetailCard({
   detailLoading,
   detailError,
   figmaFixture,
+  onRetryDetail,
   onRevoke,
 }: {
   user: AdminUserView;
@@ -631,6 +673,7 @@ function UserDetailCard({
   detailLoading: boolean;
   detailError: string;
   figmaFixture: boolean;
+  onRetryDetail: () => void;
   onRevoke: () => void;
 }) {
   const profile = detail?.profile;
@@ -761,6 +804,7 @@ function UserDetailCard({
             isMockMode={isMockMode}
             loading={detailLoading}
             error={detailError}
+            onRetry={onRetryDetail}
             hasData={sessions.length > 0}
           >
             <DataTable columns={sessionColumns} data={sessions} />
@@ -772,6 +816,7 @@ function UserDetailCard({
             isMockMode={isMockMode}
             loading={detailLoading}
             error={detailError}
+            onRetry={onRetryDetail}
             hasData={operationHistory.length > 0}
           >
             <DataTable columns={operationHistoryColumns} data={operationHistory} />
@@ -784,6 +829,7 @@ function UserDetailCard({
               isMockMode={isMockMode}
               loading={detailLoading}
               error={detailError}
+              onRetry={onRetryDetail}
               hasData={businessSessions.length > 0}
             >
               <DataTable columns={businessSessionColumns} data={businessSessions} />
@@ -850,18 +896,30 @@ function DetailTableState({
   isMockMode: mockMode,
   loading,
   error,
+  onRetry,
   hasData,
   children,
 }: {
   isMockMode: boolean;
   loading: boolean;
   error: string;
+  onRetry: () => void;
   hasData: boolean;
   children: ReactNode;
 }) {
   if (hasData) return children;
   if (loading) return <div className={styles.detailEmptyState}>正在加载详情...</div>;
-  if (error) return <div className={styles.detailEmptyState}>{error}</div>;
+  if (error) {
+    return (
+      <div className={styles.detailEmptyState} role="alert">
+        <span>{error}</span>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw aria-hidden="true" />
+          重试
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className={styles.detailEmptyState} role="status">
       <span>{mockMode ? '暂无记录' : '暂无记录'}</span>

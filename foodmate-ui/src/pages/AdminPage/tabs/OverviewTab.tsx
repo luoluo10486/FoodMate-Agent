@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -7,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '../../../constants/routes';
+import { isAbortError } from '../../../services/apiClient';
 import { loadAdminDashboard, loadAdminQuery, type AdminQueryRun } from '../../../services/adminService';
 import { adminOverviewMetrics, adminOverviewRows } from './AdminShared';
 import styles from '../AdminPage.module.css';
@@ -124,39 +126,52 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(isRealMode ? 0 : overviewFixtureTotal);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(isRealMode);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     // 由 effect 统一管理请求生命周期，清除旧错误后重新开始一次请求。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
+    setLoading(true);
     Promise.all([
-      loadAdminDashboard(),
-      loadAdminQuery<AdminQueryRun>('runs', {
-        page,
-        size: 6,
-        query: query.trim() || undefined,
-        status: resultFilter === 'all' ? undefined : resultFilter,
-      }),
+      loadAdminDashboard(controller.signal),
+      loadAdminQuery<AdminQueryRun>(
+        'runs',
+        {
+          page,
+          size: 6,
+          query: query.trim() || undefined,
+          status: resultFilter === 'all' ? undefined : resultFilter,
+        },
+        controller.signal,
+      ),
     ])
       .then(([dashboard, runPage]) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         setMetrics(dashboard.overview_metrics.slice(0, 3));
         setRows(queryRowsToOverviewRows(runPage.items));
         setTotal(runPage.total);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setMetrics([]);
         setRows([]);
         setTotal(0);
         setLoadError(error instanceof Error ? error.message : '管理概览数据加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
-  }, [isRealMode, page, query, refreshNonce, resultFilter]);
+  }, [isRealMode, page, query, refreshNonce, resultFilter, retryNonce]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -313,8 +328,19 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         </div>
         {!filteredRows.length ? (
           <div className={styles.runEmptyState} role="status">
-            <strong>{loadError ? '真实接口加载失败' : '暂无概览记录'}</strong>
-            <span>{loadError || '当前筛选条件没有可展示的运行记录。'}</span>
+            <strong>{loading ? '正在加载概览数据...' : loadError ? '真实接口加载失败' : '暂无概览记录'}</strong>
+            <span>{loading ? '正在读取最新运行记录。' : loadError || '当前筛选条件没有可展示的运行记录。'}</span>
+            {loadError ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => setRetryNonce((value) => value + 1)}
+              >
+                <RefreshCw aria-hidden="true" />
+                重试
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </Card>
@@ -328,7 +354,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         <div className={styles.overviewPageButtons}>
           <Button
             className={styles.overviewPageButton}
-            disabled={page === 1}
+            disabled={loading || page === 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
             上一页
@@ -337,7 +363,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
             <Button
               className={`${styles.overviewPageButton} ${page === value ? styles.overviewPageActive : ''}`}
               key={value}
-              disabled={isRealMode}
+              disabled={loading || isRealMode}
               onClick={() => setPage(value)}
             >
               {value}
@@ -345,7 +371,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           ))}
           <Button
             className={styles.overviewPageButton}
-            disabled={page >= totalPages}
+            disabled={loading || page >= totalPages}
             onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
           >
             下一页

@@ -111,4 +111,26 @@ describe('管理端真实工具数据', () => {
     expect(screen.getByRole('complementary', { name: '工具调用详情' })).toHaveTextContent('trace_plan_1024');
     expect(fetchMock.mock.calls[0][0]).toContain('/api/admin/queries/tool-calls');
   });
+
+  it('注册表页面卸载时取消真实请求', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedSignal = init?.signal ?? undefined;
+        return new Promise<Response>(() => undefined);
+      }),
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
 });

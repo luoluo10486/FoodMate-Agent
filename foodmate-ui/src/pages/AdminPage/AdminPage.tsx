@@ -758,7 +758,7 @@ function renderSection(
 ) {
   switch (sectionKey) {
     case 'users':
-      return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} />;
+      return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} refreshNonce={refreshNonce} />;
     case 'runs':
       return <RunsSection refreshNonce={refreshNonce} onAction={onAction} canReplayDlq={canReplayDlq} />;
     case 'tools':

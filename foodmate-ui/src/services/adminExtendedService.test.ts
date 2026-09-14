@@ -4,6 +4,7 @@ import {
   createModelBudget,
   createModelPrice,
   loadAdminAuditReport,
+  loadAdminQuery,
   loadModelGovernance,
   loadRetentionPurge,
   loadRetentionPurgePreflight,
@@ -38,6 +39,19 @@ describe('admin extended APIs', () => {
     expect(fetchMock.mock.calls[0][0]).toBe('/api/admin/audit-reports/current');
     expect(fetchMock.mock.calls[1][0]).toBe(
       '/api/admin/model-governance?from=2026-09-01T00%3A00%3A00Z&to=2026-09-13T00%3A00%3A00Z',
+    );
+  });
+
+  it('forwards the abort signal through paginated admin queries', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue(ok({ items: [], total: 0, page: 2, size: 20 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAdminQuery('runs', { page: 2, size: 20 }, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/queries/runs?page=2&size=20',
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
     );
   });
 

@@ -58,4 +58,19 @@ describe('admin tool registry API', () => {
     ]);
     expect(fetchMock).toHaveBeenCalledWith('/api/admin/tools/registry', expect.objectContaining({ method: 'GET' }));
   });
+
+  it('forwards the abort signal to the registry request', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(new Response(JSON.stringify({ success: true, data: { tools: [] } }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAdminToolRegistry(controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/tools/registry',
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
+    );
+  });
 });

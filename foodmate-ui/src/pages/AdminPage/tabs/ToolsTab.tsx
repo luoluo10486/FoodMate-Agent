@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Copy, Lock, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,7 @@ import {
   statusTag,
 } from './AdminShared';
 import type { AdminActionPayload, AdminOperationState } from './types';
+import { isAbortError } from '../../../services/apiClient';
 import {
   loadAdminDashboard,
   loadAdminQuery,
@@ -131,6 +132,7 @@ function ToolRegistrySection({
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(isRealMode);
   const [retryNonce, setRetryNonce] = useState(0);
+  const requestIdRef = useRef(0);
   const showOperationActions = operationStatus !== 'idle';
   const operationActionDisabled = operationStatus === 'submitting' || operationStatus === 'no-permission';
 
@@ -158,26 +160,29 @@ function ToolRegistrySection({
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     // 每次刷新都重新建立请求生命周期，避免旧请求覆盖当前页面状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminToolRegistry()
+    loadAdminToolRegistry(controller.signal)
       .then((items) => {
-        if (active) setTools(items);
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        setTools(items);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setTools([]);
         setSelectedTool(undefined);
         setLoadError(error instanceof Error ? error.message : '工具注册表加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
   }, [isRealMode, refreshNonce, retryNonce]);
 
@@ -556,38 +561,45 @@ function RealToolCallsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [loadError, setLoadError] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
   const pageSize = 8;
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    let active = true;
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     // 查询条件、刷新或重试变化时，只有当前请求可以更新页面。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminQuery<AdminQueryToolCall>('tool-calls', {
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: statusFilter === 'all' ? undefined : statusFilter,
-    })
+    loadAdminQuery<AdminQueryToolCall>(
+      'tool-calls',
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         const items = result.items.map(mapRealToolCall);
         setRows(items);
         setSelectedTool(items[0]);
         setTotal(result.total);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setRows([]);
         setSelectedTool(undefined);
         setTotal(0);
         setLoadError(error instanceof Error ? error.message : '工具调用加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
   }, [page, query, refreshNonce, retryNonce, statusFilter]);
 

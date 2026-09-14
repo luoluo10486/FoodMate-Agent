@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminPage } from './AdminPage';
@@ -116,5 +117,46 @@ describe('AdminPage real mode fixture isolation', () => {
     expect(await screen.findByText('真实运行总量')).toBeInTheDocument();
     expect(screen.queryByRole('dialog', { name: '确认停用工具' })).not.toBeInTheDocument();
     expect(screen.queryByText('已注册工具')).not.toBeInTheDocument();
+  });
+
+  it('概览读取失败后支持重新请求真实数据', async () => {
+    const user = userEvent.setup();
+    const dashboardResponses = [
+      jsonResponse({ success: false, error: { code: 'ADMIN_UNAVAILABLE', message: '管理查询暂不可用' } }, 503),
+      jsonResponse({
+        success: true,
+        data: {
+          overview_metrics: [{ label: '重试后运行总量', value: '2', hint: '-', tone: 'green' }],
+          runs: [],
+          tool_calls: [],
+          sql_audits: [],
+          traces: [],
+          tools: [],
+          usage: [],
+          knowledge: [],
+          deleted: [],
+          operation_audits: [],
+        },
+      }),
+    ];
+    const runResponses = [
+      jsonResponse({ success: false, error: { code: 'ADMIN_UNAVAILABLE', message: '运行查询暂不可用' } }, 503),
+      jsonResponse({ success: true, data: { items: [], total: 0, page: 1, size: 6 } }),
+    ];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((input: RequestInfo | URL) => {
+        const path = new URL(String(input), 'http://foodmate.local').pathname;
+        if (path === '/api/admin/dashboard') return Promise.resolve(dashboardResponses.shift() ?? jsonResponse({}));
+        if (path === '/api/admin/queries/runs') return Promise.resolve(runResponses.shift() ?? jsonResponse({}));
+        return Promise.resolve(jsonResponse({ success: true, data: {} }));
+      }),
+    );
+
+    renderAdmin('/admin');
+
+    expect(await screen.findByText('管理查询暂不可用')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '重试' }));
+    expect(await screen.findByText('重试后运行总量')).toBeInTheDocument();
   });
 });

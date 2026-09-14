@@ -464,9 +464,13 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
   };
 }
 
-export async function loadAdminDashboard(): Promise<AdminDashboard> {
+function readRequestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
+
+export async function loadAdminDashboard(signal?: AbortSignal): Promise<AdminDashboard> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard'));
+  return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard', readRequestInit(signal)));
 }
 
 function normalizeToolRegistryRow(row: AdminToolRegistryResponse): AdminToolRegistryRow {
@@ -497,9 +501,12 @@ function normalizeToolRegistryRow(row: AdminToolRegistryResponse): AdminToolRegi
   };
 }
 
-export async function loadAdminToolRegistry(): Promise<AdminToolRegistryRow[]> {
+export async function loadAdminToolRegistry(signal?: AbortSignal): Promise<AdminToolRegistryRow[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const response = await apiRequest<{ tools: AdminToolRegistryResponse[] }>('/api/admin/tools/registry');
+  const response = await apiRequest<{ tools: AdminToolRegistryResponse[] }>(
+    '/api/admin/tools/registry',
+    readRequestInit(signal),
+  );
   return response.tools.map(normalizeToolRegistryRow);
 }
 
@@ -609,7 +616,7 @@ export type AdminPageResult<T> = {
   size: number;
 };
 
-export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}) {
+export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   const search = new URLSearchParams();
   search.set('page', String(params.page ?? 1));
@@ -624,7 +631,10 @@ export async function loadAdminQuery<T>(resource: string, params: AdminQueryPara
   if (params.targetType && params.targetType !== 'all') search.set('target_type', params.targetType);
   if (params.sort) search.set('sort', params.sort);
   if (params.direction) search.set('direction', params.direction);
-  return apiRequest<AdminOperationalQueryResponse<T>>(`/api/admin/queries/${resource}?${search.toString()}`);
+  return apiRequest<AdminOperationalQueryResponse<T>>(
+    `/api/admin/queries/${resource}?${search.toString()}`,
+    readRequestInit(signal),
+  );
 }
 
 /** 管理端知识库使用专用分页查询，避免把 dashboard 概览当成明细数据源。 */
@@ -664,9 +674,12 @@ export async function loadAdminUsagePage(params: AdminQueryParams = {}): Promise
   };
 }
 
-export async function loadAdminTraceDetail(traceId: string): Promise<AdminTraceDetail> {
+export async function loadAdminTraceDetail(traceId: string, signal?: AbortSignal): Promise<AdminTraceDetail> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminTraceDetail>(`/api/admin/queries/traces/${encodeURIComponent(traceId)}`);
+  return apiRequest<AdminTraceDetail>(
+    `/api/admin/queries/traces/${encodeURIComponent(traceId)}`,
+    readRequestInit(signal),
+  );
 }
 
 type AdminDeletedQueryItem = {
@@ -1040,12 +1053,15 @@ type AdminQueryUser = {
   revision?: number;
 };
 
-export async function loadAdminUsersPage(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminUserRow>> {
+export async function loadAdminUsersPage(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminUserRow>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') {
     const items = adminUserRows as AdminUserRow[];
     return { items, total: items.length, page: 1, size: items.length };
   }
-  const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params });
+  const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params }, signal);
   return { ...data, items: data.items.map(normalizeAdminUser) };
 }
 
@@ -1055,9 +1071,9 @@ export async function loadAdminUsers(): Promise<AdminUserRow[]> {
   return data.map(normalizeAdminUser);
 }
 
-export async function loadAdminUserDetail(userId: string): Promise<AdminUserDetail> {
+export async function loadAdminUserDetail(userId: string, signal?: AbortSignal): Promise<AdminUserDetail> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(userId)}/detail`);
+  return apiRequest<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(userId)}/detail`, readRequestInit(signal));
 }
 
 async function adminWrite<T>(path: string, method: string, payload?: object, idempotencyPrefix?: string): Promise<T> {

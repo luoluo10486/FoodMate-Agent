@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -98,5 +98,27 @@ describe('RunsSection real DLQ view', () => {
     await user.click(await screen.findByRole('tab', { name: 'DLQ' }));
     expect(await screen.findByText('仅 superadmin')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '重放' })).not.toBeInTheDocument();
+  });
+
+  it('运行治理页面卸载时取消当前查询', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedSignal = init?.signal ?? undefined;
+        return new Promise<Response>(() => undefined);
+      }),
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/runs']}>
+        <RunsSection />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
   });
 });
