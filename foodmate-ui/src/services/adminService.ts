@@ -659,11 +659,18 @@ export async function loadAdminKnowledge(
 }
 
 /** 管理端模型用量使用独立分页查询，避免把概览 Fixture 或治理聚合数据当成明细来源。 */
-export async function loadAdminUsagePage(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminUsageRow>> {
-  const data = await loadAdminQuery<AdminQueryUsage>('usage', {
-    size: 20,
-    ...params,
-  });
+export async function loadAdminUsagePage(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminUsageRow>> {
+  const data = await loadAdminQuery<AdminQueryUsage>(
+    'usage',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
   return {
     items: data.items.map((row, index) => ({
       key: `usage-${row.provider}-${row.model}-${index}`,

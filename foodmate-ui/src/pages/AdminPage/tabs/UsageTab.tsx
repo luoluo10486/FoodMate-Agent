@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import styles from '../AdminPage.module.css';
 import { loadAdminUsagePage, type AdminUsageRow } from '../../../services/adminService';
+import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 
 type FigmaUsageRow = {
@@ -462,33 +463,38 @@ function RealUsageSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
 
   useEffect(() => {
     let active = true;
+    const controller = new AbortController();
     // 每次筛选、分页或刷新都重新读取权威接口，失败时清空当前结果，禁止回退到 Fixture。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    void loadAdminUsagePage({
-      page,
-      size: pageSize,
-      query: search.trim() || undefined,
-      status: result === 'all' ? undefined : result,
-    })
+    void loadAdminUsagePage(
+      {
+        page,
+        size: pageSize,
+        query: search.trim() || undefined,
+        status: result === 'all' ? undefined : result,
+      },
+      controller.signal,
+    )
       .then((data) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted) return;
         setRows(data.items);
         setTotal(data.total);
         setPage(data.page);
       })
       .catch((error) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted || isAbortError(error)) return;
         setRows([]);
         setTotal(0);
         setLoadError(error instanceof Error ? error.message : '模型用量加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && !controller.signal.aborted) setLoading(false);
       });
     return () => {
       active = false;
+      controller.abort();
     };
   }, [page, refreshNonce, result, retryNonce, search]);
 

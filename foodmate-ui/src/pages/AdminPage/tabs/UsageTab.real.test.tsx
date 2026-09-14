@@ -107,4 +107,21 @@ describe('UsageSection real mode', () => {
     expect(await screen.findByText('gpt-4.1-mini')).toBeInTheDocument();
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
+
+  it('cancels the usage request when the page is unmounted', async () => {
+    let requestSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+      requestSignal = init?.signal ?? undefined;
+      return new Promise<Response>(() => undefined);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const view = render(<UsageSection onAction={vi.fn()} refreshNonce={0} />);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(requestSignal?.aborted).toBe(false);
+
+    view.unmount();
+
+    expect(requestSignal?.aborted).toBe(true);
+  });
 });

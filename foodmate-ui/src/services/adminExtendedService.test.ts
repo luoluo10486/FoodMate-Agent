@@ -10,6 +10,7 @@ import {
   loadAdminQuery,
   loadAdminExportStatus,
   loadAdminOperationAuditsPage,
+  loadAdminUsagePage,
   loadKnowledgeBatch,
   loadModelGovernance,
   loadRetentionPurge,
@@ -90,10 +91,11 @@ describe('admin extended APIs', () => {
 
     await loadAdminDeletedResourcesPage({}, controller.signal);
     await loadAdminOperationAuditsPage({}, controller.signal);
+    await loadAdminUsagePage({}, controller.signal);
     await loadAdminAuditReport(controller.signal);
     await loadAdminExportStatus(4, controller.signal);
 
-    expect(fetchMock.mock.calls).toHaveLength(4);
+    expect(fetchMock.mock.calls).toHaveLength(5);
     for (const [, init] of fetchMock.mock.calls)
       expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
   });
