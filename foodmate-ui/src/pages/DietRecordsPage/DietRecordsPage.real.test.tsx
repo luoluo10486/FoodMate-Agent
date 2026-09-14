@@ -251,6 +251,27 @@ describe('DietRecordsPage real mode', () => {
     expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
   });
 
+  it('clears stale composite dishes when a refresh fails', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes)
+      .mockResolvedValueOnce([compositeDish])
+      .mockRejectedValueOnce(new ApiError('NETWORK_ERROR', '复合菜服务不可用'));
+    vi.mocked(updateCompositeDish).mockResolvedValue({ ...compositeDish, dish_name: '更新后的鸡肉饭' });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '编辑' }));
+    await waitFor(() => expect(loadCompositeDish).toHaveBeenCalledWith('21'));
+    const nameInput = screen.getByRole('textbox', { name: '复合菜名称' });
+    await user.clear(nameInput);
+    await user.type(nameInput, '更新后的鸡肉饭');
+    await user.click(screen.getByRole('button', { name: '保存复合菜' }));
+
+    await waitFor(() => expect(screen.getByText('复合菜服务不可用')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: '记录这道菜' })).not.toBeInTheDocument();
+  });
+
   it('creates a real food log from the add-food dialog', async () => {
     const created = {
       ...log,
@@ -393,6 +414,22 @@ describe('DietRecordsPage real mode', () => {
 
     await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
     expect(loadDeletedFoodLogs).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears stale deleted records when the reload fails', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadDeletedFoodLogs).mockResolvedValueOnce([log]).mockRejectedValueOnce(new Error('回收站服务不可用'));
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '已删除记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '已删除记录' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '收起已删除' }));
+    await user.click(screen.getByRole('button', { name: '已删除记录' }));
+
+    await waitFor(() => expect(screen.getByText('回收站服务不可用')).toBeInTheDocument());
+    expect(screen.queryByRole('button', { name: '恢复服务端燕麦' })).not.toBeInTheDocument();
   });
 
   it('edits the first item without dropping other server items', async () => {

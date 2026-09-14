@@ -497,7 +497,10 @@ export function DietRecordsPage() {
         if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
       })
       .catch((cause) => {
-        if (active) setCompositeDishesError(compositeDishErrorMessage(cause, '复合菜加载失败'));
+        if (!active) return;
+        // 刷新失败时清空旧列表，避免把过期复合菜继续当作服务端当前数据展示。
+        setCompositeDishes([]);
+        setCompositeDishesError(compositeDishErrorMessage(cause, '复合菜加载失败'));
       })
       .finally(() => {
         if (active) setCompositeDishesLoading(false);
@@ -941,14 +944,18 @@ export function DietRecordsPage() {
     setDeletedError(undefined);
     void loadDeletedFoodLogs()
       .then(setDeletedLogs)
-      .catch((cause) => setDeletedError(foodLogErrorMessage(cause, '已删除记录加载失败')))
+      .catch((cause) => {
+        // 重新读取失败时不保留旧回收站数据，避免用户对过期记录执行恢复操作。
+        setDeletedLogs([]);
+        setDeletedError(foodLogErrorMessage(cause, '已删除记录加载失败'));
+      })
       .finally(() => setDeletedLoading(false));
   };
 
   const toggleDeleted = () => {
     const nextVisible = !showDeleted;
     setShowDeleted(nextVisible);
-    if (nextVisible && deletedLogs.length === 0) loadDeletedRecords();
+    if (nextVisible) loadDeletedRecords();
   };
 
   const restoreDeleted = (log: FoodLog) => {

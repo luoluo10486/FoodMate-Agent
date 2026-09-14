@@ -455,7 +455,12 @@ export function WorkspaceLayout({
             <div className={styles.sessionTools}>
               <nav className={styles.primarySideNav} aria-label="工作区导航">
                 <SidebarTooltip collapsed={sidebarCollapsed} label="工作台">
-                  <NavLink aria-label="工作台" className={sideLink} to={ROUTES.HOME} end>
+                  <NavLink
+                    aria-label={sidebarCollapsed ? '工作台' : undefined}
+                    className={sideLink}
+                    to={ROUTES.HOME}
+                    end
+                  >
                     {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
                     <span>工作台</span>
                   </NavLink>
@@ -511,7 +516,7 @@ export function WorkspaceLayout({
               <nav className={styles.secondarySideNav} aria-label="饮食工具">
                 <SidebarTooltip collapsed={sidebarCollapsed} label="饮食记录">
                   <NavLink
-                    aria-label="饮食记录"
+                    aria-label={sidebarCollapsed ? '饮食记录' : undefined}
                     className={fixedSideLink(activeModule === 'records')}
                     to={`${ROUTES.ANALYSIS}?view=records`}
                   >
@@ -521,7 +526,7 @@ export function WorkspaceLayout({
                 </SidebarTooltip>
                 <SidebarTooltip collapsed={sidebarCollapsed} label="摄入分析">
                   <NavLink
-                    aria-label="摄入分析"
+                    aria-label={sidebarCollapsed ? '摄入分析' : undefined}
                     className={fixedSideLink(activeModule === 'analysis')}
                     to={ROUTES.ANALYSIS}
                     end
@@ -531,13 +536,21 @@ export function WorkspaceLayout({
                   </NavLink>
                 </SidebarTooltip>
                 <SidebarTooltip collapsed={sidebarCollapsed} label="餐食规划">
-                  <NavLink aria-label="餐食规划" className={sideLink} to={ROUTES.PLANNING}>
+                  <NavLink
+                    aria-label={sidebarCollapsed ? '餐食规划' : undefined}
+                    className={sideLink}
+                    to={ROUTES.PLANNING}
+                  >
                     {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
                     <span>餐食规划</span>
                   </NavLink>
                 </SidebarTooltip>
                 <SidebarTooltip collapsed={sidebarCollapsed} label="知识库">
-                  <NavLink aria-label="知识库" className={sideLink} to={ROUTES.KNOWLEDGE}>
+                  <NavLink
+                    aria-label={sidebarCollapsed ? '知识库' : undefined}
+                    className={sideLink}
+                    to={ROUTES.KNOWLEDGE}
+                  >
                     {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
                     <span>知识库</span>
                   </NavLink>
