@@ -269,7 +269,7 @@ Broker 关闭了 `autoCreateTopicEnable` 与 `autoCreateSubscriptionGroup`，所
 
 1. **Topic 名不能带点号。** Broker 强制 `^[%|a-zA-Z0-9_-]+$`，`foodmate.agent.command.v1` 会被拒绝，因此契约统一使用 `foodmate-agent-command-v1` 这种连字符命名。
 2. **数据目录属主。** 镜像里没有 `/home/rocketmq/{store,logs}`，Docker 建命名卷时用 root 创建目录，而进程以 uid 3000 运行。`rocketmq-prepare` 一次性容器负责 `chown`，namesrv/broker 依赖它成功退出后才启动。
-3. **`brokerIP1=127.0.0.1`。** Java 与 Python 都跑在宿主机上，NameServer 必须返回宿主机可达的 Broker 地址；填容器 IP 会导致客户端连不上。
+3. **`brokerIP1` 必须匹配运行模式。** Compose 默认让 Java/Python 容器使用 `foodmate-rocketmq-broker`，不要改成宿主机旧 IP。若 Java/Python 改为宿主机运行，需要在当前 PowerShell 进程中显式设置 `FOODMATE_DOCKER_ROCKETMQ_BROKER_IP1` 为宿主机可达地址后再重建 Broker；不能填容器重启后变化的临时 IP。
 
 Broker 重启后消息保留（`foodmate-rocketmq-broker-store` 命名卷 + `SYNC_FLUSH`）：
 
