@@ -1,5 +1,6 @@
 package com.foodmate.application.runtime;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +12,7 @@ import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.foodmate.application.account.service.UserAccountService;
@@ -20,6 +22,7 @@ import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.command.AgentRunBudgetDefaults;
 import com.foodmate.application.runtime.port.out.AgentRunCommandRepository;
 import com.foodmate.application.runtime.port.out.ModelGovernanceRepository.ModelGovernanceSnapshot;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.service.ModelGovernanceService;
 import com.foodmate.application.runtime.service.impl.AgentRunCommandServiceImpl;
 import com.foodmate.shared.error.ErrorCode;
@@ -34,6 +37,33 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
 
 class AgentRunCommandServiceImplTest {
+    @Test
+    void refusesCreationBeforePersistenceWhenRuntimeClientIsMissing() {
+        UserAccountService accounts = mock(UserAccountService.class);
+        IdGenerator ids = mock(IdGenerator.class);
+        AgentRunCommandServiceImpl service =
+                new AgentRunCommandServiceImpl(
+                        provider(null),
+                        ids,
+                        accounts,
+                        mock(AgentRunBudgetDefaults.class),
+                        mock(AgentAdmissionService.class),
+                        mock(SessionSummaryService.class),
+                        provider(null),
+                        provider(null),
+                        provider((RuntimeClientPort) null));
+
+        RuntimeException exception =
+                assertThrows(
+                        RuntimeException.class,
+                        () ->
+                                service.createUserMessageRunDetails(
+                                        7L, 9L, "private message", "trace-1"));
+
+        assertEquals("RUNTIME_UNAVAILABLE", exception.code());
+        verifyNoInteractions(ids, accounts);
+    }
+
     @Test
     void creationFailureRecordsSafeAudit() {
         UserAccountService accounts = mock(UserAccountService.class);
