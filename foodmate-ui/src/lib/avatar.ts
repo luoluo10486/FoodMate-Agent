@@ -55,6 +55,20 @@ export const FIXTURE_CHAT_AVATAR_GENDERS = {
 const legacyFigmaAvatarPattern = /(?:\/assets\/figma\/|figma\.com\/api\/mcp\/asset\/)/i;
 const localPreviewPattern = /^blob:/i;
 
+function isTrustedUploadedAvatarUrl(value: string): boolean {
+  try {
+    const currentOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin;
+    const candidate = new URL(value, currentOrigin);
+    if (candidate.pathname !== '/api/users/me/avatar') return false;
+
+    const configuredApiBaseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.trim();
+    const trustedOrigin = configuredApiBaseUrl ? new URL(configuredApiBaseUrl, currentOrigin).origin : currentOrigin;
+    return candidate.origin === trustedOrigin;
+  } catch {
+    return false;
+  }
+}
+
 function isLegacyFigmaAvatarUrl(value: string): boolean {
   let decoded = value;
   // 最多解码三层，覆盖路由参数和缓存序列化造成的重复编码。
@@ -81,15 +95,15 @@ export function isRegisteredDefaultAvatar(value: string): boolean {
   return REGISTERED_DEFAULT_AVATARS.includes(value as (typeof REGISTERED_DEFAULT_AVATARS)[number]);
 }
 
-/** 运行时只允许登记的默认 SVG 或主动上传生成的临时预览进入头像组件。 */
+/** 运行时只允许登记的默认 SVG、受信任的后端端点或主动上传生成的临时预览进入头像组件。 */
 export function isAllowedAvatarRuntimeSource(value: string): boolean {
-  return isRegisteredDefaultAvatar(value) || isTemporaryUploadedAvatarUrl(value);
+  return isRegisteredDefaultAvatar(value) || isTemporaryUploadedAvatarUrl(value) || isTrustedUploadedAvatarUrl(value);
 }
 
 export function getAvatarSourceKind(value: string): AvatarSourceKind {
   if (value === DEFAULT_AVATARS.female) return 'default-female';
   if (value === DEFAULT_AVATARS.male) return 'default-male';
-  if (isTemporaryUploadedAvatarUrl(value)) return 'uploaded';
+  if (isTemporaryUploadedAvatarUrl(value) || isTrustedUploadedAvatarUrl(value)) return 'uploaded';
   return 'default-male';
 }
 
@@ -106,8 +120,9 @@ export function resolveAvatarUrl(avatarUrl?: string, gender?: string): string {
   if (!candidate) return genderDefault;
   // 历史缓存可能保留另一性别的默认 SVG，读取时必须按当前性别重新归一化。
   if (isRegisteredDefaultAvatar(candidate)) return genderDefault;
+  if (isTrustedUploadedAvatarUrl(candidate)) return candidate;
   if (!isLegacyFigmaAvatarUrl(candidate) && isTemporaryUploadedAvatarUrl(candidate)) return candidate;
-  // 未登记的历史人物素材、持久化头像地址、外部图片和旧缓存都不能作为默认头像继续展示。
+  // 未登记的历史人物素材、其它持久化地址、外部图片和旧缓存都不能作为头像继续展示。
   return genderDefault;
 }
 

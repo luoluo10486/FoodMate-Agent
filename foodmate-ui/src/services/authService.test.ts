@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { confirmPasswordReset, login, logout, requestPasswordReset } from './authService';
+import { confirmPasswordReset, loadCurrentUser, login, logout, requestPasswordReset } from './authService';
 
 describe('authService real identity hydration', () => {
   beforeEach(() => {
@@ -96,5 +96,30 @@ describe('authService real identity hydration', () => {
         body: JSON.stringify({ token: 'reset-token', new_password: 'StrongPass99!' }),
       }),
     );
+  });
+
+  it('preserves the backend avatar endpoint when hydrating a real user', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            user_id: 7,
+            username: 'real-user',
+            email: 'real@example.com',
+            role: 'user',
+            status: 'active',
+            gender: '女',
+            avatar_url: '/api/users/me/avatar',
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(loadCurrentUser()).resolves.toMatchObject({ avatarUrl: '/api/users/me/avatar' });
+    expect(JSON.parse(localStorage.getItem('foodmate_auth_user') ?? '{}')).toMatchObject({
+      avatarUrl: '/api/users/me/avatar',
+    });
   });
 });

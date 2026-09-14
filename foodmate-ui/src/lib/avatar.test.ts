@@ -55,13 +55,13 @@ describe('avatar defaults', () => {
     expect(getAvatarSourceKind(DEFAULT_AVATARS.male)).toBe('default-male');
     expect(getAvatarSourceKind(DEFAULT_AVATARS.female)).toBe('default-female');
     expect(getAvatarSourceKind('blob:http://localhost/avatar-preview')).toBe('uploaded');
-    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('default-male');
+    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('uploaded');
   });
 
-  it('does not guess an avatar for an unset gender and only preserves temporary previews', () => {
+  it('does not guess an avatar for an unset gender and preserves trusted upload sources', () => {
     expect(getDefaultAvatarForGender('-')).toBeUndefined();
-    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe(DEFAULT_AVATARS.female);
-    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
+    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe('/api/users/me/avatar?download=1');
     expect(resolveAvatarUrl('blob:http://localhost/avatar-preview', '女')).toBe('blob:http://localhost/avatar-preview');
     expect(resolveAvatarUrl('', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
@@ -70,14 +70,17 @@ describe('avatar defaults', () => {
   it('removes stale temporary previews from persisted account avatars', () => {
     expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolvePersistedAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
   });
 
-  it('allows only registered defaults or explicit temporary previews at the runtime boundary', () => {
+  it('allows only registered defaults or trusted upload sources at the runtime boundary', () => {
     expect(isAllowedAvatarRuntimeSource(DEFAULT_AVATARS.male)).toBe(true);
     expect(isAllowedAvatarRuntimeSource(DEFAULT_AVATARS.female)).toBe(true);
     expect(isAllowedAvatarRuntimeSource('blob:http://localhost/avatar-preview')).toBe(true);
+    expect(isAllowedAvatarRuntimeSource('/api/users/me/avatar')).toBe(true);
     expect(isAllowedAvatarRuntimeSource('/uploads/person.png')).toBe(false);
     expect(isAllowedAvatarRuntimeSource('https://cdn.example.com/person.png')).toBe(false);
+    expect(isAllowedAvatarRuntimeSource('https://cdn.example.com/api/users/me/avatar')).toBe(false);
   });
 
   it('normalizes a stale registered default to the current gender', () => {
