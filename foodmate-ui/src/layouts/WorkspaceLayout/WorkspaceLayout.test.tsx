@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import userEvent from '@testing-library/user-event';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthUser } from '../../mock/auth';
@@ -163,6 +163,50 @@ describe('WorkspaceLayout shell controls', () => {
     expect(screen.getByRole('button', { name: '收起导航' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '通知' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '梁同学' })).toHaveClass('inline-flex');
+  });
+
+  it('can collapse and expand the real workspace navigation', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const collapseButton = screen.getByRole('button', { name: '收起导航' });
+    await user.click(collapseButton);
+
+    expect(screen.getByRole('button', { name: '展开导航' })).toHaveAttribute('aria-expanded', 'false');
+    expect(container.firstElementChild).toHaveClass('sidebarCollapsed');
+
+    await user.click(screen.getByRole('button', { name: '展开导航' }));
+    expect(screen.getByRole('button', { name: '收起导航' })).toHaveAttribute('aria-expanded', 'true');
+    expect(container.firstElementChild).not.toHaveClass('sidebarCollapsed');
+  });
+
+  it('keeps navigation entry points available in the collapsed icon rail', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '收起导航' }));
+
+    const sidebar = within(container.querySelector('aside') as HTMLElement);
+    expect(sidebar.getByRole('link', { name: '工作台' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '饮食记录' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '摄入分析' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '餐食规划' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '知识库' })).toBeInTheDocument();
+    expect(sidebar.getByRole('button', { name: '设置' })).toBeInTheDocument();
+    expect(container.querySelector('.searchWrap')).toBeInTheDocument();
+    expect(container.querySelector('.sidebar-session-section')).toBeInTheDocument();
   });
 
   it('renders the Figma fixture pagination as a compact control', () => {

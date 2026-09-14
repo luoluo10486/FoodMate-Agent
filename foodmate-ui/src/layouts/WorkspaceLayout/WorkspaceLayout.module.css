@@ -7,6 +7,11 @@
   background: var(--fm-figma-workspace-bg);
 }
 
+/* 侧栏折叠为稳定的图标栏宽度，避免主内容随交互发生不可控位移。 */
+.sidebarCollapsed {
+  --fm-figma-workspace-sidebar-width: 72px;
+}
+
 /* 顶栏型 Figma 画板没有工作区侧栏，主内容必须占满整个视口。 */
 .noSidebar {
   grid-template-columns: minmax(0, 1fr);
@@ -181,6 +186,49 @@
   overflow: hidden;
   background: var(--fm-figma-workspace-surface);
   border-right: 1px solid var(--fm-figma-workspace-border);
+}
+
+.sidebarCollapsed .sidebar {
+  align-items: center;
+  padding-inline: 12px;
+}
+
+.sidebarCollapsed .sidebarBrand,
+.sidebarCollapsed .searchWrap,
+.sidebarCollapsed .statusPill,
+.sidebarCollapsed .profile > div:last-child,
+.sidebarCollapsed .collapseButton span {
+  display: none;
+}
+
+/* 折叠后保留导航入口，只收起会话历史和不适合图标栏展示的操作。 */
+.sidebarCollapsed :global(.sidebar-session-section),
+.sidebarCollapsed .deletedButton {
+  display: none;
+}
+
+.sidebarCollapsed .newButton,
+.sidebarCollapsed .sideLink,
+.sidebarCollapsed .sideButton,
+.sidebarCollapsed .collapseButton {
+  width: 48px;
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.sidebarCollapsed .newButton span,
+.sidebarCollapsed .sideLink span,
+.sidebarCollapsed .sideButton span {
+  display: none;
+}
+
+.sidebarCollapsed .accountDock {
+  width: 48px;
+  justify-items: center;
+}
+
+.sidebarCollapsed .profile {
+  justify-content: center;
 }
 
 .profileFixture {
@@ -808,6 +856,43 @@
   }
   .sidebar {
     padding-inline: 16px;
+  }
+  .sidebarCollapsed {
+    --fm-figma-workspace-sidebar-width: 220px;
+  }
+  .sidebarCollapsed .sidebar {
+    align-items: stretch;
+    padding-inline: 16px;
+  }
+  .sidebarCollapsed .sidebarBrand,
+  .sidebarCollapsed .searchWrap,
+  .sidebarCollapsed .statusPill,
+  .sidebarCollapsed .profile > div:last-child,
+  .sidebarCollapsed .newButton span,
+  .sidebarCollapsed .sideLink span,
+  .sidebarCollapsed .sideButton span,
+  .sidebarCollapsed .collapseButton span {
+    display: revert;
+  }
+  .sidebarCollapsed .newButton,
+  .sidebarCollapsed .sideLink,
+  .sidebarCollapsed .sideButton,
+  .sidebarCollapsed .collapseButton,
+  .sidebarCollapsed .accountDock {
+    width: 100%;
+    justify-content: flex-start;
+    padding-inline: 12px;
+  }
+  .sidebarCollapsed .accountDock {
+    justify-items: stretch;
+  }
+  .sidebarCollapsed .profile {
+    justify-content: flex-start;
+  }
+  /* 平板及以下恢复完整侧栏，避免图标栏挤压可操作区域。 */
+  .sidebarCollapsed :global(.sidebar-session-section),
+  .sidebarCollapsed .deletedButton {
+    display: revert;
   }
   .topbar {
     padding-inline: 16px;

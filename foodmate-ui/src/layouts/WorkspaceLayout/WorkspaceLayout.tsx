@@ -4,8 +4,9 @@ import {
   CalendarDays,
   ChartColumn,
   Home,
-  MoreHorizontal,
   Plus,
+  PanelLeftClose,
+  PanelLeftOpen,
   RotateCcw,
   Search,
   Settings,
@@ -95,6 +96,22 @@ type WorkspaceLayoutProps = {
   pageOverlay?: React.ReactNode;
 };
 
+type SidebarTooltipProps = {
+  collapsed: boolean;
+  label: string;
+  children: React.ReactElement;
+};
+
+function SidebarTooltip({ collapsed, label, children }: SidebarTooltipProps) {
+  if (!collapsed) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function WorkspaceLayout({
   children,
   activeModule = 'home',
@@ -135,6 +152,8 @@ export function WorkspaceLayout({
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [deletedSessions, setDeletedSessions] = useState<RealSession[]>([]);
   const [notice, setNotice] = useState('');
+  // 侧栏折叠只影响当前工作区壳层，不改变路由、会话数据或页面业务状态。
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const authStatus = getAuthStatus();
@@ -370,7 +389,7 @@ export function WorkspaceLayout({
   return (
     <TooltipProvider delayDuration={300}>
       <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${hideSidebar ? styles.noSidebar : ''} ${isFigmaFixture ? styles.figmaFixture : ''}`}
+        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${hideSidebar ? styles.noSidebar : ''} ${isFigmaFixture ? styles.figmaFixture : ''} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}
         data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
         data-shell-avatar-assets="default-male.svg,default-female.svg"
       >
@@ -389,14 +408,17 @@ export function WorkspaceLayout({
               <BrandLogo showTagline />
             </div>
             {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
-            <Button
-              className={styles.newButton}
-              onClick={() => void createNewSession()}
-              disabled={Boolean(pendingSessionOperation)}
-            >
-              {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
-              <span>新建任务</span>
-            </Button>
+            <SidebarTooltip collapsed={sidebarCollapsed} label="新建任务">
+              <Button
+                aria-label="新建任务"
+                className={styles.newButton}
+                onClick={() => void createNewSession()}
+                disabled={Boolean(pendingSessionOperation)}
+              >
+                {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
+                <span>新建任务</span>
+              </Button>
+            </SidebarTooltip>
             {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
               <div className={styles.searchWrap}>
                 {fixtureVariant ? (
@@ -432,10 +454,12 @@ export function WorkspaceLayout({
             ) : null}
             <div className={styles.sessionTools}>
               <nav className={styles.primarySideNav} aria-label="工作区导航">
-                <NavLink className={sideLink} to={ROUTES.HOME} end>
-                  {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
-                  <span>工作台</span>
-                </NavLink>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="工作台">
+                  <NavLink aria-label="工作台" className={sideLink} to={ROUTES.HOME} end>
+                    {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
+                    <span>工作台</span>
+                  </NavLink>
+                </SidebarTooltip>
               </nav>
               <SidebarSessionList
                 currentPage={sidebarFixture?.currentPage ?? sessionPage}
@@ -485,31 +509,51 @@ export function WorkspaceLayout({
             </div>
             {!sidebarFixture?.hideSecondaryNavigation ? (
               <nav className={styles.secondarySideNav} aria-label="饮食工具">
-                <NavLink className={fixedSideLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
-                  {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
-                  <span>饮食记录</span>
-                </NavLink>
-                <NavLink className={fixedSideLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
-                  {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
-                  <span>摄入分析</span>
-                </NavLink>
-                <NavLink className={sideLink} to={ROUTES.PLANNING}>
-                  {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
-                  <span>餐食规划</span>
-                </NavLink>
-                <NavLink className={sideLink} to={ROUTES.KNOWLEDGE}>
-                  {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
-                  <span>知识库</span>
-                </NavLink>
-                <Button
-                  className={styles.sideButton}
-                  variant="ghost"
-                  type="button"
-                  onClick={() => announce('设置入口将在设置页面完成后启用。')}
-                >
-                  {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
-                  <span>设置</span>
-                </Button>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="饮食记录">
+                  <NavLink
+                    aria-label="饮食记录"
+                    className={fixedSideLink(activeModule === 'records')}
+                    to={`${ROUTES.ANALYSIS}?view=records`}
+                  >
+                    {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
+                    <span>饮食记录</span>
+                  </NavLink>
+                </SidebarTooltip>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="摄入分析">
+                  <NavLink
+                    aria-label="摄入分析"
+                    className={fixedSideLink(activeModule === 'analysis')}
+                    to={ROUTES.ANALYSIS}
+                    end
+                  >
+                    {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
+                    <span>摄入分析</span>
+                  </NavLink>
+                </SidebarTooltip>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="餐食规划">
+                  <NavLink aria-label="餐食规划" className={sideLink} to={ROUTES.PLANNING}>
+                    {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
+                    <span>餐食规划</span>
+                  </NavLink>
+                </SidebarTooltip>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="知识库">
+                  <NavLink aria-label="知识库" className={sideLink} to={ROUTES.KNOWLEDGE}>
+                    {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
+                    <span>知识库</span>
+                  </NavLink>
+                </SidebarTooltip>
+                <SidebarTooltip collapsed={sidebarCollapsed} label="设置">
+                  <Button
+                    aria-label="设置"
+                    className={styles.sideButton}
+                    variant="ghost"
+                    type="button"
+                    onClick={() => announce('设置入口将在设置页面完成后启用。')}
+                  >
+                    {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
+                    <span>设置</span>
+                  </Button>
+                </SidebarTooltip>
               </nav>
             ) : null}
             <div className={styles.accountDock}>
@@ -518,10 +562,13 @@ export function WorkspaceLayout({
                   className={styles.collapseButton}
                   variant="ghost"
                   type="button"
-                  onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
+                  aria-expanded={!sidebarCollapsed}
+                  aria-label={sidebarCollapsed ? '展开导航' : '收起导航'}
+                  title={sidebarCollapsed ? '展开导航' : '收起导航'}
+                  onClick={() => setSidebarCollapsed((current) => !current)}
                 >
-                  <MoreHorizontal aria-hidden="true" />
-                  <span>收起导航</span>
+                  {sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+                  <span>{sidebarCollapsed ? '展开导航' : '收起导航'}</span>
                 </Button>
               ) : null}
               <div className={styles.statusPill}>
