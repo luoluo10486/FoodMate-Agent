@@ -42,7 +42,7 @@ public interface UserAccountRepository {
 
     void revokeRefreshToken(String tokenHash);
 
-    List<AuthSessionView> authSessions(long userId);
+    List<AuthSessionView> authSessions(long userId, String currentSessionHash);
 
     List<AdminUserView> adminUsers();
 

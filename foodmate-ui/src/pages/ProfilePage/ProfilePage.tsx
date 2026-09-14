@@ -1536,7 +1536,7 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       : [
           {
             auth_session_id: 1,
-            device_id: 'current',
+            current: true,
             user_agent: 'MacBook Pro 16" · macOS',
             ip_address: '192.168.1.42',
             last_seen_at: 'Authorized 10:30 AM',
@@ -1695,7 +1695,7 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           return;
         }
         if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
-        setSessions((items) => items.filter((item) => item.device_id === 'current'));
+        setSessions((items) => items.filter((item) => item.current === true));
         notice('其他设备已退出，当前设备保持登录。', 'success');
       } else if (logoutTarget) {
         if (realMode) {
@@ -1850,7 +1850,9 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
               ))}
             </div>
           )}
-          <StatusChip tone="blue">{Math.max(0, sessions.length - 1)} ACTIVE DEVICES</StatusChip>
+          <StatusChip tone="blue">
+            {sessions.filter((session) => session.current !== true).length} ACTIVE DEVICES
+          </StatusChip>
           <p className={styles.securityHint}>设备状态在每次登录后更新</p>
         </Card>
       </div>
@@ -1922,7 +1924,7 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
 }
 
 function SessionRow({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
-  const current = session.device_id === 'current';
+  const current = session.current === true;
   return (
     <div className={styles.sessionRow}>
       <div className={styles.sessionInfo}>

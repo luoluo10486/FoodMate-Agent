@@ -14,11 +14,14 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.foodmate.application.account.port.out.UserAccountRepository;
+import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
 import com.foodmate.application.account.service.impl.UserAccountServiceImpl;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.error.BusinessException;
 import com.foodmate.shared.error.ErrorCode;
 import com.foodmate.shared.id.IdGenerator;
+import java.time.Instant;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.ObjectProvider;
@@ -202,6 +205,33 @@ class UserAccountServiceImplTest {
                         any());
         assertTrue(passwordHash.getValue().startsWith("$2"));
         assertTrue(new BCryptPasswordEncoder().matches("password123", passwordHash.getValue()));
+    }
+
+    @Test
+    void hashesPresentedSessionTokenBeforeReadingCurrentSessionState() {
+        UserAccountRepository repository = mock(UserAccountRepository.class);
+        OperationAuditService audit = mock(OperationAuditService.class);
+        when(repository.authSessions(eq(7L), anyString()))
+                .thenReturn(
+                        List.of(
+                                new AuthSessionView(
+                                        1L,
+                                        "browser",
+                                        "browser",
+                                        null,
+                                        Instant.now().plusSeconds(600),
+                                        Instant.now(),
+                                        Instant.now(),
+                                        null,
+                                        true)));
+        UserAccountServiceImpl service = service(repository, audit);
+
+        var sessions = service.listAuthSessions(7L, "session-token");
+
+        assertTrue(sessions.get(0).current());
+        ArgumentCaptor<String> sessionHash = forClass(String.class);
+        verify(repository).authSessions(eq(7L), sessionHash.capture());
+        assertTrue(sessionHash.getValue().length() > 40);
     }
 
     private UserAccountServiceImpl service(

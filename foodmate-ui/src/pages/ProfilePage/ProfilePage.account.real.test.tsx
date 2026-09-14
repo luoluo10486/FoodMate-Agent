@@ -213,12 +213,13 @@ describe('ProfilePage real account states', () => {
     vi.mocked(getAuthSessions).mockResolvedValue([
       {
         auth_session_id: 1,
-        device_id: 'current',
+        current: true,
         user_agent: '当前浏览器',
         expires_at: '2026-10-01',
       },
       {
         auth_session_id: 2,
+        current: false,
         device_id: 'other-browser',
         user_agent: '其它浏览器',
         expires_at: '2026-10-01',
@@ -238,6 +239,32 @@ describe('ProfilePage real account states', () => {
     view.unmount();
 
     expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('uses the backend current flag instead of the device identifier', async () => {
+    vi.mocked(getAuthSessions).mockResolvedValue([
+      {
+        auth_session_id: 1,
+        device_id: 'browser-a',
+        current: true,
+        user_agent: '当前浏览器',
+        expires_at: '2026-10-01',
+      },
+      {
+        auth_session_id: 2,
+        device_id: 'current',
+        current: false,
+        user_agent: '其它浏览器',
+        expires_at: '2026-10-01',
+      },
+    ]);
+
+    renderPage('/profile/security');
+
+    expect(await screen.findByText('当前浏览器')).toBeInTheDocument();
+    expect(screen.getByText('当前设备')).toBeInTheDocument();
+    expect(screen.getByText('其它浏览器')).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '退出登录' })).toHaveLength(1);
   });
 
   it('aborts export creation when the privacy tab unmounts', async () => {

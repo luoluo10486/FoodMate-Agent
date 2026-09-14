@@ -21,6 +21,7 @@ export type Profile = {
 export type AuthSession = {
   auth_session_id: number;
   device_id?: string;
+  current?: boolean;
   user_agent?: string;
   ip_address?: string;
   expires_at: string;

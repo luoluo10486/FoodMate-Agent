@@ -1,5 +1,6 @@
 package com.foodmate.api.controller;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -240,6 +241,29 @@ class P1AccountControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.allergens", is("[]")))
                 .andExpect(jsonPath("$.data.dislikes", is("[]")));
+    }
+
+    @Test
+    void marksThePresentedSessionAsCurrentInTheSessionList() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"session-user\",\"email\":\"session@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"session-user\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+
+        mockMvc.perform(get("/api/users/me/sessions").cookie(login.getCookie("foodmate_session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.current == true)]", hasSize(1)));
     }
 
     @Test

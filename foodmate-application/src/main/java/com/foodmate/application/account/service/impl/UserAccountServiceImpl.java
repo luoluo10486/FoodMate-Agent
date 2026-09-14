@@ -256,7 +256,16 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     public synchronized List<AuthSessionView> listAuthSessions(long userId) {
-        if (store != null) return store.authSessions(userId);
+        return listAuthSessions(userId, null);
+    }
+
+    public synchronized List<AuthSessionView> listAuthSessions(
+            long userId, String currentSessionToken) {
+        String currentSessionHash =
+                currentSessionToken == null || currentSessionToken.isBlank()
+                        ? null
+                        : sha256(currentSessionToken);
+        if (store != null) return store.authSessions(userId, currentSessionHash);
         return authSessions.values().stream()
                 .filter(
                         s ->
@@ -273,7 +282,9 @@ public class UserAccountServiceImpl implements UserAccountService {
                                         s.expiresAt(),
                                         null,
                                         null,
-                                        s.revokedAt()))
+                                        s.revokedAt(),
+                                        currentSessionHash != null
+                                                && currentSessionHash.equals(s.sessionTokenHash())))
                 .toList();
     }
 

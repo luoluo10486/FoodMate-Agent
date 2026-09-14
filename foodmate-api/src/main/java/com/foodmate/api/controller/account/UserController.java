@@ -108,7 +108,7 @@ public class UserController extends AuthenticatedControllerSupport {
     public ApiResponse<java.util.List<UserAccountService.AuthSessionView>> authSessions(
             jakarta.servlet.http.HttpServletRequest request) {
         return ApiResponse.success(
-                accounts.listAuthSessions(user(request).userId()),
+                accounts.listAuthSessions(user(request).userId(), sessionToken(request)),
                 TraceContextHolder.currentOrNew());
     }
 

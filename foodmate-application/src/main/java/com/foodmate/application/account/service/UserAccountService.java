@@ -32,6 +32,8 @@ public interface UserAccountService {
 
     List<AuthSessionView> listAuthSessions(long userId);
 
+    List<AuthSessionView> listAuthSessions(long userId, String currentSessionToken);
+
     List<AdminUserView> listUsersForAdmin();
 
     void revokeAuthSession(long userId, long authSessionId);
@@ -123,7 +125,8 @@ public interface UserAccountService {
             Instant expiresAt,
             Instant lastSeenAt,
             Instant createdAt,
-            Instant revokedAt) {}
+            Instant revokedAt,
+            boolean current) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record AdminUserView(
