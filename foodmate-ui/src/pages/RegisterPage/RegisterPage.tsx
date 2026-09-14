@@ -1,10 +1,11 @@
 import { CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthBrand, AuthCard, AuthDivider, AuthField, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
+import { isAbortError } from '../../services/apiClient';
 import { register } from '../../services/authService';
 import styles from '../LoginPage/LoginPage.module.css';
 
@@ -32,11 +33,16 @@ const rules = [
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController>();
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [values, setValues] = useState<RegisterValues>(() => (isRealMode ? emptyRegisterValues : figmaRegisterValues));
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
   const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) =>
     setValues((current) => ({ ...current, [key]: event.target.value }));
@@ -48,13 +54,21 @@ export function RegisterPage() {
       return;
     }
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await register(values);
+      await register(values, controller.signal);
+      if (controller.signal.aborted) return;
       navigate('/');
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       notify(error instanceof Error ? error.message : '注册失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 

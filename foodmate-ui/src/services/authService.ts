@@ -34,10 +34,8 @@ function persistAuthUser(user: AuthUser, notify = true) {
 }
 
 export function csrfToken(): string | undefined {
-  return document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
+  const cookie = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='));
+  return cookie?.slice('foodmate_csrf='.length);
 }
 
 function persistedAuthStatus(): AuthStatus {
@@ -111,42 +109,52 @@ export function getAuthScenarios() {
   return mockAuthScenarios;
 }
 
-export async function login(credentials: LoginFormValues): Promise<AuthUser> {
+export async function login(credentials: LoginFormValues, signal?: AbortSignal): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
   await apiRequest<AuthResponse>('/api/auth/login', {
     method: 'POST',
+    signal,
     body: JSON.stringify({ username_or_email: credentials.username, password: credentials.password }),
   });
   // 登录响应只包含认证信息，必须再读取当前用户资料，避免把 Fixture 用户资料写入真实模式。
-  return loadCurrentUser();
+  return loadCurrentUser(signal);
 }
 
-export async function register(credentials: { username: string; email: string; password: string }): Promise<AuthUser> {
+export async function register(
+  credentials: { username: string; email: string; password: string },
+  signal?: AbortSignal,
+): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
   await apiRequest<AuthResponse>('/api/auth/register', {
     method: 'POST',
+    signal,
     body: JSON.stringify(credentials),
   });
   // 注册响应同样不包含完整资料，统一通过当前用户接口建立真实缓存。
-  return loadCurrentUser();
+  return loadCurrentUser(signal);
 }
 
-export async function logout(options: { skipRemote?: boolean } = {}): Promise<void> {
+export async function logout(options: { skipRemote?: boolean; signal?: AbortSignal } = {}): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE === 'real' && !options.skipRemote)
-    await apiRequest<void>('/api/auth/logout', { method: 'POST' });
+    await apiRequest<void>('/api/auth/logout', { method: 'POST', signal: options.signal });
   localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   notifyAuthChanged();
 }
 
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(email: string, signal?: AbortSignal): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-  await apiRequest<void>('/api/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) });
+  await apiRequest<void>('/api/auth/password-reset/request', {
+    method: 'POST',
+    signal,
+    body: JSON.stringify({ email }),
+  });
 }
 
-export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+export async function confirmPasswordReset(token: string, newPassword: string, signal?: AbortSignal): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
   await apiRequest<void>('/api/auth/password-reset/confirm', {
     method: 'POST',
+    signal,
     body: JSON.stringify({ token, new_password: newPassword }),
   });
 }

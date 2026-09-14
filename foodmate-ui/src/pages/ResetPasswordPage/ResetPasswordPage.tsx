@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '../../lib/notice';
+import { isAbortError } from '../../services/apiClient';
 import { confirmPasswordReset } from '../../services/authService';
 import { AuthBrand, AuthCard, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
@@ -14,6 +15,7 @@ const figmaResetValues: ResetValues = { password: 'StrongPass99', confirmPasswor
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController>();
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -21,6 +23,10 @@ export function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -33,14 +39,22 @@ export function ResetPasswordPage() {
       return;
     }
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await confirmPasswordReset(token, values.password);
+      await confirmPasswordReset(token, values.password, controller.signal);
+      if (controller.signal.aborted) return;
       notify('密码已重置，请重新登录。', 'success');
       navigate('/login', { replace: true });
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       notify(error instanceof Error ? error.message : '密码重置失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   confirmPasswordReset,
+  csrfToken,
   getAuthStatus,
   loadCurrentUser,
   login,
@@ -128,6 +129,45 @@ describe('authService real identity hydration', () => {
         body: JSON.stringify({ token: 'reset-token', new_password: 'StrongPass99!' }),
       }),
     );
+  });
+
+  it('forwards one cancellation signal across the auth request chain', async () => {
+    const controller = new AbortController();
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { user_id: 7, username: 'real-user', role: 'user', session_expires_at: '2026-09-14T00:00:00Z' },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { user_id: 7, username: 'real-user', email: 'real@example.com', role: 'user', status: 'active' },
+          }),
+          { status: 200 },
+        ),
+      )
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }));
+
+    await login({ username: 'real-user', password: 'StrongPass99!', rememberMe: true }, controller.signal);
+    await requestPasswordReset('real@example.com', controller.signal);
+    await confirmPasswordReset('reset-token', 'StrongPass99!', controller.signal);
+
+    expect(vi.mocked(fetch).mock.calls.every(([, init]) => init?.signal === controller.signal)).toBe(true);
+  });
+
+  it('preserves padding characters in the CSRF cookie value', () => {
+    document.cookie = 'foodmate_csrf=token==';
+
+    expect(csrfToken()).toBe('token==');
+
+    document.cookie = 'foodmate_csrf=; Max-Age=0';
   });
 
   it('preserves the backend avatar endpoint when hydrating a real user', async () => {

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
 import { isVisualQaEnabled } from '../../lib/visualQa';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
 
@@ -141,6 +141,7 @@ function LoginBrand({ state }: { state: LoginState }) {
 export function LoginPage() {
   const navigate = useNavigate();
   const pageRef = useRef<HTMLElement>(null);
+  const requestControllerRef = useRef<AbortController>();
   const [searchParams] = useSearchParams();
   const visualQaEnabled = isVisualQaEnabled(searchParams.toString());
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -163,6 +164,10 @@ export function LoginPage() {
     return defaults;
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   useGSAP(
     () => {
@@ -219,15 +224,23 @@ export function LoginPage() {
       return;
     setRuntimeState('default');
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await login(loginValues);
+      await login(loginValues, controller.signal);
+      if (controller.signal.aborted) return;
       navigate(redirectTarget, { replace: true });
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const mappedState = mapLoginErrorState(error);
       if (mappedState) setRuntimeState(mappedState);
       else notify(error instanceof Error ? error.message : '登录失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 
