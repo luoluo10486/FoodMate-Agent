@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CalendarDays,
@@ -92,6 +92,20 @@ type ChatMessage = {
   wide?: boolean;
   agentRunId?: string;
 };
+
+type ChatNavigationState = {
+  sendError?: string;
+  pendingPrompt?: string;
+};
+
+function readChatNavigationState(value: unknown): ChatNavigationState {
+  if (!value || typeof value !== 'object') return {};
+  const state = value as Record<string, unknown>;
+  return {
+    sendError: typeof state.sendError === 'string' ? state.sendError : undefined,
+    pendingPrompt: typeof state.pendingPrompt === 'string' ? state.pendingPrompt : undefined,
+  };
+}
 
 function displayRunStatus(status: string): AgentDisplayStatus {
   const normalized = status.trim().toLowerCase();
@@ -2799,9 +2813,14 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
 function RealChatPage() {
   const { session_id: sessionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const navigationState = readChatNavigationState(location.state);
+  const pendingPrompt = navigationState.pendingPrompt;
+  const navigationError = navigationState.sendError;
+  const seedPrompt = searchParams.get('prompt') ?? '';
   const [messages, setMessages] = useState<RealMessage[]>([]);
-  const [input, setInput] = useState(searchParams.get('prompt') ?? '');
+  const [input, setInput] = useState(pendingPrompt ?? seedPrompt);
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string>();
@@ -2869,6 +2888,7 @@ function RealChatPage() {
     // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
+    setInput(pendingPrompt ?? seedPrompt);
     setRunIntent('knowledge_qna');
     setToolCalls([]);
     setRunStatus('idle');
@@ -2900,7 +2920,7 @@ function RealChatPage() {
       return;
     }
     setLoading(true);
-    setError(undefined);
+    setError(navigationError);
     const loadGeneration = ++messageLoadGenerationRef.current;
     loadSessionMessages(sessionId)
       .then((rows) => {
@@ -2921,7 +2941,7 @@ function RealChatPage() {
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [navigationError, pendingPrompt, seedPrompt, sessionId]);
 
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
@@ -3006,12 +3026,18 @@ function RealChatPage() {
           const degraded = normalizedPayload.result_type === 'safety_degraded';
           setSafetyDegraded(degraded);
           if (sessionId) {
-            void loadSessionMessages(sessionId).then((rows) => {
-              const assistant = rows.find(
-                (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
-              );
-              setAssistantMessageId(assistant?.message_id);
-            });
+            void loadSessionMessages(sessionId)
+              .then((rows) => {
+                if (!streamActive || !mountedRef.current) return;
+                const assistant = rows.find(
+                  (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
+                );
+                setAssistantMessageId(assistant?.message_id);
+              })
+              .catch((reason) => {
+                if (!streamActive || !mountedRef.current) return;
+                setError(reason instanceof Error ? reason.message : '回答完成后刷新消息失败，请刷新会话。');
+              });
           }
           setCitations(
             degraded
@@ -3132,26 +3158,51 @@ function RealChatPage() {
     setBudgetConfirmation(false);
     setBudgetFacts({});
     setBudgetSubmitting(false);
+    // 新消息开始后清理上一条 Run 的瞬态展示，避免旧工具和反馈状态挂到新回答上。
+    setRunIntent('knowledge_qna');
+    setToolCalls([]);
+    setAssistantText('');
+    setAssistantTime('');
+    setAssistantMessageId(undefined);
+    let createdSessionId: string | undefined;
     try {
       let target = sessionId;
       if (!target) {
         const created = await createSession(content.slice(0, 40));
         target = String(created.session_id);
-        navigate(`/chat/${target}`, { replace: true });
+        if (!target || target === 'undefined') throw new Error('会话创建响应缺少 session_id。');
+        createdSessionId = target;
       }
       const saved = await sendUserMessage(target, content);
+      if (createdSessionId) {
+        // 新会话先确认首条消息已被服务端接收，再切换路由加载真实消息和 Run。
+        setInput('');
+        navigate(`/chat/${encodeURIComponent(createdSessionId)}`, { replace: true });
+        return;
+      }
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
       if (saved.agent_run_id) {
         // 新 Run 不得继承旧 Run 的 SSE 游标，避免跳过新运行的首批事件。
         streamResumeRef.current = { preserveContent: false };
         setCancelAcknowledged(false);
         setActiveRunId(String(saved.agent_run_id));
+      } else {
+        setActiveRunId(undefined);
+        setRunStatus('idle');
       }
       setCitations([]);
       setInput('');
     } catch (reason) {
-      if (reason instanceof ApiError && reason.code === 'FORBIDDEN') setError(reason.message);
-      setError(reason instanceof Error ? reason.message : '消息发送失败');
+      const message = reason instanceof Error ? reason.message : '消息发送失败';
+      if (createdSessionId) {
+        // 会话已创建但首条消息失败时保留真实会话，用户可以在当前路由重试发送。
+        navigate(`/chat/${encodeURIComponent(createdSessionId)}`, {
+          replace: true,
+          state: { sendError: message, pendingPrompt: content } satisfies ChatNavigationState,
+        });
+        return;
+      }
+      setError(message);
     } finally {
       setSending(false);
     }
@@ -3173,6 +3224,8 @@ function RealChatPage() {
         setToolCalls([]);
         setAssistantText('');
         setAssistantTime('');
+        setAssistantMessageId(undefined);
+        setRunIntent('knowledge_qna');
         setCitations([]);
         setSafetyDegraded(false);
         setStreamGeneration((current) => current + 1);

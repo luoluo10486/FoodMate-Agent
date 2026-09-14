@@ -7,15 +7,18 @@ import { ChatPage } from './ChatPage';
 
 const {
   cancelAgentRun,
+  createSession,
   deleteMessage,
   extendAgentRunBudget,
   loadSessionMessages,
   loadSessionSummariesPage,
   openAgentRunStream,
   retryAgentRun,
+  sendUserMessage,
   updateMessage,
 } = vi.hoisted(() => ({
   cancelAgentRun: vi.fn(),
+  createSession: vi.fn(),
   deleteMessage: vi.fn(),
   extendAgentRunBudget: vi.fn(),
   loadSessionMessages: vi.fn(),
@@ -23,12 +26,21 @@ const {
   loadSessionsPage: vi.fn(),
   openAgentRunStream: vi.fn(),
   retryAgentRun: vi.fn(),
+  sendUserMessage: vi.fn(),
   updateMessage: vi.fn(),
 }));
 
 vi.mock('../../services/sessionService', async () => {
   const actual = await vi.importActual<typeof import('../../services/sessionService')>('../../services/sessionService');
-  return { ...actual, deleteMessage, loadSessionMessages, loadSessionSummariesPage, updateMessage };
+  return {
+    ...actual,
+    createSession,
+    deleteMessage,
+    loadSessionMessages,
+    loadSessionSummariesPage,
+    sendUserMessage,
+    updateMessage,
+  };
 });
 
 vi.mock('../../services/agentRunService', async () => {
@@ -72,6 +84,7 @@ describe('ChatPage 真实历史会话回放', () => {
     loadSessionSummariesPage.mockReset();
     openAgentRunStream.mockReset();
     retryAgentRun.mockReset();
+    sendUserMessage.mockReset();
     updateMessage.mockReset();
     loadSessionSummariesPage.mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
     openAgentRunStream.mockImplementation(
@@ -97,6 +110,89 @@ describe('ChatPage 真实历史会话回放', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it('新会话先提交首条消息再切换路由，并从服务端恢复真实 Run', async () => {
+    const user = userEvent.setup();
+    const saved = {
+      message_id: 'message-new',
+      session_id: 'session-new',
+      agent_run_id: 'run-new',
+      role: 'user' as const,
+      content: '分析我的午餐',
+      sequence_no: 1,
+      created_at: '2026-09-14T10:00:00Z',
+    };
+    createSession.mockResolvedValue({
+      session_id: 'session-new',
+      title: '分析我的午餐',
+      mode: 'chat',
+      status: 'active',
+    });
+    sendUserMessage.mockResolvedValue(saved);
+    loadSessionMessages.mockResolvedValue([saved]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const composer = await screen.findByPlaceholderText('追问或添加自定义指令...');
+    await user.type(composer, '分析我的午餐');
+    await user.click(screen.getByRole('button', { name: '发送消息' }));
+
+    await waitFor(() => expect(createSession).toHaveBeenCalledWith('分析我的午餐'));
+    await waitFor(() => expect(sendUserMessage).toHaveBeenCalledWith('session-new', '分析我的午餐'));
+    expect(createSession.mock.invocationCallOrder[0]).toBeLessThan(sendUserMessage.mock.invocationCallOrder[0]);
+    await waitFor(() =>
+      expect(openAgentRunStream).toHaveBeenCalledWith('run-new', expect.any(Function), expect.anything()),
+    );
+    expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toHaveValue('');
+  });
+
+  it('新会话首条消息失败时保留错误和输入，并允许在同一会话重试', async () => {
+    const user = userEvent.setup();
+    const saved = {
+      message_id: 'message-retry',
+      session_id: 'session-retry',
+      agent_run_id: 'run-retry',
+      role: 'user' as const,
+      content: '重试我的午餐分析',
+      sequence_no: 1,
+      created_at: '2026-09-14T10:01:00Z',
+    };
+    createSession.mockResolvedValue({
+      session_id: 'session-retry',
+      title: '重试我的午餐分析',
+      mode: 'chat',
+      status: 'active',
+    });
+    sendUserMessage.mockRejectedValueOnce(new Error('消息服务暂时不可用')).mockResolvedValueOnce(saved);
+    loadSessionMessages.mockResolvedValue([]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const composer = await screen.findByPlaceholderText('追问或添加自定义指令...');
+    await user.type(composer, '重试我的午餐分析');
+    await user.click(screen.getByRole('button', { name: '发送消息' }));
+
+    expect(await screen.findByText('消息服务暂时不可用')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toHaveValue('重试我的午餐分析');
+
+    await user.click(screen.getByRole('button', { name: '发送消息' }));
+    await waitFor(() => expect(sendUserMessage).toHaveBeenCalledTimes(2));
+    await waitFor(() =>
+      expect(openAgentRunStream).toHaveBeenCalledWith('run-retry', expect.any(Function), expect.anything()),
+    );
   });
 
   it('真实模式不会把辅助 Fixture 状态渲染成静态页面', async () => {
@@ -608,6 +704,36 @@ describe('ChatPage 真实历史会话回放', () => {
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
     expect(openAgentRunStream).toHaveBeenCalledTimes(1);
+  });
+
+  it('完成后刷新消息失败时显示真实错误，并在卸载后忽略迟到响应', async () => {
+    loadSessionMessages
+      .mockResolvedValueOnce([
+        {
+          message_id: 'message-1',
+          session_id: 'session-1',
+          role: 'user',
+          content: '请继续分析。',
+          sequence_no: 1,
+          created_at: '2026-09-06T10:00:00Z',
+          agent_run_id: 'run-1',
+        },
+      ])
+      .mockRejectedValueOnce(new Error('消息刷新服务不可用'));
+    openAgentRunStream.mockImplementation((_runId: string, onEvent: (type: string, payload: unknown) => void) => {
+      onEvent('run.completed', { event_type: 'run.completed', answer: '已完成分析。' });
+      return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+    });
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('消息刷新服务不可用')).toBeInTheDocument();
   });
 
   it('用户停止真实运行时保留文本，使用原游标等待取消终态', async () => {
