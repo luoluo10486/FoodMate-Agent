@@ -24,7 +24,7 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import {
   createFoodLog,
   deleteFoodLog,
@@ -455,58 +455,77 @@ export function DietRecordsPage() {
   const [notice, setNotice] = useState('');
   const [foodMutation, setFoodMutation] = useState<FoodMutation>();
   const [pendingFoodDeletion, setPendingFoodDeletion] = useState<PendingFoodDeletion>();
+  const realLogsRequestId = useRef(0);
+  const compositeListRequestId = useRef(0);
+  const deletedRequestId = useRef(0);
+  const deletedAbortController = useRef<AbortController>();
+  const dishDetailAbortController = useRef<AbortController>();
   const dishRequestId = useRef(0);
 
   useEffect(() => {
+    return () => {
+      // 组件卸载时终止由交互事件发起、但不受读取 effect 管理的请求。
+      deletedRequestId.current += 1;
+      deletedAbortController.current?.abort();
+      dishRequestId.current += 1;
+      dishDetailAbortController.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
+    const requestId = ++realLogsRequestId.current;
+    const controller = new AbortController();
     // 每次外部请求都由当前 effect 管理完整生命周期，因此请求开始时重置加载状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
     const window = view === 'week' ? weekWindow(selectedDate) : dayWindow(selectedDate);
-    loadFoodLogs(window.from, window.to)
+    loadFoodLogs(window.from, window.to, controller.signal)
       .then((logs) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== realLogsRequestId.current) return;
         setRealLogs(logs);
         setMeals(mapFoodLogs(logs));
       })
       .catch((cause) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== realLogsRequestId.current) return;
         setRealLogs([]);
         setMeals([]);
         setRealError(cause instanceof Error ? cause.message : '饮食记录加载失败');
       })
       .finally(() => {
-        if (active) setRealLoading(false);
+        if (!controller.signal.aborted && requestId === realLogsRequestId.current) setRealLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [isRealMode, realReloadNonce, selectedDate, view]);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
+    const requestId = ++compositeListRequestId.current;
+    const controller = new AbortController();
     // 复合菜的列表状态以服务端重新读取结果为准，避免本地乐观数据覆盖并发修改。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCompositeDishesLoading(true);
     setCompositeDishesError(undefined);
-    void loadCompositeDishes()
+    void loadCompositeDishes(controller.signal)
       .then((dishes) => {
-        if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
+        if (controller.signal.aborted || requestId !== compositeListRequestId.current) return;
+        setCompositeDishes(dishes.filter((dish) => !dish.deleted));
       })
       .catch((cause) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== compositeListRequestId.current) return;
         // 刷新失败时清空旧列表，避免把过期复合菜继续当作服务端当前数据展示。
         setCompositeDishes([]);
         setCompositeDishesError(compositeDishErrorMessage(cause, '复合菜加载失败'));
       })
       .finally(() => {
-        if (active) setCompositeDishesLoading(false);
+        if (!controller.signal.aborted && requestId === compositeListRequestId.current)
+          setCompositeDishesLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [compositeReloadNonce, isRealMode]);
 
@@ -588,26 +607,28 @@ export function DietRecordsPage() {
       return;
     }
     let active = true;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setNutritionCandidatesLoading(true);
       setNutritionCandidatesError(undefined);
-      void searchNutritionFoods(foodName.trim())
+      void searchNutritionFoods(foodName.trim(), 8, controller.signal)
         .then((candidates) => {
-          if (active) setNutritionCandidates(candidates);
+          if (active && !controller.signal.aborted) setNutritionCandidates(candidates);
         })
         .catch((cause) => {
-          if (active) {
+          if (active && !controller.signal.aborted && !isAbortError(cause)) {
             setNutritionCandidates([]);
             setNutritionCandidatesError(cause instanceof Error ? cause.message : '营养候选加载失败');
           }
         })
         .finally(() => {
-          if (active) setNutritionCandidatesLoading(false);
+          if (active && !controller.signal.aborted) setNutritionCandidatesLoading(false);
         });
     }, 300);
     return () => {
       active = false;
       window.clearTimeout(timer);
+      controller.abort();
     };
   }, [dialogMealId, foodName, isRealMode, selectedCompositeDishId]);
 
@@ -640,6 +661,8 @@ export function DietRecordsPage() {
   };
 
   const openDishEditor = (dish?: CompositeDish) => {
+    dishDetailAbortController.current?.abort();
+    dishDetailAbortController.current = undefined;
     const requestId = ++dishRequestId.current;
     setDishError(undefined);
     setEditingDishId(dish?.composite_dish_id);
@@ -650,9 +673,11 @@ export function DietRecordsPage() {
     setDishDialogOpen(true);
     if (!dish || !isRealMode) return;
 
-    void loadCompositeDish(dish.composite_dish_id)
+    const controller = new AbortController();
+    dishDetailAbortController.current = controller;
+    void loadCompositeDish(dish.composite_dish_id, controller.signal)
       .then((detail) => {
-        if (dishRequestId.current !== requestId) return;
+        if (controller.signal.aborted || dishRequestId.current !== requestId) return;
         if (detail.deleted) {
           setDishDetailReady(false);
           setDishError('这道复合菜已被删除，请重新加载列表。');
@@ -663,17 +688,20 @@ export function DietRecordsPage() {
         setDishDetailReady(true);
       })
       .catch((cause) => {
-        if (dishRequestId.current !== requestId) return;
+        if (controller.signal.aborted || isAbortError(cause) || dishRequestId.current !== requestId) return;
         setDishDetailReady(false);
         setDishError(compositeDishErrorMessage(cause, '复合菜详情加载失败，请重试。'));
       })
       .finally(() => {
-        if (dishRequestId.current === requestId) setDishLoading(false);
+        if (!controller.signal.aborted && dishRequestId.current === requestId) setDishLoading(false);
+        if (dishDetailAbortController.current === controller) dishDetailAbortController.current = undefined;
       });
   };
 
   const closeDishEditor = () => {
     dishRequestId.current += 1;
+    dishDetailAbortController.current?.abort();
+    dishDetailAbortController.current = undefined;
     setDishDialogOpen(false);
     setEditingDishId(undefined);
     setDishDetailReady(true);
@@ -940,22 +968,41 @@ export function DietRecordsPage() {
 
   const loadDeletedRecords = () => {
     if (!isRealMode || deletedLoading) return;
+    deletedAbortController.current?.abort();
+    const requestId = ++deletedRequestId.current;
+    const controller = new AbortController();
+    deletedAbortController.current = controller;
     setDeletedLoading(true);
     setDeletedError(undefined);
-    void loadDeletedFoodLogs()
-      .then(setDeletedLogs)
+    void loadDeletedFoodLogs(controller.signal)
+      .then((logs) => {
+        if (controller.signal.aborted || requestId !== deletedRequestId.current) return;
+        setDeletedLogs(logs);
+      })
       .catch((cause) => {
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== deletedRequestId.current) return;
         // 重新读取失败时不保留旧回收站数据，避免用户对过期记录执行恢复操作。
         setDeletedLogs([]);
         setDeletedError(foodLogErrorMessage(cause, '已删除记录加载失败'));
       })
-      .finally(() => setDeletedLoading(false));
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === deletedRequestId.current) setDeletedLoading(false);
+        if (deletedAbortController.current === controller) deletedAbortController.current = undefined;
+      });
   };
 
   const toggleDeleted = () => {
     const nextVisible = !showDeleted;
     setShowDeleted(nextVisible);
-    if (nextVisible) loadDeletedRecords();
+    if (nextVisible) {
+      loadDeletedRecords();
+    } else {
+      // 收起回收站时取消尚未完成的读取，重新展开后只展示新的服务端结果。
+      deletedRequestId.current += 1;
+      deletedAbortController.current?.abort();
+      deletedAbortController.current = undefined;
+      setDeletedLoading(false);
+    }
   };
 
   const restoreDeleted = (log: FoodLog) => {

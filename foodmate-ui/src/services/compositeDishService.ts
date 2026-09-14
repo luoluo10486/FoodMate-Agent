@@ -37,12 +37,15 @@ export type CompositeDishWriteRequest = {
   components: Array<{ nutrition_food_id: number; raw_name: string; amount: number; unit: string }>;
 };
 
-export async function loadCompositeDishes(): Promise<CompositeDish[]> {
-  return apiRequest<CompositeDish[]>('/api/composite-dishes');
+export async function loadCompositeDishes(signal?: AbortSignal): Promise<CompositeDish[]> {
+  return apiRequest<CompositeDish[]>('/api/composite-dishes', signal ? { signal } : undefined);
 }
 
-export async function loadCompositeDish(compositeDishId: string): Promise<CompositeDish> {
-  return apiRequest<CompositeDish>(`/api/composite-dishes/${encodeURIComponent(compositeDishId)}`);
+export async function loadCompositeDish(compositeDishId: string, signal?: AbortSignal): Promise<CompositeDish> {
+  return apiRequest<CompositeDish>(
+    `/api/composite-dishes/${encodeURIComponent(compositeDishId)}`,
+    signal ? { signal } : undefined,
+  );
 }
 
 export async function createCompositeDish(request: CompositeDishWriteRequest): Promise<CompositeDish> {

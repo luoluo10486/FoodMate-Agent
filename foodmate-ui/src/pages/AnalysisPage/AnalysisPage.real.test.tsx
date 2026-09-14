@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnalysisPage } from './AnalysisPage';
-import { loadNutritionAnalysis } from '../../services/analysisService';
+import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
 
 vi.mock('../../services/analysisService', () => ({
   loadNutritionAnalysis: vi.fn(),
@@ -17,6 +17,16 @@ function renderPage(initialEntry = '/analysis') {
       </Routes>
     </MemoryRouter>,
   );
+}
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
 }
 
 const response = {
@@ -79,7 +89,7 @@ describe('AnalysisPage real mode', () => {
 
     await screen.findByRole('tab', { name: '7 天' });
     await waitFor(() => expect(screen.getByText('4,200 kcal')).toBeInTheDocument());
-    expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d');
+    expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d', expect.any(AbortSignal));
     expect(screen.getByText('220 g')).toBeInTheDocument();
     expect(screen.getByText('75%')).toBeInTheDocument();
     expect(screen.getByText(/有 1 项记录未匹配营养目录/)).toBeInTheDocument();
@@ -99,14 +109,36 @@ describe('AnalysisPage real mode', () => {
     const user = userEvent.setup();
     renderPage();
 
-    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d'));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d', expect.any(AbortSignal)));
     await user.click(screen.getByRole('tab', { name: '今天' }));
-    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('today'));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('today', expect.any(AbortSignal)));
     await waitFor(() => expect(screen.getByText('0 / 1 Days')).toBeInTheDocument());
 
     await user.click(screen.getByRole('tab', { name: '30 天' }));
-    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('30d'));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('30d', expect.any(AbortSignal)));
     expect(loadNutritionAnalysis).not.toHaveBeenCalledWith('90d');
+  });
+
+  it('cancels the previous range request and ignores its late response', async () => {
+    const first = deferred<NutritionAnalysis>();
+    const second = deferred<NutritionAnalysis>();
+    vi.mocked(loadNutritionAnalysis).mockImplementation((requestedRange) =>
+      requestedRange === '7d' ? first.promise : second.promise,
+    );
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('7d', expect.any(AbortSignal)));
+    const firstSignal = vi.mocked(loadNutritionAnalysis).mock.calls[0][1];
+    await user.click(screen.getByRole('tab', { name: '今天' }));
+    await waitFor(() => expect(loadNutritionAnalysis).toHaveBeenCalledWith('today', expect.any(AbortSignal)));
+
+    expect(firstSignal?.aborted).toBe(true);
+    first.resolve({ ...response, calories_kcal: 9999 });
+    second.resolve({ ...response, range: 'today', calories_kcal: 900 });
+
+    await waitFor(() => expect(screen.getByText('900 kcal')).toBeInTheDocument());
+    expect(screen.queryByText('9,999 kcal')).not.toBeInTheDocument();
   });
 
   it('shows the empty state for a range with no backend records', async () => {

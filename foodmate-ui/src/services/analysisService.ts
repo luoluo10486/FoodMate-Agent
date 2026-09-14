@@ -34,8 +34,14 @@ export type NutritionAnalysis = {
   disclaimer: string;
 };
 
-export async function loadNutritionAnalysis(range: NutritionAnalysisRange): Promise<NutritionAnalysis> {
-  return apiRequest<NutritionAnalysis>(`/api/nutrition-analysis?range=${encodeURIComponent(range)}`);
+export async function loadNutritionAnalysis(
+  range: NutritionAnalysisRange,
+  signal?: AbortSignal,
+): Promise<NutritionAnalysis> {
+  return apiRequest<NutritionAnalysis>(
+    `/api/nutrition-analysis?range=${encodeURIComponent(range)}`,
+    signal ? { signal } : undefined,
+  );
 }
 
 export {

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   createCompositeDish,
   deleteCompositeDish,
+  loadCompositeDish,
   loadCompositeDishes,
   updateCompositeDish,
 } from './compositeDishService';
@@ -13,9 +14,26 @@ describe('compositeDishService', () => {
     const data = [{ composite_dish_id: '10', dish_name: '鸡肉饭', components: [] }];
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(loadCompositeDishes()).resolves.toEqual(data);
-    expect(fetchMock).toHaveBeenCalledWith('/api/composite-dishes', expect.objectContaining({ method: 'GET' }));
+    await expect(loadCompositeDishes(controller.signal)).resolves.toEqual(data);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/composite-dishes',
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
+    );
+  });
+
+  it('forwards the cancellation signal when loading dish details', async () => {
+    const data = { composite_dish_id: '10', dish_name: '鸡肉饭' };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
+
+    await expect(loadCompositeDish('10', controller.signal)).resolves.toEqual(data);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/composite-dishes/10',
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
+    );
   });
 
   it('sends the ingredient catalog IDs when creating a dish', async () => {

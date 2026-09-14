@@ -31,11 +31,12 @@ describe('analysisService', () => {
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(loadNutritionAnalysis('today')).resolves.toEqual(data);
+    await expect(loadNutritionAnalysis('today', controller.signal)).resolves.toEqual(data);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/nutrition-analysis?range=today',
-      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+      expect.objectContaining({ method: 'GET', credentials: 'include', signal: controller.signal }),
     );
   });
 

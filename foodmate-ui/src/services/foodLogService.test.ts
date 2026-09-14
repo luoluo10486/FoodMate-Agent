@@ -22,11 +22,14 @@ describe('foodLogService', () => {
     const data = [{ food_log_id: '11', meal_time: '2026-08-22T08:00:00Z', meal_type: 'breakfast', items: [] }];
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(loadFoodLogs('2026-08-22T00:00:00.000Z', '2026-08-23T00:00:00.000Z')).resolves.toEqual(data);
+    await expect(
+      loadFoodLogs('2026-08-22T00:00:00.000Z', '2026-08-23T00:00:00.000Z', controller.signal),
+    ).resolves.toEqual(data);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/food-logs?from=2026-08-22T00%3A00%3A00.000Z&to=2026-08-23T00%3A00%3A00.000Z',
-      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+      expect.objectContaining({ method: 'GET', credentials: 'include', signal: controller.signal }),
     );
   });
 
@@ -94,11 +97,12 @@ describe('foodLogService', () => {
     const data = [{ food_log_id: '12', deleted: true }];
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(loadDeletedFoodLogs()).resolves.toEqual(data);
+    await expect(loadDeletedFoodLogs(controller.signal)).resolves.toEqual(data);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/food-logs/deleted',
-      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+      expect.objectContaining({ method: 'GET', credentials: 'include', signal: controller.signal }),
     );
   });
 });

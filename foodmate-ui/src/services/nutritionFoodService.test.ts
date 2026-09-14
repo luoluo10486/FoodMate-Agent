@@ -25,11 +25,12 @@ describe('nutritionFoodService', () => {
     ];
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(searchNutritionFoods('鸡胸肉', 6)).resolves.toEqual(data);
+    await expect(searchNutritionFoods('鸡胸肉', 6, controller.signal)).resolves.toEqual(data);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/nutrition-foods/search?query=%E9%B8%A1%E8%83%B8%E8%82%89&limit=6',
-      expect.objectContaining({ method: 'GET', credentials: 'include' }),
+      expect.objectContaining({ method: 'GET', credentials: 'include', signal: controller.signal }),
     );
   });
 });

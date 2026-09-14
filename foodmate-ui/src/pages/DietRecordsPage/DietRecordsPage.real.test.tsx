@@ -118,6 +118,16 @@ function renderPage() {
   );
 }
 
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('DietRecordsPage real mode', () => {
   beforeEach(() => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
@@ -216,7 +226,7 @@ describe('DietRecordsPage real mode', () => {
     );
     await waitFor(() => expect(screen.getByText('更新后的鸡肉饭')).toBeInTheDocument());
     expect(loadCompositeDishes).toHaveBeenCalledTimes(2);
-    expect(loadCompositeDish).toHaveBeenCalledWith('21');
+    expect(loadCompositeDish).toHaveBeenCalledWith('21', expect.any(AbortSignal));
   });
 
   it('confirms composite dish deletion and keeps the dialog open on a conflict', async () => {
@@ -262,7 +272,7 @@ describe('DietRecordsPage real mode', () => {
 
     await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: '编辑' }));
-    await waitFor(() => expect(loadCompositeDish).toHaveBeenCalledWith('21'));
+    await waitFor(() => expect(loadCompositeDish).toHaveBeenCalledWith('21', expect.any(AbortSignal)));
     const nameInput = screen.getByRole('textbox', { name: '复合菜名称' });
     await user.clear(nameInput);
     await user.type(nameInput, '更新后的鸡肉饭');
@@ -492,6 +502,32 @@ describe('DietRecordsPage real mode', () => {
     const fromDate = new Date(vi.mocked(loadFoodLogs).mock.calls[1][0]);
     const toDate = new Date(to);
     expect(toDate.getTime() - fromDate.getTime()).toBe(7 * 24 * 60 * 60 * 1000);
+  });
+
+  it('cancels the previous date request and ignores its late response', async () => {
+    const oldLog = { ...log, items: [{ ...log.items[0], raw_name: '旧日期食物' }] };
+    const newLog = { ...log, items: [{ ...log.items[0], raw_name: '新日期食物' }] };
+    const first = deferred<(typeof log)[]>();
+    const second = deferred<(typeof log)[]>();
+    vi.mocked(loadFoodLogs).mockImplementation((_from, _to, signal) => {
+      const callCount = vi.mocked(loadFoodLogs).mock.calls.length;
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return callCount === 1 ? first.promise : second.promise;
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(loadFoodLogs).toHaveBeenCalledTimes(1));
+    const firstSignal = vi.mocked(loadFoodLogs).mock.calls[0][2];
+    await user.click(screen.getByRole('button', { name: '后一天' }));
+    await waitFor(() => expect(loadFoodLogs).toHaveBeenCalledTimes(2));
+
+    expect(firstSignal?.aborted).toBe(true);
+    first.resolve([oldLog]);
+    second.resolve([newLog]);
+
+    await waitFor(() => expect(screen.getByText('新日期食物')).toBeInTheDocument());
+    expect(screen.queryByText('旧日期食物')).not.toBeInTheDocument();
   });
 
   it('shows an explicit empty state for no server records', async () => {

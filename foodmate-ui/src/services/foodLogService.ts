@@ -40,8 +40,11 @@ export type FoodLogWriteRequest = {
   items: Array<{ raw_name: string; amount: number; unit: string; nutrition_food_id?: string }>;
 };
 
-export async function loadFoodLogs(from: string, to: string): Promise<FoodLog[]> {
-  return apiRequest<FoodLog[]>(`/api/food-logs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+export async function loadFoodLogs(from: string, to: string, signal?: AbortSignal): Promise<FoodLog[]> {
+  return apiRequest<FoodLog[]>(
+    `/api/food-logs?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`,
+    signal ? { signal } : undefined,
+  );
 }
 
 export async function createFoodLog(request: FoodLogWriteRequest): Promise<FoodLog> {
@@ -71,8 +74,8 @@ export async function deleteFoodLog(foodLogId: string, revision: number): Promis
   });
 }
 
-export async function loadDeletedFoodLogs(): Promise<FoodLog[]> {
-  return apiRequest<FoodLog[]>('/api/food-logs/deleted');
+export async function loadDeletedFoodLogs(signal?: AbortSignal): Promise<FoodLog[]> {
+  return apiRequest<FoodLog[]>('/api/food-logs/deleted', signal ? { signal } : undefined);
 }
 
 export async function restoreFoodLog(foodLogId: string, revision: number): Promise<FoodLog> {

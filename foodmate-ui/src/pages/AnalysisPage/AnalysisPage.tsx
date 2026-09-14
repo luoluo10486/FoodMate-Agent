@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { isAbortError } from '../../services/apiClient';
 import {
   loadNutritionAnalysis,
   type NutritionAnalysis,
@@ -228,31 +229,32 @@ export function AnalysisPage() {
   const [realLoading, setRealLoading] = useState(isRealMode);
   const [realError, setRealError] = useState<string>();
   const [realReloadNonce, setRealReloadNonce] = useState(0);
+  const analysisRequestId = useRef(0);
   const data = rangeData[range];
   const realRange: NutritionAnalysisRange | undefined = range === '90d' ? undefined : range;
 
   useEffect(() => {
     if (!isRealMode || !realRange) return;
-    let active = true;
+    const requestId = ++analysisRequestId.current;
+    const controller = new AbortController();
     // 每次真实请求都由当前 effect 管理加载、成功和失败状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
-    loadNutritionAnalysis(realRange)
+    loadNutritionAnalysis(realRange, controller.signal)
       .then((value) => {
-        if (active) setRealData(value);
+        if (!controller.signal.aborted && requestId === analysisRequestId.current) setRealData(value);
       })
       .catch((cause) => {
-        if (active) {
-          setRealData(undefined);
-          setRealError(cause instanceof Error ? cause.message : '营养分析加载失败');
-        }
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== analysisRequestId.current) return;
+        setRealData(undefined);
+        setRealError(cause instanceof Error ? cause.message : '营养分析加载失败');
       })
       .finally(() => {
-        if (active) setRealLoading(false);
+        if (!controller.signal.aborted && requestId === analysisRequestId.current) setRealLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [isRealMode, realRange, realReloadNonce]);
 
@@ -317,7 +319,7 @@ export function AnalysisPage() {
                     className={range === item.key ? styles.rangeActive : ''}
                     key={item.key}
                     value={item.key}
-                    disabled={visibleState === 'loading' || visibleState === 'error'}
+                    disabled={visibleState === 'error'}
                   >
                     {item.label}
                   </TabsTrigger>
