@@ -11,6 +11,8 @@ foodmate:
     cookie-secure: false
   runtime:
     stub-enabled: true
+    # Stub 配置不依赖 RocketMQ，使用 HTTP 兼容通道完成本地契约验证。
+    transport: http
     admission:
       enabled: false
     service-jwt:
