@@ -945,6 +945,33 @@
   text-align: left;
 }
 
+.memoryError {
+  display: flex;
+  min-height: 100px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-color: #f1c6c8;
+  background: #fff7f7;
+  color: #b83d40;
+}
+
+.memoryErrorMessage {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.memoryErrorMessage svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
 .emptyEyebrow {
   color: #549e6b;
   font-size: 12px;

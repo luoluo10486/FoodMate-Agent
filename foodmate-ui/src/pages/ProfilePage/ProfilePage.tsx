@@ -14,7 +14,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceLayout } from '@/layouts/WorkspaceLayout/WorkspaceLayout';
@@ -2129,10 +2129,15 @@ function RealMemoriesTab() {
   const navigate = useNavigate();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [filter, setFilter] = useState<'all' | 'attention' | 'confirmed'>('all');
   const [deleting, setDeleting] = useState<Memory>();
   const [editing, setEditing] = useState<Memory>();
   const [editValue, setEditValue] = useState('');
+  const requestSeqRef = useRef(0);
+  const loadControllerRef = useRef<AbortController>();
+  const mutationControllersRef = useRef(new Set<AbortController>());
+  const mountedRef = useRef(true);
 
   const attentionCount = memories.filter((memory) => memory.status !== 'confirmed').length;
   const conflictCount = memories.filter((memory) => memory.status === 'conflict').length;
@@ -2142,27 +2147,64 @@ function RealMemoriesTab() {
       filter === 'all' || (filter === 'confirmed' ? memory.status === 'confirmed' : memory.status !== 'confirmed'),
   );
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
+    if (!mountedRef.current) return Promise.resolve();
+    loadControllerRef.current?.abort();
+    const requestId = ++requestSeqRef.current;
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
     setLoading(true);
-    return loadMemories()
-      .then((items) => setMemories(items.map(toMemory)))
-      .catch((error) => notice(error instanceof Error ? error.message : 'Memory load failed.', 'error'))
-      .finally(() => setLoading(false));
-  };
+    setLoadError('');
+    setMemories([]);
+    return loadMemories(controller.signal)
+      .then((items) => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        setMemories(items.map(toMemory));
+      })
+      .catch((error) => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        if (isAbortError(error)) return;
+        const message = error instanceof Error ? error.message : '记忆加载失败，请重试。';
+        setMemories([]);
+        setLoadError(message);
+        notice(message, 'error');
+      })
+      .finally(() => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        setLoading(false);
+        if (loadControllerRef.current === controller) loadControllerRef.current = undefined;
+      });
+  }, []);
 
   useEffect(() => {
     // 首次刷新是实时记忆列表的订阅边界。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    mountedRef.current = true;
+    const mutationControllers = mutationControllersRef.current;
     void refresh();
-  }, []);
+    return () => {
+      mountedRef.current = false;
+      requestSeqRef.current += 1;
+      loadControllerRef.current?.abort();
+      loadControllerRef.current = undefined;
+      for (const controller of mutationControllers) controller.abort();
+      mutationControllers.clear();
+    };
+  }, [refresh]);
 
-  const runMutation = async (action: () => Promise<unknown>, success: string) => {
+  const runMutation = async (action: (signal: AbortSignal) => Promise<unknown>, success: string) => {
+    const controller = new AbortController();
+    mutationControllersRef.current.add(controller);
     try {
-      await action();
+      await action(controller.signal);
+      if (!mountedRef.current || controller.signal.aborted) return;
       await refresh();
+      if (!mountedRef.current || controller.signal.aborted) return;
       notice(success, 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       notice(error instanceof Error ? error.message : 'Memory operation failed.', 'error');
+    } finally {
+      mutationControllersRef.current.delete(controller);
     }
   };
 
@@ -2202,13 +2244,24 @@ function RealMemoriesTab() {
         </Button>
       </div>
       {loading ? <Card className={styles.memoryEmpty}>正在加载记忆...</Card> : null}
-      {!loading && visibleMemories.length ? (
+      {!loading && loadError ? (
+        <Card className={styles.memoryError} role="alert">
+          <div className={styles.memoryErrorMessage}>
+            <CircleAlert aria-hidden="true" />
+            <span>{loadError}</span>
+          </div>
+          <Button variant="outline" type="button" onClick={() => void refresh()}>
+            重试
+          </Button>
+        </Card>
+      ) : null}
+      {!loading && !loadError && visibleMemories.length ? (
         <div className={styles.memoryList}>
           {visibleMemories.map((memory) => (
             <MemoryRow
               key={memory.id}
               memory={memory}
-              onConfirm={() => void runMutation(() => confirmMemory(memory.id), '记忆已确认。')}
+              onConfirm={() => void runMutation((signal) => confirmMemory(memory.id, signal), '记忆已确认。')}
               onEdit={() => {
                 setEditing(memory);
                 setEditValue(memory.content);
@@ -2219,7 +2272,7 @@ function RealMemoriesTab() {
           ))}
         </div>
       ) : null}
-      {!loading && !visibleMemories.length ? (
+      {!loading && !loadError && !visibleMemories.length ? (
         <Card className={styles.memoryEmpty}>
           <div className={styles.emptyEyebrow}>MEMORY / EMPTY</div>
           <h2>{memories.length ? '没有匹配的记忆' : '暂无长期记忆'}</h2>
@@ -2251,7 +2304,7 @@ function RealMemoriesTab() {
               type="button"
               onClick={() => {
                 if (!deleting) return;
-                void runMutation(() => deleteMemory(deleting.id), '记忆已删除。');
+                void runMutation((signal) => deleteMemory(deleting.id, signal), '记忆已删除。');
                 setDeleting(undefined);
               }}
             >
@@ -2279,7 +2332,10 @@ function RealMemoriesTab() {
               type="button"
               onClick={() => {
                 if (!editing || !editValue.trim()) return;
-                void runMutation(() => updateMemory(editing.id, editValue.trim(), editing.scope), '记忆已更新。');
+                void runMutation(
+                  (signal) => updateMemory(editing.id, editValue.trim(), editing.scope, signal),
+                  '记忆已更新。',
+                );
                 setEditing(undefined);
               }}
             >

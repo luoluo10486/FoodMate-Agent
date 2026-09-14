@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -82,7 +82,57 @@ describe('ProfilePage real memory status', () => {
 
     await user.click(screen.getByRole('button', { name: '确认并替换' }));
 
-    await waitFor(() => expect(confirmMemory).toHaveBeenCalledWith(12));
+    await waitFor(() => expect(confirmMemory).toHaveBeenCalledWith(12, expect.any(AbortSignal)));
     expect(loadMemories).toHaveBeenCalledTimes(2);
+  });
+
+  it('clears stale memories and exposes a retry when the real read fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMemories)
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify('偏好燕麦'),
+          confirmation_status: 'confirmed',
+        },
+      ])
+      .mockRejectedValueOnce(new Error('记忆接口不可用'))
+      .mockResolvedValueOnce([
+        {
+          memory_id: 13,
+          memory_type: 'goal',
+          memory_value: JSON.stringify('增加蛋白质'),
+          confirmation_status: 'confirmed',
+        },
+      ]);
+
+    renderPage();
+    expect(await screen.findByText(/偏好燕麦/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '刷新' }));
+    const memoryAlert = await screen.findByText('记忆接口不可用');
+    expect(memoryAlert).toBeInTheDocument();
+    expect(screen.queryByText(/偏好燕麦/)).not.toBeInTheDocument();
+
+    const memoryErrorPanel = memoryAlert.closest('[role="alert"]');
+    expect(memoryErrorPanel).not.toBeNull();
+    await user.click(within(memoryErrorPanel as HTMLElement).getByRole('button', { name: '重试' }));
+    expect(await screen.findByText(/增加蛋白质/)).toBeInTheDocument();
+    expect(screen.queryByText('记忆接口不可用')).not.toBeInTheDocument();
+  });
+
+  it('aborts the real memory request when the tab unmounts', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(loadMemories).mockImplementation((signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage();
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
   });
 });
