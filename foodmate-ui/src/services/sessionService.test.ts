@@ -147,4 +147,21 @@ describe('sessionService', () => {
     });
     expect(fetchMock.mock.calls[0][0]).toBe('/api/sessions/search?q=%E6%97%A9%E9%A4%90&page=2&size=15');
   });
+
+  it('passes a cancellation signal to session list requests', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true, data: { items: [], total: 0, page: 1, size: 50 } }), {
+        status: 200,
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadSessionsPage({ page: 1, size: 50 }, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/sessions?page=1&size=50',
+      expect.objectContaining({ signal: controller.signal }),
+    );
+  });
 });

@@ -16,6 +16,15 @@ const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL a
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let refreshInFlight: Promise<void> | undefined;
 
+export function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AbortError'
+  );
+}
+
 function csrfToken() {
   return document.cookie
     .split('; ')
@@ -34,7 +43,9 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   if (unsafeMethods.has(method) && csrf) headers.set('X-CSRF-Token', csrf);
   try {
     return await fetch(`${baseUrl}${path}`, { ...init, method, credentials: 'include', headers });
-  } catch {
+  } catch (error) {
+    // 组件卸载或请求切换导致的取消不是网络故障，必须原样交给调用方忽略。
+    if (isAbortError(error)) throw error;
     throw new ApiError('NETWORK_ERROR', '网络连接失败，请检查网络后重试');
   }
 }

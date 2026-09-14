@@ -1,4 +1,4 @@
-export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
+export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'locked' | 'forbidden';
 
 export type AuthPermission = {
   key: string;
@@ -122,6 +122,12 @@ export const mockAuthScenarios: Array<{ status: AuthStatus; title: string; descr
     title: '账号禁用',
     description: '账号状态不是 active 时拒绝登录。',
     code: 'AUTH_ACCOUNT_DISABLED',
+  },
+  {
+    status: 'locked',
+    title: '账号锁定',
+    description: '账号被锁定时拒绝登录，并提示联系支持人员。',
+    code: 'AUTH_ACCOUNT_LOCKED',
   },
   {
     status: 'forbidden',

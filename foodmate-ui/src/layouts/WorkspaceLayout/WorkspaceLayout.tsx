@@ -59,6 +59,7 @@ import {
   type RealSession,
 } from '../../services/sessionService';
 import { getAuthScenarios, getAuthStatus, getAuthUser, loadCurrentUser, logout } from '../../services/authService';
+import { isAbortError } from '../../services/apiClient';
 import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
@@ -145,6 +146,7 @@ export function WorkspaceLayout({
   const [sessionLoading, setSessionLoading] = useState(false);
   const [sessionError, setSessionError] = useState('');
   const sessionRequestRef = useRef(0);
+  const sessionAbortControllerRef = useRef<AbortController>();
   const pendingSessionOperationRef = useRef<string>();
   const [pendingSessionOperation, setPendingSessionOperation] = useState<string>();
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string }>();
@@ -198,7 +200,8 @@ export function WorkspaceLayout({
   useEffect(() => {
     if (!realMode) return;
     let cancelled = false;
-    loadCurrentUser()
+    const controller = new AbortController();
+    loadCurrentUser(controller.signal)
       .then((user) => {
         if (!cancelled) setCurrentUser(user);
       })
@@ -208,8 +211,18 @@ export function WorkspaceLayout({
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [realMode]);
+
+  useEffect(
+    () => () => {
+      sessionRequestRef.current += 1;
+      sessionAbortControllerRef.current?.abort();
+      sessionAbortControllerRef.current = undefined;
+    },
+    [],
+  );
 
   useEffect(() => {
     if (authReady && realMode && !isAuthenticated) {
@@ -220,30 +233,35 @@ export function WorkspaceLayout({
   const loadSessionList = useCallback(
     async (query: string, page: number) => {
       const requestId = ++sessionRequestRef.current;
+      sessionAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      sessionAbortControllerRef.current = controller;
       setSessionLoading(true);
       setSessionError('');
       try {
         if (query.trim()) {
-          const result = await searchSessions(query.trim(), { page, size: 50 });
+          const result = await searchSessions(query.trim(), { page, size: 50 }, controller.signal);
           if (requestId !== sessionRequestRef.current) return;
           setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
           setSessionTotal(result.total);
           setSessionPage(result.page);
           return;
         }
-        const result = await loadSessionSummariesPage({ page, size: 50 });
+        const result = await loadSessionSummariesPage({ page, size: 50 }, controller.signal);
         if (requestId !== sessionRequestRef.current) return;
         setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
         setSessionTotal(result.total);
         setSessionPage(result.page);
       } catch (error) {
         if (requestId !== sessionRequestRef.current) return;
+        if (controller.signal.aborted || isAbortError(error)) return;
         // 请求失败时清空旧列表，避免用户把上一次查询结果误认为当前结果。
         setSessions([]);
         setSessionTotal(0);
         setSessionError(error instanceof Error ? error.message : '会话列表加载失败，请重试。');
       } finally {
         if (requestId === sessionRequestRef.current) setSessionLoading(false);
+        if (sessionAbortControllerRef.current === controller) sessionAbortControllerRef.current = undefined;
       }
     },
     [activeSessionId],

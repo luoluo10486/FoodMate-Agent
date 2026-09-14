@@ -1,5 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { confirmPasswordReset, loadCurrentUser, login, logout, requestPasswordReset } from './authService';
+import {
+  confirmPasswordReset,
+  getAuthStatus,
+  loadCurrentUser,
+  login,
+  logout,
+  requestPasswordReset,
+} from './authService';
 
 describe('authService real identity hydration', () => {
   beforeEach(() => {
@@ -61,6 +68,31 @@ describe('authService real identity hydration', () => {
       email: 'real@example.com',
       gender: '女',
     });
+  });
+
+  it.each([
+    ['active', 'authenticated'],
+    ['disabled', 'disabled'],
+    ['locked', 'locked'],
+  ] as const)('maps persisted %s users to the matching auth status', (status, expected) => {
+    localStorage.setItem('foodmate_auth_user', JSON.stringify({ id: '7', status }));
+
+    expect(getAuthStatus()).toBe(expected);
+  });
+
+  it('does not trust a persisted identity without an active status', () => {
+    localStorage.setItem('foodmate_auth_user', JSON.stringify({ id: '7', username: 'legacy-user' }));
+
+    expect(getAuthStatus()).toBe('expired');
+  });
+
+  it('clears local identity without calling remote logout after the server already revoked it', async () => {
+    localStorage.setItem('foodmate_auth_user', JSON.stringify({ id: '7', status: 'active' }));
+
+    await logout({ skipRemote: true });
+
+    expect(fetch).not.toHaveBeenCalled();
+    expect(localStorage.getItem('foodmate_auth_user')).toBeNull();
   });
 
   it('clears the persisted identity only after the real logout request succeeds', async () => {

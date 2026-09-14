@@ -3,7 +3,7 @@ import type { AuthUser, LoginFormValues } from '../mock/auth';
 import { resolvePersistedAvatarUrl } from '../lib/avatar';
 import { apiRequest } from './apiClient';
 
-export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
+export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'locked' | 'forbidden';
 type AuthResponse = {
   username: string;
   role: string;
@@ -40,9 +40,27 @@ export function csrfToken(): string | undefined {
     ?.split('=')[1];
 }
 
+function persistedAuthStatus(): AuthStatus {
+  const saved = localStorage.getItem(AUTH_USER_STORAGE_KEY);
+  if (!saved) return 'anonymous';
+  try {
+    const parsed: unknown = JSON.parse(saved);
+    if (!parsed || typeof parsed !== 'object') return 'expired';
+    const status = (parsed as { status?: unknown }).status;
+    if (status === 'active') return 'authenticated';
+    if (status === 'disabled') return 'disabled';
+    if (status === 'locked') return 'locked';
+    // 缺少明确状态的旧缓存不能作为已认证凭据使用。
+    return 'expired';
+  } catch {
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    return 'anonymous';
+  }
+}
+
 export function getAuthStatus(): AuthStatus {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthStatus;
-  return localStorage.getItem('foodmate_auth_user') ? 'authenticated' : 'anonymous';
+  return persistedAuthStatus();
 }
 
 export function getAuthUser(): AuthUser {
@@ -79,9 +97,9 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
   };
 }
 
-export async function loadCurrentUser(): Promise<AuthUser> {
+export async function loadCurrentUser(signal?: AbortSignal): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const user = toAuthUser(await apiRequest<CurrentUserResponse>('/api/users/me'));
+  const user = toAuthUser(await apiRequest<CurrentUserResponse>('/api/users/me', signal ? { signal } : {}));
   persistAuthUser(user);
   return user;
 }
@@ -113,8 +131,9 @@ export async function register(credentials: { username: string; email: string; p
   return loadCurrentUser();
 }
 
-export async function logout(): Promise<void> {
-  if (import.meta.env.VITE_AGENT_MODE === 'real') await apiRequest<void>('/api/auth/logout', { method: 'POST' });
+export async function logout(options: { skipRemote?: boolean } = {}): Promise<void> {
+  if (import.meta.env.VITE_AGENT_MODE === 'real' && !options.skipRemote)
+    await apiRequest<void>('/api/auth/logout', { method: 'POST' });
   localStorage.removeItem(AUTH_USER_STORAGE_KEY);
   notifyAuthChanged();
 }

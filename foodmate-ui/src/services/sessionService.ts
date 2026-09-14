@@ -52,6 +52,10 @@ export type MessageListParams = {
   size?: number;
 };
 
+function requestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
+
 type SearchSession = {
   session_id: string;
   title: string;
@@ -82,16 +86,22 @@ function mapSessionSummary(item: RealSession, index: number): SessionSummary {
   };
 }
 
-export async function loadSessionSummariesPage(params: SessionListParams = {}): Promise<PageResult<SessionSummary>> {
-  const page = await loadSessionsPage(params);
+export async function loadSessionSummariesPage(
+  params: SessionListParams = {},
+  signal?: AbortSignal,
+): Promise<PageResult<SessionSummary>> {
+  const page = await loadSessionsPage(params, signal);
   return {
     ...page,
     items: page.items.map(mapSessionSummary),
   };
 }
 
-export async function loadSessionsPage(params: SessionListParams = {}): Promise<PageResult<RealSession>> {
-  return apiRequest<PageResult<RealSession>>(`/api/sessions?${sessionQuery(params).toString()}`);
+export async function loadSessionsPage(
+  params: SessionListParams = {},
+  signal?: AbortSignal,
+): Promise<PageResult<RealSession>> {
+  return apiRequest<PageResult<RealSession>>(`/api/sessions?${sessionQuery(params).toString()}`, requestInit(signal));
 }
 
 // 以下方法统一通过 apiRequest 发送真实会话和消息请求，由 apiRequest 负责 Cookie、CSRF 和错误映射。
@@ -188,13 +198,17 @@ export async function restoreSession(sessionId: string): Promise<void> {
 export async function searchSessions(
   query: string,
   params: Pick<SessionListParams, 'page' | 'size'> = {},
+  signal?: AbortSignal,
 ): Promise<PageResult<SessionSummary>> {
   const search = new URLSearchParams({
     q: query.trim(),
     page: String(params.page ?? 1),
     size: String(params.size ?? 50),
   });
-  const result = await apiRequest<PageResult<SearchSession>>(`/api/sessions/search?${search.toString()}`);
+  const result = await apiRequest<PageResult<SearchSession>>(
+    `/api/sessions/search?${search.toString()}`,
+    requestInit(signal),
+  );
   return {
     ...result,
     items: result.items.map((row) => ({ id: row.session_id, title: row.title, subtitle: row.snippet })),

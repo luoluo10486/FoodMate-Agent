@@ -40,6 +40,7 @@ import { AvatarImage } from '@/components/common/AvatarImage';
 import { cn } from '@/lib/utils';
 import { FIXTURE_PROFILE_AVATARS, resolveAvatarUrl } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
+import { isAbortError } from '@/services/apiClient';
 import {
   changePassword,
   deleteAvatar,
@@ -695,20 +696,23 @@ function BasicTab({
   useEffect(() => {
     if (!realMode) return;
     let cancelled = false;
-    getProfile()
+    const controller = new AbortController();
+    getProfile(controller.signal)
       .then((profile) => {
         if (cancelled) return;
         setProfileForm((current) => profileFromApi(profile, current));
         setSavedForm((current) => profileFromApi(profile, current));
       })
       .catch((error) => {
-        if (!cancelled) setLoadError(error instanceof Error ? error.message : '个人资料加载失败，请重试。');
+        if (!cancelled && !isAbortError(error))
+          setLoadError(error instanceof Error ? error.message : '个人资料加载失败，请重试。');
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
   }, [realMode, reloadKey]);
 
@@ -1470,17 +1474,35 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const [sessionLoadError, setSessionLoadError] = useState('');
   const [sessionReloadKey, setSessionReloadKey] = useState(0);
   const [logoutTarget, setLogoutTarget] = useState<'others' | AuthSession>();
+  const [logoutState, setLogoutState] = useState<AsyncState>('idle');
+  const sessionRequestRef = useRef(0);
 
   useEffect(() => {
     if (!realMode) return;
-    getAuthSessions()
-      .then(setSessions)
-      .catch((error) => {
+    const requestId = ++sessionRequestRef.current;
+    const controller = new AbortController();
+    const loadSessions = async () => {
+      setLoadingSessions(true);
+      setSessionLoadError('');
+      setSessions([]);
+      try {
+        const items = await getAuthSessions(controller.signal);
+        if (controller.signal.aborted || requestId !== sessionRequestRef.current) return;
+        setSessions(items);
+      } catch (error) {
+        if (controller.signal.aborted || requestId !== sessionRequestRef.current || isAbortError(error)) return;
+        setSessions([]);
         const message = error instanceof Error ? error.message : '设备会话加载失败，请刷新重试。';
         setSessionLoadError(message);
         notice(message, 'error');
-      })
-      .finally(() => setLoadingSessions(false));
+      } finally {
+        if (!controller.signal.aborted && requestId === sessionRequestRef.current) setLoadingSessions(false);
+      }
+    };
+    void loadSessions();
+    return () => {
+      controller.abort();
+    };
   }, [realMode, sessionReloadKey]);
 
   const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
@@ -1504,7 +1526,8 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
     try {
       if (realMode) {
         await changePassword(passwords.current, passwords.next);
-        await logout();
+        // 修改密码会由后端撤销当前会话，不能再调用已经失效的远端登出接口。
+        await logout({ skipRemote: true });
         window.location.assign('/login');
         return;
       }
@@ -1518,11 +1541,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   };
 
   const confirmLogout = async () => {
+    if (!logoutTarget || logoutState === 'submitting') return;
+    setLogoutState('submitting');
     try {
       if (logoutTarget === 'others') {
         if (realMode) {
           await revokeAllAuthSessions();
-          await logout();
+          // 后端会同时撤销当前会话和刷新凭证，直接清理本地身份即可。
+          await logout({ skipRemote: true });
           window.location.assign('/login');
           return;
         }
@@ -1533,10 +1559,13 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
         setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
         notice('设备会话已退出。', 'success');
       }
+      setLogoutState('success');
     } catch (error) {
+      setLogoutState('failed');
       notice(error instanceof Error ? error.message : '设备退出失败，请重试。', 'error');
     } finally {
       setLogoutTarget(undefined);
+      setLogoutState('idle');
     }
   };
 
@@ -1711,9 +1740,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             <Button variant="outline" type="button" onClick={() => setLogoutTarget(undefined)}>
               取消
             </Button>
-            <Button variant="destructive" type="button" onClick={() => void confirmLogout()}>
+            <Button
+              variant="destructive"
+              type="button"
+              disabled={logoutState === 'submitting'}
+              onClick={() => void confirmLogout()}
+            >
               <LogOut aria-hidden="true" />
-              确认退出
+              {logoutState === 'submitting' ? '正在退出...' : '确认退出'}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -61,7 +61,8 @@ export type ExportJob = {
   failure_code?: string;
 };
 
-export const getProfile = () => apiRequest<Profile>('/api/users/me/profile');
+export const getProfile = (signal?: AbortSignal) =>
+  apiRequest<Profile>('/api/users/me/profile', signal ? { signal } : {});
 export const updateProfile = (profile: ProfileUpdateRequest) =>
   apiRequest<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
 export const changePassword = (currentPassword: string, newPassword: string) =>
@@ -69,7 +70,8 @@ export const changePassword = (currentPassword: string, newPassword: string) =>
     method: 'POST',
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
   });
-export const getAuthSessions = () => apiRequest<AuthSession[]>('/api/users/me/sessions');
+export const getAuthSessions = (signal?: AbortSignal) =>
+  apiRequest<AuthSession[]>('/api/users/me/sessions', signal ? { signal } : {});
 export const revokeAuthSession = (id: number) => apiRequest<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });
 export const revokeAllAuthSessions = () => apiRequest<void>('/api/users/me/sessions/revoke-all', { method: 'POST' });
 export const uploadAvatar = (file: File) => {

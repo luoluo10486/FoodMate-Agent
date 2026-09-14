@@ -120,4 +120,13 @@ describe('apiClient authentication recovery', () => {
     expect(headers.get('Content-Type')).toBeNull();
     expect(init?.body).toBe(form);
   });
+
+  it('keeps aborted requests distinguishable from network failures', async () => {
+    const abortError = new DOMException('The operation was aborted.', 'AbortError');
+    vi.mocked(fetch).mockRejectedValueOnce(abortError);
+
+    await expect(apiRequest('/api/sessions', { signal: new AbortController().signal })).rejects.toMatchObject({
+      name: 'AbortError',
+    });
+  });
 });

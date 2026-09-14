@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { getDataExport } from './accountService';
+import { getAuthSessions, getDataExport } from './accountService';
 
 describe('accountService export response mapping', () => {
   beforeEach(() => {
@@ -36,5 +36,17 @@ describe('accountService export response mapping', () => {
       download_consumed_at: undefined,
       failure_code: undefined,
     });
+  });
+
+  it('passes a cancellation signal to the auth session request', async () => {
+    const controller = new AbortController();
+    vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: [] }), { status: 200 }));
+
+    await expect(getAuthSessions(controller.signal)).resolves.toEqual([]);
+
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/users/me/sessions',
+      expect.objectContaining({ signal: controller.signal }),
+    );
   });
 });

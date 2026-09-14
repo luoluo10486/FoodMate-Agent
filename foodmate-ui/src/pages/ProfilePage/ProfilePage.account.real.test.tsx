@@ -119,6 +119,38 @@ describe('ProfilePage real account states', () => {
     expect(screen.queryByText('MacBook Pro 16" · macOS')).not.toBeInTheDocument();
   });
 
+  it('retries device loading with a fresh request and keeps the failed state empty', async () => {
+    const user = userEvent.setup();
+    const getAuthSessionsMock = vi.mocked(getAuthSessions);
+    getAuthSessionsMock
+      .mockRejectedValueOnce(new Error('设备接口不可用'))
+      .mockRejectedValueOnce(new Error('设备接口再次不可用'));
+
+    renderPage('/profile/security');
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('设备接口不可用');
+    await user.click(screen.getByRole('button', { name: '重试' }));
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('设备接口再次不可用'));
+    expect(screen.queryByText('MacBook Pro 16" · macOS')).not.toBeInTheDocument();
+    expect(getAuthSessionsMock).toHaveBeenCalledTimes(2);
+    expect(getAuthSessionsMock.mock.calls[0][0]).not.toBe(getAuthSessionsMock.mock.calls[1][0]);
+  });
+
+  it('aborts the device request when the security tab unmounts', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(getAuthSessions).mockImplementation((signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile/security');
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
   it('ignores a profile fixture query in real mode', async () => {
     renderPage('/profile?state=security-password-success');
 

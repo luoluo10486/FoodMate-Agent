@@ -105,13 +105,19 @@ describe('WorkspaceLayout shell controls', () => {
 
     const search = await screen.findByPlaceholderText('搜索会话...');
     await user.type(search, '早餐');
-    await waitFor(() => expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 1, size: 50 }));
+    await waitFor(() =>
+      expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 1, size: 50 }, expect.any(AbortSignal)),
+    );
 
     await user.click(screen.getByRole('button', { name: '下一页' }));
-    await waitFor(() => expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 2, size: 50 }));
+    await waitFor(() =>
+      expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 2, size: 50 }, expect.any(AbortSignal)),
+    );
 
     await user.click(screen.getByRole('button', { name: '清除会话搜索' }));
-    await waitFor(() => expect(loadSessionSummariesPage).toHaveBeenLastCalledWith({ page: 1, size: 50 }));
+    await waitFor(() =>
+      expect(loadSessionSummariesPage).toHaveBeenLastCalledWith({ page: 1, size: 50 }, expect.any(AbortSignal)),
+    );
   });
 
   it('does not keep stale sessions after a real list request fails', async () => {
