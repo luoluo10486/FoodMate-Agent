@@ -295,8 +295,8 @@ export function DeletedSection({
                 targetLabel: `${resourceTypeLabel(record.resourceType)}:${record.resourceId}`,
                 targetType: record.resourceType,
                 targetId: record.resourceId,
-                execute: async () => {
-                  await restoreAdminResource(record.resourceType, record.resourceId, record.revision ?? 1);
+                execute: async (signal) => {
+                  await restoreAdminResource(record.resourceType, record.resourceId, record.revision ?? 1, signal);
                 },
                 onApply: () => {
                   if (!isReal) setRows((current) => current.filter((item) => item.key !== record.key));

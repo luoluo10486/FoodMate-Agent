@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowLeft, CheckCircle2, Folder, Plus, RefreshCw, ShieldAlert, X, XCircle } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ROUTES } from '../../constants/routes';
 import { FIXTURE_ADMIN_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { AvatarImage } from '../../components/common/AvatarImage';
+import { isAbortError } from '../../services/apiClient';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
 import styles from './AdminPage.module.css';
@@ -39,6 +40,22 @@ const figmaOperationAction: AdminActionPayload = {
   targetType: 'tool',
   targetId: 'nutrition_lookup',
 };
+
+function waitForAdminFixtureOperation(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', finish);
+      resolve();
+    }, 280);
+    const finish = () => {
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    signal.addEventListener('abort', finish, { once: true });
+    if (signal.aborted) finish();
+  });
+}
 
 type AdminFixtureState =
   | 'overview'
@@ -745,17 +762,29 @@ function appendOperationAudit(
   if (adminOperationAuditRows.length > 8) adminOperationAuditRows.splice(8);
 }
 
-function renderSection(
-  sectionKey: AdminSectionKey,
-  onAction: (payload: AdminActionPayload) => void,
-  refreshNonce: number,
-  operationStatus: AdminOperationState,
-  figmaFixture: boolean,
-  userDetailFixture: boolean,
-  knowledgeUploadRequest: number,
-  canReplayDlq: boolean,
-  canManageAccess: boolean,
-) {
+type AdminSectionRendererProps = {
+  sectionKey: AdminSectionKey;
+  onAction: (payload: AdminActionPayload) => void;
+  refreshNonce: number;
+  operationStatus: AdminOperationState;
+  figmaFixture: boolean;
+  userDetailFixture: boolean;
+  knowledgeUploadRequest: number;
+  canReplayDlq: boolean;
+  canManageAccess: boolean;
+};
+
+function AdminSectionRenderer({
+  sectionKey,
+  onAction,
+  refreshNonce,
+  operationStatus,
+  figmaFixture,
+  userDetailFixture,
+  knowledgeUploadRequest,
+  canReplayDlq,
+  canManageAccess,
+}: AdminSectionRendererProps) {
   switch (sectionKey) {
     case 'users':
       return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} refreshNonce={refreshNonce} />;
@@ -833,6 +862,9 @@ export function AdminPage() {
   const [notice, setNotice] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [knowledgeUploadRequest, setKnowledgeUploadRequest] = useState(0);
+  const actionControllerRef = useRef<AbortController>();
+  const actionRequestIdRef = useRef(0);
+  const mountedRef = useRef(true);
   const isAuditFigmaFixture = isAuditFigmaRoute;
   const fixtureUser =
     requestedFixture || isAuditFigmaFixture
@@ -866,7 +898,19 @@ export function AdminPage() {
     return () => window.removeEventListener('foodmate:admin-notice', handleNotice);
   }, []);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      actionControllerRef.current?.abort();
+      actionRequestIdRef.current += 1;
+    };
+  }, []);
+
   const requestAdminAction = (payload: AdminActionPayload) => {
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    actionRequestIdRef.current += 1;
     setOperationError(undefined);
     setNotice('');
     setPendingAction(payload);
@@ -879,14 +923,20 @@ export function AdminPage() {
 
   const executePendingAction = async () => {
     if (!pendingAction) return;
-    const { action, targetType, targetId, onApply, execute } = pendingAction;
+    const actionPayload = pendingAction;
+    const { action, targetType, targetId, onApply, execute } = actionPayload;
+    actionControllerRef.current?.abort();
+    const controller = new AbortController();
+    const requestId = ++actionRequestIdRef.current;
+    actionControllerRef.current = controller;
     setOperationStatus('submitting');
     try {
       if (import.meta.env.VITE_AGENT_MODE === 'real') {
-        await execute?.();
+        await execute?.(controller.signal);
       } else {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 280));
+        await waitForAdminFixtureOperation(controller.signal);
       }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== actionRequestIdRef.current) return;
       onApply?.();
       if (import.meta.env.VITE_AGENT_MODE !== 'real') {
         appendOperationAudit(authUser, action, targetType, targetId);
@@ -894,6 +944,13 @@ export function AdminPage() {
       setRefreshNonce((current) => current + 1);
       setOperationStatus('success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== actionRequestIdRef.current ||
+        isAbortError(error)
+      )
+        return;
       const candidate = (error ?? {}) as {
         code?: unknown;
         message?: unknown;
@@ -924,10 +981,15 @@ export function AdminPage() {
         appendOperationAudit(authUser, action, targetType, targetId, 'failed', failedRequestId);
       }
       setOperationStatus('failed');
+    } finally {
+      if (actionControllerRef.current === controller) actionControllerRef.current = undefined;
     }
   };
 
   const dismissOperation = () => {
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    actionRequestIdRef.current += 1;
     setPendingAction(undefined);
     setOperationError(undefined);
     setOperationStatus('idle');
@@ -1173,17 +1235,17 @@ export function AdminPage() {
           {isDetailFixture ? (
             <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
           ) : (
-            renderSection(
-              sectionKey,
-              requestAdminAction,
-              refreshNonce,
-              activeOperationStatus,
-              isKnowledgeFixture,
-              isUserDetailFixture,
-              knowledgeUploadRequest,
-              authUser.role === 'superadmin',
-              canManage,
-            )
+            <AdminSectionRenderer
+              sectionKey={sectionKey}
+              onAction={requestAdminAction}
+              refreshNonce={refreshNonce}
+              operationStatus={activeOperationStatus}
+              figmaFixture={isKnowledgeFixture}
+              userDetailFixture={isUserDetailFixture}
+              knowledgeUploadRequest={knowledgeUploadRequest}
+              canReplayDlq={authUser.role === 'superadmin'}
+              canManageAccess={canManage}
+            />
           )}
         </div>
       </main>

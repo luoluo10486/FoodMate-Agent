@@ -901,8 +901,8 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
                 targetLabel: row.messageId,
                 targetType: 'dlq',
                 targetId: row.dlqId,
-                execute: async () => {
-                  await replayAdminDlq(dlqId);
+                execute: async (signal) => {
+                  await replayAdminDlq(dlqId, signal);
                 },
               })
             }

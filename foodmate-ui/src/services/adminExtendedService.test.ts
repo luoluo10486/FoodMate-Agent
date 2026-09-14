@@ -20,7 +20,11 @@ import {
   replayAdminDlq,
   requestRetentionPurge,
   retryKnowledgeItem,
+  restoreAdminResource,
   updateKnowledgeStatus,
+  updateAdminToolStatus,
+  updateAdminUserStatus,
+  revokeAdminUserSessions,
 } from './adminService';
 
 function ok(data: unknown) {
@@ -123,6 +127,57 @@ describe('admin extended APIs', () => {
     await retryKnowledgeItem('9001', '42', controller.signal);
     await changeKnowledgeVisibility('42', 'published', controller.signal);
 
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
+    }
+  });
+
+  it('forwards cancellation through admin mutations and retention reads', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockImplementation(() => Promise.resolve(ok({})));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await updateAdminUserStatus('7', 'locked', 3, controller.signal);
+    await revokeAdminUserSessions('7', 3, controller.signal);
+    await updateAdminToolStatus('food_log_writer', 'disabled', 7, controller.signal);
+    await restoreAdminResource('user', '7', 4, controller.signal);
+    await replayAdminDlq(11, controller.signal);
+    await requestRetentionPurge('food_log', 42, controller.signal);
+    await loadRetentionPurge(5, controller.signal);
+    await loadRetentionPurgePreflight(5, controller.signal);
+    await approveRetentionPurge(5, controller.signal);
+    await placeRetentionHold('food_log', 42, 'legal_request', controller.signal);
+    await releaseRetentionHold(9, controller.signal);
+    await createModelPrice(
+      {
+        providerCode: 'cloud_primary',
+        modelName: 'DeepSeek-V4-Flash',
+        priceVersion: 'price-v1',
+        inputPricePerMillion: '1.2',
+        outputPricePerMillion: '2.4',
+        currency: 'CNY',
+        effectiveAt: '2026-09-13T00:00:00Z',
+        revision: 1,
+      },
+      controller.signal,
+    );
+    await createModelBudget(
+      {
+        policyKey: 'agent-default',
+        scene: 'chat',
+        scopeType: 'global',
+        maxTotalTokens: 50000,
+        maxCostCny: '10.00',
+        maxModelCalls: 10,
+        maxStepRetries: 2,
+        windowType: 'run',
+        policyVersion: 'budget-v1',
+        revision: 1,
+      },
+      controller.signal,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(13);
     for (const [, init] of fetchMock.mock.calls) {
       expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
     }

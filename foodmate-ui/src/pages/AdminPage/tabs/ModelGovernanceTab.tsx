@@ -151,34 +151,45 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
   const [budgetForm, setBudgetForm] = useState<BudgetFormState>(initialBudgetForm);
   const requestVersion = useRef(0);
   const requestController = useRef<AbortController>();
+  const mountedRef = useRef(true);
 
-  const refresh = useCallback(async () => {
-    if (!isReal) return;
-    requestController.current?.abort();
-    const controller = new AbortController();
-    requestController.current = controller;
-    const version = ++requestVersion.current;
-    setLoading(true);
-    setError('');
-    setData(undefined);
-    try {
-      const nextData = await loadModelGovernance({}, controller.signal);
-      if (controller.signal.aborted || version !== requestVersion.current) return;
-      setData(nextData);
-    } catch (cause) {
-      if (controller.signal.aborted || version !== requestVersion.current || isAbortError(cause)) return;
+  const refresh = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isReal) return;
+      requestController.current?.abort();
+      const controller = new AbortController();
+      requestController.current = controller;
+      const version = ++requestVersion.current;
+      const abortFromAction = () => controller.abort();
+      signal?.addEventListener('abort', abortFromAction, { once: true });
+      if (signal?.aborted) controller.abort();
+      setLoading(true);
+      setError('');
       setData(undefined);
-      setError(cause instanceof Error ? cause.message : '模型治理数据加载失败');
-    } finally {
-      if (!controller.signal.aborted && version === requestVersion.current) setLoading(false);
-    }
-  }, [isReal]);
+      try {
+        const nextData = await loadModelGovernance({}, controller.signal);
+        if (controller.signal.aborted || version !== requestVersion.current) return;
+        setData(nextData);
+      } catch (cause) {
+        if (controller.signal.aborted || version !== requestVersion.current || isAbortError(cause)) return;
+        setData(undefined);
+        setError(cause instanceof Error ? cause.message : '模型治理数据加载失败');
+      } finally {
+        signal?.removeEventListener('abort', abortFromAction);
+        if (requestController.current === controller) requestController.current = undefined;
+        if (mountedRef.current && version === requestVersion.current) setLoading(false);
+      }
+    },
+    [isReal],
+  );
 
   useEffect(() => {
     // 读取请求属于页面生命周期，切换刷新批次或卸载页面时必须取消旧请求。
+    mountedRef.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
     return () => {
+      mountedRef.current = false;
       requestController.current?.abort();
       requestVersion.current += 1;
     };
@@ -191,9 +202,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: provider.provider_code,
       targetType: 'model_provider',
       targetId: provider.provider_code,
-      execute: async () => {
-        await updateModelProviderStatus(provider, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelProviderStatus(provider, status, signal);
+        await refresh(signal);
       },
     });
   };
@@ -205,9 +216,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: `${model.provider_code}/${model.model_name}`,
       targetType: 'model_catalog',
       targetId: String(model.model_id),
-      execute: async () => {
-        await updateModelCatalogStatus(model, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelCatalogStatus(model, status, signal);
+        await refresh(signal);
       },
     });
   };
@@ -219,9 +230,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: `${route.scene}/${route.model_type}`,
       targetType: 'model_route_rule',
       targetId: String(route.route_id),
-      execute: async () => {
-        await updateModelRoute(route, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelRoute(route, status, signal);
+        await refresh(signal);
       },
     });
   };
@@ -276,9 +287,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel,
       targetType: 'model_price_version',
       targetId: targetLabel,
-      execute: async () => {
-        await createModelPrice(request);
-        await refresh();
+      execute: async (signal) => {
+        await createModelPrice(request, signal);
+        await refresh(signal);
       },
     });
   };
@@ -319,9 +330,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel,
       targetType: 'model_budget_policy',
       targetId: targetLabel,
-      execute: async () => {
-        await createModelBudget(request);
-        await refresh();
+      execute: async (signal) => {
+        await createModelBudget(request, signal);
+        await refresh(signal);
       },
     });
   };

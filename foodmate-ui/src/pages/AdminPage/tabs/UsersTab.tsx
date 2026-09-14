@@ -322,8 +322,8 @@ export function UsersSection({
       targetLabel: record.userId,
       targetType: 'user',
       targetId: record.userId,
-      execute: async () => {
-        await updateAdminUserStatus(record.userId, status, record.revision ?? 1);
+      execute: async (signal) => {
+        await updateAdminUserStatus(record.userId, status, record.revision ?? 1, signal);
       },
       onApply: () => {
         setUsers((current) =>
@@ -343,8 +343,8 @@ export function UsersSection({
       targetLabel: record.userId,
       targetType: 'user_session',
       targetId: record.userId,
-      execute: async () => {
-        await revokeAdminUserSessions(record.userId, record.revision ?? 1);
+      execute: async (signal) => {
+        await revokeAdminUserSessions(record.userId, record.revision ?? 1, signal);
       },
       onApply: () => {
         adminUserSessionRows

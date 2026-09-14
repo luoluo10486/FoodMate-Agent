@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -158,5 +158,65 @@ describe('AdminPage real mode fixture isolation', () => {
     expect(await screen.findByText('管理查询暂不可用')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重试' }));
     expect(await screen.findByText('重试后运行总量')).toBeInTheDocument();
+  });
+
+  it('卸载管理页面时中止中心操作且不进入失败态', async () => {
+    const user = userEvent.setup();
+    let mutationSignal: AbortSignal | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), 'http://foodmate.local').pathname;
+      if (path === '/api/admin/tools/registry') {
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              tools: [
+                {
+                  tool_id: 720005,
+                  name: 'nutrition_lookup',
+                  display_name: 'Nutrition lookup',
+                  description: 'Look up nutrition data.',
+                  category: 'read',
+                  risk_level: 'medium',
+                  availability_scope: 'read-only',
+                  status: 'active',
+                  current_version: 'v1',
+                  version: 'v1',
+                  input_schema: { type: 'object' },
+                  output_schema: { type: 'object' },
+                  permissions: { approval: 'not_required' },
+                  timeout_ms: 10000,
+                  retryable: true,
+                  idempotent: true,
+                  published_at: null,
+                  revision: 7,
+                },
+              ],
+            },
+          }),
+        );
+      }
+      if (path === '/api/admin/tools/nutrition_lookup/status') {
+        mutationSignal = init?.signal ?? undefined;
+        return new Promise<Response>((_resolve, reject) => {
+          init?.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')), {
+            once: true,
+          });
+        });
+      }
+      return Promise.resolve(jsonResponse({}));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const view = renderAdmin('/admin/tools?tab=registry');
+    expect(await screen.findByText('nutrition_lookup')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '配置详情' }));
+    await user.click(screen.getByRole('button', { name: '停用工具' }));
+    await user.click(screen.getByRole('button', { name: '确认停用' }));
+    await waitFor(() => expect(mutationSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(mutationSignal?.aborted).toBe(true);
   });
 });

@@ -774,13 +774,14 @@ export type AdminDlqReplayResult = {
   original_message_id: string;
 };
 
-export async function replayAdminDlq(dlqId: number): Promise<AdminDlqReplayResult> {
+export async function replayAdminDlq(dlqId: number, signal?: AbortSignal): Promise<AdminDlqReplayResult> {
   const digest = await sha256(`runtime.dlq.replay|${dlqId}||1`);
   return adminWrite<AdminDlqReplayResult>(
     `/api/admin/dlq/${encodeURIComponent(String(dlqId))}/replay`,
     'POST',
     { confirmed: true, confirmationDigest: digest },
     'admin-dlq-replay',
+    signal,
   );
 }
 
@@ -822,7 +823,11 @@ export type RetentionHoldResult = {
   reason_code: string;
 };
 
-export async function requestRetentionPurge(resourceType: string, resourceId: number): Promise<RetentionPurgeResult> {
+export async function requestRetentionPurge(
+  resourceType: string,
+  resourceId: number,
+  signal?: AbortSignal,
+): Promise<RetentionPurgeResult> {
   const digest = await sha256(`retention.purge|${resourceType}|${resourceId}|1`);
   return adminWrite<RetentionPurgeResult>(
     '/api/admin/data-retention/purge-requests',
@@ -834,24 +839,35 @@ export async function requestRetentionPurge(resourceType: string, resourceId: nu
       confirmation_digest: digest,
     },
     'retention-purge',
+    signal,
   );
 }
 
-export async function loadRetentionPurge(requestId: number): Promise<RetentionPurgeResult> {
-  return apiRequest<RetentionPurgeResult>(`/api/admin/data-retention/purge-requests/${requestId}`);
+export async function loadRetentionPurge(requestId: number, signal?: AbortSignal): Promise<RetentionPurgeResult> {
+  return apiRequest<RetentionPurgeResult>(
+    `/api/admin/data-retention/purge-requests/${requestId}`,
+    readRequestInit(signal),
+  );
 }
 
-export async function loadRetentionPurgePreflight(requestId: number): Promise<RetentionPurgePreflight> {
-  return apiRequest<RetentionPurgePreflight>(`/api/admin/data-retention/purge-requests/${requestId}/preflight`);
+export async function loadRetentionPurgePreflight(
+  requestId: number,
+  signal?: AbortSignal,
+): Promise<RetentionPurgePreflight> {
+  return apiRequest<RetentionPurgePreflight>(
+    `/api/admin/data-retention/purge-requests/${requestId}/preflight`,
+    readRequestInit(signal),
+  );
 }
 
-export async function approveRetentionPurge(requestId: number): Promise<RetentionPurgeResult> {
+export async function approveRetentionPurge(requestId: number, signal?: AbortSignal): Promise<RetentionPurgeResult> {
   const digest = await sha256(`retention.approve|${requestId}|1`);
   return adminWrite<RetentionPurgeResult>(
     `/api/admin/data-retention/purge-requests/${requestId}/approve`,
     'POST',
     { confirmed: true, confirmation_digest: digest },
     'retention-approve',
+    signal,
   );
 }
 
@@ -859,6 +875,7 @@ export async function placeRetentionHold(
   resourceType: string,
   resourceId: number,
   reasonCode: string,
+  signal?: AbortSignal,
 ): Promise<RetentionHoldResult> {
   const digest = await sha256(`retention.hold|${resourceType}|${resourceId}|${reasonCode}|1`);
   return adminWrite<RetentionHoldResult>(
@@ -872,16 +889,18 @@ export async function placeRetentionHold(
       confirmation_digest: digest,
     },
     'retention-hold',
+    signal,
   );
 }
 
-export async function releaseRetentionHold(holdId: number): Promise<RetentionHoldResult> {
+export async function releaseRetentionHold(holdId: number, signal?: AbortSignal): Promise<RetentionHoldResult> {
   const digest = await sha256(`retention.release|${holdId}|1`);
   return adminWrite<RetentionHoldResult>(
     `/api/admin/data-retention/holds/${holdId}/release`,
     'POST',
     { confirmed: true, confirmation_digest: digest },
     'retention-release',
+    signal,
   );
 }
 
@@ -1109,26 +1128,28 @@ async function adminWrite<T>(
   });
 }
 
-export async function updateAdminUserStatus(id: string, status: string, revision = 1) {
+export async function updateAdminUserStatus(id: string, status: string, revision = 1, signal?: AbortSignal) {
   const digest = await confirmationDigest('admin.user.status.update', id, status, revision);
   return adminWrite(
     `/api/admin/users/${encodeURIComponent(id)}/status`,
     'PATCH',
     { status, revision, confirmed: true, confirmationDigest: digest },
     'admin-user-status',
+    signal,
   );
 }
 
-export async function revokeAdminUserSessions(id: string, revision = 1) {
+export async function revokeAdminUserSessions(id: string, revision = 1, signal?: AbortSignal) {
   const digest = await confirmationDigest('admin.user.sessions.revoke_all', id, '', revision);
   return adminWrite(
     `/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`,
     'POST',
     { revision, confirmed: true, confirmationDigest: digest },
     'admin-user-sessions',
+    signal,
   );
 }
-export async function updateAdminToolStatus(name: string, status: string, revision = 1) {
+export async function updateAdminToolStatus(name: string, status: string, revision = 1, signal?: AbortSignal) {
   const action = 'admin.tool.status.update';
   const digest = await confirmationDigest(action, name, status, revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -1136,11 +1157,12 @@ export async function updateAdminToolStatus(name: string, status: string, revisi
     'PATCH',
     { status, revision, confirmed: true, confirmationDigest: digest },
     'admin-tool-status',
+    signal,
   );
 }
 export const updateKnowledgeStatus = (id: string, status: string, signal?: AbortSignal) =>
   adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status }, undefined, signal);
-export async function restoreAdminResource(type: string, id: string, revision = 1) {
+export async function restoreAdminResource(type: string, id: string, revision = 1, signal?: AbortSignal) {
   const action = 'admin.resource.restore';
   const digest = await confirmationDigest(action, type, id, revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -1148,6 +1170,7 @@ export async function restoreAdminResource(type: string, id: string, revision = 
     'POST',
     { revision, confirmed: true, confirmationDigest: digest },
     'admin-resource-restore',
+    signal,
   );
 }
 
@@ -1453,11 +1476,13 @@ async function modelGovernanceWrite<T>(
   method: 'POST' | 'PATCH' | 'PUT',
   payload: object,
   idempotencyPrefix: string,
+  signal?: AbortSignal,
 ) {
   return apiRequest<T>(path, {
     method,
     headers: { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) },
     body: JSON.stringify(payload),
+    signal,
   });
 }
 
@@ -1476,7 +1501,11 @@ export async function loadModelGovernance(
   );
 }
 
-export async function updateModelProviderStatus(provider: ModelGovernanceProvider, status: string) {
+export async function updateModelProviderStatus(
+  provider: ModelGovernanceProvider,
+  status: string,
+  signal?: AbortSignal,
+) {
   const action = 'model.provider.status.update';
   const target = provider.provider_code;
   const digest = await confirmationDigest(action, target, status, provider.revision);
@@ -1485,10 +1514,11 @@ export async function updateModelProviderStatus(provider: ModelGovernanceProvide
     'PATCH',
     { status, revision: provider.revision, confirmed: true, confirmationDigest: digest },
     'model-provider-status',
+    signal,
   );
 }
 
-export async function updateModelCatalogStatus(model: ModelGovernanceModel, status: string) {
+export async function updateModelCatalogStatus(model: ModelGovernanceModel, status: string, signal?: AbortSignal) {
   const action = 'model.catalog.status.update';
   const target = String(model.model_id);
   const digest = await confirmationDigest(action, target, status, model.revision);
@@ -1497,10 +1527,11 @@ export async function updateModelCatalogStatus(model: ModelGovernanceModel, stat
     'PATCH',
     { status, revision: model.revision, confirmed: true, confirmationDigest: digest },
     'model-catalog-status',
+    signal,
   );
 }
 
-export async function updateModelRoute(route: ModelGovernanceRoute, status: string) {
+export async function updateModelRoute(route: ModelGovernanceRoute, status: string, signal?: AbortSignal) {
   const action = 'model.route.update';
   const target = String(route.route_id);
   const digest = await confirmationDigest(action, target, route.route_version, route.revision);
@@ -1524,10 +1555,14 @@ export async function updateModelRoute(route: ModelGovernanceRoute, status: stri
       confirmationDigest: digest,
     },
     'model-route-update',
+    signal,
   );
 }
 
-export async function createModelPrice(request: CreateModelPriceRequest): Promise<ModelGovernanceMutation> {
+export async function createModelPrice(
+  request: CreateModelPriceRequest,
+  signal?: AbortSignal,
+): Promise<ModelGovernanceMutation> {
   const target = `${request.providerCode.trim()}:${request.modelName.trim()}:${request.priceVersion.trim()}`;
   const digest = await confirmationDigest('model.price.create', target, request.priceVersion, request.revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -1546,10 +1581,14 @@ export async function createModelPrice(request: CreateModelPriceRequest): Promis
       confirmationDigest: digest,
     },
     'model-price-create',
+    signal,
   );
 }
 
-export async function createModelBudget(request: CreateModelBudgetRequest): Promise<ModelGovernanceMutation> {
+export async function createModelBudget(
+  request: CreateModelBudgetRequest,
+  signal?: AbortSignal,
+): Promise<ModelGovernanceMutation> {
   const target = `${request.policyKey.trim()}:${request.policyVersion.trim()}`;
   const digest = await confirmationDigest('model.budget.create', target, request.policyVersion, request.revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -1570,6 +1609,7 @@ export async function createModelBudget(request: CreateModelBudgetRequest): Prom
       confirmationDigest: digest,
     },
     'model-budget-create',
+    signal,
   );
 }
 

@@ -16,6 +16,7 @@ import {
   type RetentionPurgePreflight,
   type RetentionPurgeResult,
 } from '../../../services/adminService';
+import { isAbortError } from '../../../services/apiClient';
 import { getAuthUser } from '../../../services/authService';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
@@ -154,27 +155,61 @@ export function RetentionSection({ onAction, refreshNonce }: RetentionSectionPro
   const [purgeFormError, setPurgeFormError] = useState('');
   const [holdFormError, setHoldFormError] = useState('');
   const requestIdInputRef = useRef(requestIdInput);
+  const readControllerRef = useRef<AbortController>();
+  const readRequestIdRef = useRef(0);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
     requestIdInputRef.current = requestIdInput;
   }, [requestIdInput]);
 
-  const readPurgeSnapshot = useCallback(async (requestId: number) => {
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      readControllerRef.current?.abort();
+      readRequestIdRef.current += 1;
+    };
+  }, []);
+
+  const readPurgeSnapshot = useCallback(async (requestId: number, parentSignal?: AbortSignal) => {
+    readControllerRef.current?.abort();
+    const controller = new AbortController();
+    readControllerRef.current = controller;
+    const requestIdSnapshot = ++readRequestIdRef.current;
+    const abortFromAction = () => controller.abort();
+    parentSignal?.addEventListener('abort', abortFromAction, { once: true });
+    if (parentSignal?.aborted) controller.abort();
+    if (!mountedRef.current || controller.signal.aborted) {
+      parentSignal?.removeEventListener('abort', abortFromAction);
+      if (readControllerRef.current === controller) readControllerRef.current = undefined;
+      return;
+    }
     setPurgeLoading(true);
     setPurgeError('');
     setPurge(undefined);
     setPreflight(undefined);
     try {
       const [detail, nextPreflight] = await Promise.all([
-        loadRetentionPurge(requestId),
-        loadRetentionPurgePreflight(requestId),
+        loadRetentionPurge(requestId, controller.signal),
+        loadRetentionPurgePreflight(requestId, controller.signal),
       ]);
+      if (!mountedRef.current || controller.signal.aborted || requestIdSnapshot !== readRequestIdRef.current) return;
       setPurge(detail);
       setPreflight(nextPreflight);
     } catch (cause) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestIdSnapshot !== readRequestIdRef.current ||
+        isAbortError(cause)
+      )
+        return;
       setPurgeError(errorMessage(cause, '清理请求状态加载失败'));
     } finally {
-      setPurgeLoading(false);
+      parentSignal?.removeEventListener('abort', abortFromAction);
+      if (readControllerRef.current === controller) readControllerRef.current = undefined;
+      if (mountedRef.current && requestIdSnapshot === readRequestIdRef.current) setPurgeLoading(false);
     }
   }, []);
 
@@ -216,17 +251,20 @@ export function RetentionSection({ onAction, refreshNonce }: RetentionSectionPro
       targetLabel,
       targetType: 'retention_purge_request',
       targetId: String(resourceId),
-      execute: async () => {
+      execute: async (signal) => {
         if (!isReal) {
+          if (signal?.aborted || !mountedRef.current) return;
           setPurge(fixturePurge);
           setPreflight(fixturePreflight);
           setRequestIdInput(String(fixturePurge.request_id));
           return;
         }
-        const result = await requestRetentionPurge(purgeForm.resourceType, resourceId);
+        const result = await requestRetentionPurge(purgeForm.resourceType, resourceId, signal);
+        if (signal?.aborted || !mountedRef.current) return;
         setPurge(result);
         setRequestIdInput(String(result.request_id));
-        await readPurgeSnapshot(result.request_id);
+        await readPurgeSnapshot(result.request_id, signal);
+        if (signal?.aborted || !mountedRef.current) return;
         setPurgeForm(initialPurgeForm());
       },
     });
@@ -240,15 +278,17 @@ export function RetentionSection({ onAction, refreshNonce }: RetentionSectionPro
       targetLabel: `清理请求:${requestId}`,
       targetType: 'retention_purge_request',
       targetId: String(requestId),
-      execute: async () => {
+      execute: async (signal) => {
         if (!isReal) {
+          if (signal?.aborted || !mountedRef.current) return;
           setPurge({ ...purge, status: 'approved', task_count: 3 });
           setPreflight({ ...fixturePreflight, status: 'approved', request_id: requestId });
           return;
         }
-        const result = await approveRetentionPurge(requestId);
+        const result = await approveRetentionPurge(requestId, signal);
+        if (signal?.aborted || !mountedRef.current) return;
         setPurge(result);
-        await readPurgeSnapshot(requestId);
+        await readPurgeSnapshot(requestId, signal);
       },
     });
   };
@@ -271,12 +311,14 @@ export function RetentionSection({ onAction, refreshNonce }: RetentionSectionPro
       targetLabel,
       targetType: 'retention_hold',
       targetId: String(resourceId),
-      execute: async () => {
+      execute: async (signal) => {
         if (!isReal) {
+          if (signal?.aborted || !mountedRef.current) return;
           setHold(fixtureHold);
           return;
         }
-        const result = await placeRetentionHold(holdForm.resourceType, resourceId, holdForm.reasonCode);
+        const result = await placeRetentionHold(holdForm.resourceType, resourceId, holdForm.reasonCode, signal);
+        if (signal?.aborted || !mountedRef.current) return;
         setHold(result);
         setHoldForm(initialHoldForm());
       },
@@ -291,12 +333,15 @@ export function RetentionSection({ onAction, refreshNonce }: RetentionSectionPro
       targetLabel: `法律保留:${holdId}`,
       targetType: 'retention_hold',
       targetId: String(holdId),
-      execute: async () => {
+      execute: async (signal) => {
         if (!isReal) {
+          if (signal?.aborted || !mountedRef.current) return;
           setHold({ ...hold, status: 'released' });
           return;
         }
-        setHold(await releaseRetentionHold(holdId));
+        const result = await releaseRetentionHold(holdId, signal);
+        if (signal?.aborted || !mountedRef.current) return;
+        setHold(result);
       },
     });
   };

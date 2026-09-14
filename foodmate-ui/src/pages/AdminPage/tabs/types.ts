@@ -15,5 +15,5 @@ export type AdminActionPayload = {
   targetType: string;
   targetId: string;
   onApply?: () => void;
-  execute?: () => Promise<void>;
+  execute?: (signal?: AbortSignal) => Promise<void>;
 };

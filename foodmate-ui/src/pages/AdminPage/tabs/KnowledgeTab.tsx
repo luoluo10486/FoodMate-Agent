@@ -336,14 +336,21 @@ export function KnowledgeSection({
       targetLabel: selectedDocumentId,
       targetType: 'knowledge_document',
       targetId: selectedDocumentId,
-      execute: async () => {
-        if (isRealMode) await changeKnowledgeVisibility(selectedDocumentId, visibility, controller.signal);
-        else
-          await updateKnowledgeStatus(
-            selectedDocumentId,
-            visibility === 'disabled' ? 'disabled' : 'indexed',
-            controller.signal,
-          );
+      execute: async (signal) => {
+        const abortLocalController = () => controller.abort();
+        signal?.addEventListener('abort', abortLocalController, { once: true });
+        try {
+          const requestSignal = signal ?? controller.signal;
+          if (isRealMode) await changeKnowledgeVisibility(selectedDocumentId, visibility, requestSignal);
+          else
+            await updateKnowledgeStatus(
+              selectedDocumentId,
+              visibility === 'disabled' ? 'disabled' : 'indexed',
+              requestSignal,
+            );
+        } finally {
+          signal?.removeEventListener('abort', abortLocalController);
+        }
       },
       onApply: () => {
         if (!mountedRef.current || controller.signal.aborted || requestId !== visibilityRequestIdRef.current) return;

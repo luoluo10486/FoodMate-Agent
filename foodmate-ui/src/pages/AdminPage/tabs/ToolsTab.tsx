@@ -144,8 +144,8 @@ function ToolRegistrySection({
       targetLabel: record.name,
       targetType: 'tool',
       targetId: record.name,
-      execute: async () => {
-        const result = await updateAdminToolStatus(record.name, nextStatus, record.revision ?? 1);
+      execute: async (signal) => {
+        const result = await updateAdminToolStatus(record.name, nextStatus, record.revision ?? 1, signal);
         nextRevision = result.revision;
       },
       onApply: () => {
@@ -785,11 +785,12 @@ function ToolCallsSection({
                 targetLabel: record.name,
                 targetType: 'tool',
                 targetId: record.name,
-                execute: async () => {
+                execute: async (signal) => {
                   await updateAdminToolStatus(
                     record.name,
                     record.status === 'active' ? 'disabled' : 'active',
                     record.revision ?? 1,
+                    signal,
                   );
                 },
                 onApply: () => {
