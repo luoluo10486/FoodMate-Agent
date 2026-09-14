@@ -219,6 +219,9 @@ export function WorkspaceLayout({
         setSessionPage(result.page);
       } catch (error) {
         if (requestId !== sessionRequestRef.current) return;
+        // 请求失败时清空旧列表，避免用户把上一次查询结果误认为当前结果。
+        setSessions([]);
+        setSessionTotal(0);
         setSessionError(error instanceof Error ? error.message : '会话列表加载失败，请重试。');
       } finally {
         if (requestId === sessionRequestRef.current) setSessionLoading(false);
@@ -417,7 +420,10 @@ export function WorkspaceLayout({
                     size="icon"
                     type="button"
                     aria-label="清除会话搜索"
-                    onClick={() => setSessionQuery('')}
+                    onClick={() => {
+                      setSessionQuery('');
+                      setSessionPage(1);
+                    }}
                   >
                     <X aria-hidden="true" />
                   </Button>

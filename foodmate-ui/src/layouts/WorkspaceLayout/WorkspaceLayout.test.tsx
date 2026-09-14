@@ -5,7 +5,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthUser } from '../../mock/auth';
-import { createSession, loadSessionSummariesPage, type RealSession } from '../../services/sessionService';
+import {
+  createSession,
+  loadSessionSummariesPage,
+  searchSessions,
+  type RealSession,
+} from '../../services/sessionService';
 import { loadCurrentUser } from '../../services/authService';
 import { WorkspaceLayout } from './WorkspaceLayout';
 import styles from './WorkspaceLayout.module.css';
@@ -21,6 +26,7 @@ vi.mock('../../services/sessionService', async () => {
     ...actual,
     createSession: vi.fn(),
     loadSessionSummariesPage: vi.fn(),
+    searchSessions: vi.fn(),
   };
 });
 
@@ -67,6 +73,80 @@ describe('WorkspaceLayout shell controls', () => {
       status: 'active',
     });
     await waitFor(() => expect(createButton).not.toBeDisabled());
+  });
+
+  it('clears the session search and reloads the first page', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+    vi.mocked(searchSessions).mockImplementation(async (_query, params = {}) => ({
+      items: [
+        {
+          id: 'session-1',
+          title: '早餐记录',
+          subtitle: '今天',
+          active: false,
+        },
+      ],
+      total: 51,
+      page: params.page ?? 1,
+      size: params.size ?? 50,
+    }));
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const search = await screen.findByPlaceholderText('搜索会话...');
+    await user.type(search, '早餐');
+    await waitFor(() => expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 1, size: 50 }));
+
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    await waitFor(() => expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 2, size: 50 }));
+
+    await user.click(screen.getByRole('button', { name: '清除会话搜索' }));
+    await waitFor(() => expect(loadSessionSummariesPage).toHaveBeenLastCalledWith({ page: 1, size: 50 }));
+  });
+
+  it('does not keep stale sessions after a real list request fails', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({
+      items: [
+        {
+          id: 'session-1',
+          title: '旧查询结果',
+          subtitle: 'chat',
+          active: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 50,
+    });
+    vi.mocked(searchSessions).mockRejectedValue(new Error('搜索服务暂不可用'));
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('旧查询结果')).toBeInTheDocument();
+    await user.type(await screen.findByPlaceholderText('搜索会话...'), '早餐');
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('搜索服务暂不可用'));
+    expect(screen.queryByText('旧查询结果')).not.toBeInTheDocument();
   });
 
   it('renders shell actions through the shared shadcn Button primitive', () => {
