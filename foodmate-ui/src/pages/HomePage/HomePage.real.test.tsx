@@ -94,7 +94,8 @@ describe('HomePage 真实模式', () => {
     expect(screen.getByText('80%')).toBeInTheDocument();
     expect(screen.getByText('暂无待确认事项')).toBeInTheDocument();
     expect(screen.queryByText('牛油果酸面包吐司')).not.toBeInTheDocument();
-    expect(loadNutritionAnalysis).toHaveBeenCalledWith('today');
+    expect(loadNutritionAnalysis).toHaveBeenCalledWith('today', expect.any(AbortSignal));
+    expect(loadSessionSummariesPage).toHaveBeenCalledWith({ page: 1, size: 5 }, expect.any(AbortSignal));
   });
 
   it('营养摘要失败时保留已加载的会话并提供重试入口', async () => {
@@ -116,5 +117,30 @@ describe('HomePage 真实模式', () => {
 
     await waitFor(() => expect(screen.getByText('1,850')).toBeInTheDocument());
     expect(screen.getAllByText('--')).toHaveLength(4);
+  });
+
+  it('卸载首页时取消当前读取请求', async () => {
+    loadSessionSummariesPage.mockImplementation(
+      (_params: unknown, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () => reject(Object.assign(new Error('已取消'), { name: 'AbortError' })));
+        }),
+    );
+    loadNutritionAnalysis.mockImplementation(
+      (_range: unknown, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener('abort', () => reject(Object.assign(new Error('已取消'), { name: 'AbortError' })));
+        }),
+    );
+
+    const { unmount } = renderRealHome();
+    await waitFor(() => expect(loadSessionSummariesPage).toHaveBeenCalled());
+    const sessionsSignal = vi.mocked(loadSessionSummariesPage).mock.calls[0][1];
+    const analysisSignal = vi.mocked(loadNutritionAnalysis).mock.calls[0][1];
+
+    unmount();
+
+    expect(sessionsSignal?.aborted).toBe(true);
+    expect(analysisSignal?.aborted).toBe(true);
   });
 });

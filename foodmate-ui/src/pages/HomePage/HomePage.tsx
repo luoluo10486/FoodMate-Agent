@@ -18,6 +18,7 @@ import { Input } from '../../components/ui/input';
 import { FigmaWorkspaceAsset } from '../../components/workspace/FigmaWorkspaceAsset';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isAbortError } from '../../services/apiClient';
 import { getAuthUser } from '../../services/authService';
 import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
 import {
@@ -280,30 +281,34 @@ export function HomePage() {
   const [realLoading, setRealLoading] = useState(isRealMode);
   const [realError, setRealError] = useState('');
   const [realReloadNonce, setRealReloadNonce] = useState(0);
+  const homeRequestIdRef = useRef(0);
 
   useEffect(() => {
     if (!isRealMode) return undefined;
-    let cancelled = false;
-    const sessionsRequest = loadSessionSummariesPage({ page: 1, size: 5 });
-    const analysisRequest = loadNutritionAnalysis('today');
+    const requestId = ++homeRequestIdRef.current;
+    const controller = new AbortController();
+    const sessionsRequest = loadSessionSummariesPage({ page: 1, size: 5 }, controller.signal);
+    const analysisRequest = loadNutritionAnalysis('today', controller.signal);
     void Promise.allSettled([sessionsRequest, analysisRequest]).then(([sessionsResult, analysisResult]) => {
-      if (cancelled) return;
+      if (controller.signal.aborted || requestId !== homeRequestIdRef.current) return;
       const errors: string[] = [];
       if (sessionsResult.status === 'fulfilled') {
         setRealSessions(sessionsResult.value.items);
-      } else {
+      } else if (!isAbortError(sessionsResult.reason)) {
+        setRealSessions([]);
         errors.push(sessionsResult.reason instanceof Error ? sessionsResult.reason.message : '会话摘要加载失败。');
       }
       if (analysisResult.status === 'fulfilled') {
         setRealAnalysis(analysisResult.value);
-      } else {
+      } else if (!isAbortError(analysisResult.reason)) {
+        setRealAnalysis(undefined);
         errors.push(analysisResult.reason instanceof Error ? analysisResult.reason.message : '营养摘要加载失败。');
       }
       setRealError(errors.join('；'));
       setRealLoading(false);
     });
     return () => {
-      cancelled = true;
+      controller.abort();
     };
   }, [isRealMode, realReloadNonce]);
 
