@@ -48,11 +48,15 @@ export async function loadCompositeDish(compositeDishId: string, signal?: AbortS
   );
 }
 
-export async function createCompositeDish(request: CompositeDishWriteRequest): Promise<CompositeDish> {
+export async function createCompositeDish(
+  request: CompositeDishWriteRequest,
+  signal?: AbortSignal,
+): Promise<CompositeDish> {
   return apiRequest<CompositeDish>('/api/composite-dishes', {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey('composite-dish-create') },
     body: JSON.stringify(request),
+    signal,
   });
 }
 
@@ -60,6 +64,7 @@ export async function updateCompositeDish(
   compositeDishId: string,
   revision: number,
   request: CompositeDishWriteRequest,
+  signal?: AbortSignal,
 ): Promise<CompositeDish> {
   return apiRequest<CompositeDish>(
     `/api/composite-dishes/${encodeURIComponent(compositeDishId)}?revision=${revision}`,
@@ -67,14 +72,20 @@ export async function updateCompositeDish(
       method: 'PATCH',
       headers: { 'Idempotency-Key': idempotencyKey('composite-dish-update') },
       body: JSON.stringify(request),
+      signal,
     },
   );
 }
 
-export async function deleteCompositeDish(compositeDishId: string, revision: number): Promise<void> {
+export async function deleteCompositeDish(
+  compositeDishId: string,
+  revision: number,
+  signal?: AbortSignal,
+): Promise<void> {
   await apiRequest<void>(`/api/composite-dishes/${encodeURIComponent(compositeDishId)}?revision=${revision}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey('composite-dish-delete') },
+    signal,
   });
 }
 

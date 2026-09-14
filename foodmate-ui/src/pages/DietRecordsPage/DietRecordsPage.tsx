@@ -166,6 +166,11 @@ type FoodMutation = 'create' | 'update' | 'delete' | 'restore' | undefined;
 
 type PendingCompositeDishDeletion = CompositeDish;
 
+type MutationRequest = {
+  requestId: number;
+  controller: AbortController;
+};
+
 function isFoodLogConflict(cause: unknown): boolean {
   return (
     cause instanceof ApiError &&
@@ -461,6 +466,54 @@ export function DietRecordsPage() {
   const deletedAbortController = useRef<AbortController>();
   const dishDetailAbortController = useRef<AbortController>();
   const dishRequestId = useRef(0);
+  const foodMutationAbortController = useRef<AbortController>();
+  const foodMutationRequestId = useRef(0);
+  const dishMutationAbortController = useRef<AbortController>();
+  const dishMutationRequestId = useRef(0);
+
+  const beginFoodMutation = (mutation: Exclude<FoodMutation, undefined>): MutationRequest => {
+    // 新的写操作开始前终止旧请求，避免多个操作同时回写同一份页面状态。
+    foodMutationAbortController.current?.abort();
+    const requestId = ++foodMutationRequestId.current;
+    const controller = new AbortController();
+    foodMutationAbortController.current = controller;
+    setFoodMutation(mutation);
+    return { requestId, controller };
+  };
+
+  const isCurrentFoodMutation = ({ requestId, controller }: MutationRequest) =>
+    !controller.signal.aborted &&
+    requestId === foodMutationRequestId.current &&
+    foodMutationAbortController.current === controller;
+
+  const cancelFoodMutation = () => {
+    foodMutationRequestId.current += 1;
+    foodMutationAbortController.current?.abort();
+    foodMutationAbortController.current = undefined;
+    setFoodMutation(undefined);
+  };
+
+  const beginDishMutation = (): MutationRequest => {
+    // 复合菜保存和删除共用一个控制器，确保操作替换时不会留下旧写入。
+    dishMutationAbortController.current?.abort();
+    const requestId = ++dishMutationRequestId.current;
+    const controller = new AbortController();
+    dishMutationAbortController.current = controller;
+    return { requestId, controller };
+  };
+
+  const isCurrentDishMutation = ({ requestId, controller }: MutationRequest) =>
+    !controller.signal.aborted &&
+    requestId === dishMutationRequestId.current &&
+    dishMutationAbortController.current === controller;
+
+  const cancelDishMutation = () => {
+    dishMutationRequestId.current += 1;
+    dishMutationAbortController.current?.abort();
+    dishMutationAbortController.current = undefined;
+    setDishSaving(false);
+    setDishDeleting(false);
+  };
 
   useEffect(() => {
     return () => {
@@ -469,6 +522,10 @@ export function DietRecordsPage() {
       deletedAbortController.current?.abort();
       dishRequestId.current += 1;
       dishDetailAbortController.current?.abort();
+      foodMutationRequestId.current += 1;
+      foodMutationAbortController.current?.abort();
+      dishMutationRequestId.current += 1;
+      dishMutationAbortController.current?.abort();
     };
   }, []);
 
@@ -570,7 +627,8 @@ export function DietRecordsPage() {
     setCompositeDishServings(String(log.composite_dish_servings ?? '1'));
   };
 
-  const closeFoodDialog = () => {
+  const closeFoodDialog = (cancelMutation = true) => {
+    if (cancelMutation) cancelFoodMutation();
     setDialogMealId(undefined);
     setDialogMode('create');
     setEditingLogId(undefined);
@@ -698,7 +756,8 @@ export function DietRecordsPage() {
       });
   };
 
-  const closeDishEditor = () => {
+  const closeDishEditor = (cancelMutation = true) => {
+    if (cancelMutation) cancelDishMutation();
     dishRequestId.current += 1;
     dishDetailAbortController.current?.abort();
     dishDetailAbortController.current = undefined;
@@ -757,21 +816,30 @@ export function DietRecordsPage() {
     }
     setDishSaving(true);
     setDishError(undefined);
+    const mutation = beginDishMutation();
     const operation = editingDishId
-      ? updateCompositeDish(editingDishId, editingDish?.revision ?? 0, request)
-      : createCompositeDish(request);
+      ? updateCompositeDish(editingDishId, editingDish?.revision ?? 0, request, mutation.controller.signal)
+      : createCompositeDish(request, mutation.controller.signal);
     void operation
       .then((saved) => {
+        if (!isCurrentDishMutation(mutation)) return;
         setCompositeDishes((current) => [
           saved,
           ...current.filter((dish) => dish.composite_dish_id !== saved.composite_dish_id),
         ]);
         setNotice(`${saved.dish_name} 已保存。`);
-        closeDishEditor();
+        closeDishEditor(false);
         setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setDishError(compositeDishErrorMessage(cause, '复合菜保存失败')))
-      .finally(() => setDishSaving(false));
+      .catch((cause) => {
+        if (!isCurrentDishMutation(mutation) || isAbortError(cause)) return;
+        setDishError(compositeDishErrorMessage(cause, '复合菜保存失败'));
+      })
+      .finally(() => {
+        if (!isCurrentDishMutation(mutation)) return;
+        setDishSaving(false);
+        dishMutationAbortController.current = undefined;
+      });
   };
 
   const requestRemoveDish = (dish: CompositeDish) => {
@@ -784,16 +852,25 @@ export function DietRecordsPage() {
     if (!dish || dishDeleting) return;
     setDishDeleting(true);
     setDishError(undefined);
-    void deleteCompositeDish(dish.composite_dish_id, dish.revision)
+    const mutation = beginDishMutation();
+    void deleteCompositeDish(dish.composite_dish_id, dish.revision, mutation.controller.signal)
       .then(() => {
+        if (!isCurrentDishMutation(mutation)) return;
         setCompositeDishes((current) => current.filter((item) => item.composite_dish_id !== dish.composite_dish_id));
         if (selectedCompositeDishId === dish.composite_dish_id) setSelectedCompositeDishId(undefined);
         setNotice(`${dish.dish_name} 已删除，历史饮食记录不受影响。`);
         setPendingCompositeDishDeletion(undefined);
         setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setDishError(compositeDishErrorMessage(cause, '复合菜删除失败')))
-      .finally(() => setDishDeleting(false));
+      .catch((cause) => {
+        if (!isCurrentDishMutation(mutation) || isAbortError(cause)) return;
+        setDishError(compositeDishErrorMessage(cause, '复合菜删除失败'));
+      })
+      .finally(() => {
+        if (!isCurrentDishMutation(mutation)) return;
+        setDishDeleting(false);
+        dishMutationAbortController.current = undefined;
+      });
   };
 
   const addFood = () => {
@@ -813,79 +890,99 @@ export function DietRecordsPage() {
       if (dialogMode === 'edit' && editingLogId) {
         const current = realLogs.find((log) => log.food_log_id === editingLogId);
         if (!current || current.items.length === 0 || foodMutation) return;
-        setFoodMutation('update');
-        void updateFoodLog(editingLogId, current.revision, {
-          meal_time: current.meal_time,
-          meal_type: current.meal_type,
-          notes: current.notes ?? undefined,
-          meal_plan_meal_id: linkedMealPlanMealId ?? current.meal_plan_meal_id ?? undefined,
-          composite_dish_id: selectedDish?.composite_dish_id,
-          composite_dish_revision: selectedDish?.revision,
-          composite_dish_servings: selectedDish ? amount : undefined,
-          items: selectedDish
-            ? []
-            : current.items.map((item, index) =>
-                index === 0
-                  ? {
-                      raw_name: name,
-                      amount,
-                      unit,
-                      ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-                    }
-                  : {
-                      raw_name: item.raw_name,
-                      amount: asNumber(item.amount),
-                      unit: item.unit,
-                      ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
-                    },
-              ),
-        })
+        const mutation = beginFoodMutation('update');
+        void updateFoodLog(
+          editingLogId,
+          current.revision,
+          {
+            meal_time: current.meal_time,
+            meal_type: current.meal_type,
+            notes: current.notes ?? undefined,
+            meal_plan_meal_id: linkedMealPlanMealId ?? current.meal_plan_meal_id ?? undefined,
+            composite_dish_id: selectedDish?.composite_dish_id,
+            composite_dish_revision: selectedDish?.revision,
+            composite_dish_servings: selectedDish ? amount : undefined,
+            items: selectedDish
+              ? []
+              : current.items.map((item, index) =>
+                  index === 0
+                    ? {
+                        raw_name: name,
+                        amount,
+                        unit,
+                        ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                      }
+                    : {
+                        raw_name: item.raw_name,
+                        amount: asNumber(item.amount),
+                        unit: item.unit,
+                        ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+                      },
+                ),
+          },
+          mutation.controller.signal,
+        )
           .then((updated) => {
+            if (!isCurrentFoodMutation(mutation)) return;
             const nextLogs = realLogs.map((log) => (log.food_log_id === updated.food_log_id ? updated : log));
             setRealLogs(nextLogs);
             setMeals(mapFoodLogs(nextLogs));
             setNotice(`${name} 已更新。`);
             setRealReloadNonce((current) => current + 1);
-            closeFoodDialog();
+            closeFoodDialog(false);
           })
           .catch((cause) => {
+            if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
             if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
             setNotice(foodLogErrorMessage(cause, '饮食记录更新失败'));
           })
-          .finally(() => setFoodMutation(undefined));
+          .finally(() => {
+            if (!isCurrentFoodMutation(mutation)) return;
+            setFoodMutation(undefined);
+            foodMutationAbortController.current = undefined;
+          });
         return;
       }
       if (foodMutation) return;
-      setFoodMutation('create');
-      void createFoodLog({
-        meal_time: new Date(dialogDate).toISOString(),
-        meal_type: dialogMealId,
-        meal_plan_meal_id: linkedMealPlanMealId,
-        composite_dish_id: selectedDish?.composite_dish_id,
-        composite_dish_revision: selectedDish?.revision,
-        composite_dish_servings: selectedDish ? amount : undefined,
-        items: selectedDish
-          ? []
-          : [
-              {
-                raw_name: name,
-                amount,
-                unit,
-                ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-              },
-            ],
-      })
+      const mutation = beginFoodMutation('create');
+      void createFoodLog(
+        {
+          meal_time: new Date(dialogDate).toISOString(),
+          meal_type: dialogMealId,
+          meal_plan_meal_id: linkedMealPlanMealId,
+          composite_dish_id: selectedDish?.composite_dish_id,
+          composite_dish_revision: selectedDish?.revision,
+          composite_dish_servings: selectedDish ? amount : undefined,
+          items: selectedDish
+            ? []
+            : [
+                {
+                  raw_name: name,
+                  amount,
+                  unit,
+                  ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                },
+              ],
+        },
+        mutation.controller.signal,
+      )
         .then((created) => {
+          if (!isCurrentFoodMutation(mutation)) return;
           setRealLogs((current) => [...current, created]);
           setMeals(mapFoodLogs([...realLogs, created]));
           setNotice(`${name} 已提交，营养值由服务端权威计算。`);
           setRealReloadNonce((current) => current + 1);
-          closeFoodDialog();
+          closeFoodDialog(false);
         })
         .catch((cause) => {
+          if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
           setNotice(foodLogErrorMessage(cause, '饮食记录保存失败'));
         })
-        .finally(() => setFoodMutation(undefined));
+        .finally(() => {
+          if (!isCurrentFoodMutation(mutation)) return;
+          setFoodMutation(undefined);
+          foodMutationAbortController.current = undefined;
+        });
       return;
     }
 
@@ -939,13 +1036,19 @@ export function DietRecordsPage() {
       return;
     }
     const remainingItems = current.items.filter((item) => `${logId}-${item.food_log_item_id}` !== itemId);
-    setFoodMutation('delete');
+    const mutation = beginFoodMutation('delete');
     const operation: Promise<FoodLog | undefined> =
       remainingItems.length === 0
-        ? deleteFoodLog(logId, current.revision).then(() => undefined)
-        : updateFoodLog(logId, current.revision, buildFoodLogWriteRequest(current, remainingItems));
+        ? deleteFoodLog(logId, current.revision, mutation.controller.signal).then(() => undefined)
+        : updateFoodLog(
+            logId,
+            current.revision,
+            buildFoodLogWriteRequest(current, remainingItems),
+            mutation.controller.signal,
+          );
     void operation
       .then((updated) => {
+        if (!isCurrentFoodMutation(mutation)) return;
         if (remainingItems.length > 0 && !updated) {
           throw new Error('服务端未返回更新后的饮食记录');
         }
@@ -960,10 +1063,15 @@ export function DietRecordsPage() {
         setNotice(`${itemName} 已从当前记录移除。`);
       })
       .catch((cause) => {
+        if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
         if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
         setNotice(foodLogErrorMessage(cause, '饮食记录删除失败'));
       })
-      .finally(() => setFoodMutation(undefined));
+      .finally(() => {
+        if (!isCurrentFoodMutation(mutation)) return;
+        setFoodMutation(undefined);
+        foodMutationAbortController.current = undefined;
+      });
   };
 
   const loadDeletedRecords = () => {
@@ -998,6 +1106,7 @@ export function DietRecordsPage() {
       loadDeletedRecords();
     } else {
       // 收起回收站时取消尚未完成的读取，重新展开后只展示新的服务端结果。
+      if (foodMutation === 'restore') cancelFoodMutation();
       deletedRequestId.current += 1;
       deletedAbortController.current?.abort();
       deletedAbortController.current = undefined;
@@ -1007,18 +1116,24 @@ export function DietRecordsPage() {
 
   const restoreDeleted = (log: FoodLog) => {
     if (foodMutation) return;
-    setFoodMutation('restore');
-    void restoreFoodLog(log.food_log_id, log.revision)
+    const mutation = beginFoodMutation('restore');
+    void restoreFoodLog(log.food_log_id, log.revision, mutation.controller.signal)
       .then(() => {
+        if (!isCurrentFoodMutation(mutation)) return;
         setDeletedLogs((current) => current.filter((item) => item.food_log_id !== log.food_log_id));
         setRealReloadNonce((current) => current + 1);
         setNotice(`${log.items[0]?.raw_name ?? '饮食记录'} 已恢复。`);
       })
       .catch((cause) => {
+        if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
         if (isFoodLogConflict(cause)) loadDeletedRecords();
         setNotice(foodLogErrorMessage(cause, '饮食记录恢复失败'));
       })
-      .finally(() => setFoodMutation(undefined));
+      .finally(() => {
+        if (!isCurrentFoodMutation(mutation)) return;
+        setFoodMutation(undefined);
+        foodMutationAbortController.current = undefined;
+      });
   };
 
   const reloadRecords = () => {
@@ -1598,7 +1713,7 @@ export function DietRecordsPage() {
             onChange={(event) => setFoodUnit(event.target.value)}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={closeFoodDialog}>
+            <Button variant="outline" onClick={() => closeFoodDialog()}>
               取消
             </Button>
             <Button
@@ -1746,7 +1861,7 @@ export function DietRecordsPage() {
             </div>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeDishEditor}>
+            <Button type="button" variant="outline" onClick={() => closeDishEditor()}>
               取消
             </Button>
             <Button
@@ -1799,7 +1914,15 @@ export function DietRecordsPage() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={Boolean(pendingFoodDeletion)} onOpenChange={(open) => !open && setPendingFoodDeletion(undefined)}>
+      <Dialog
+        open={Boolean(pendingFoodDeletion)}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (foodMutation === 'delete') cancelFoodMutation();
+            setPendingFoodDeletion(undefined);
+          }
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>确认移除饮食记录</DialogTitle>
@@ -1815,7 +1938,14 @@ export function DietRecordsPage() {
             </p>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPendingFoodDeletion(undefined)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (foodMutation === 'delete') cancelFoodMutation();
+                setPendingFoodDeletion(undefined);
+              }}
+            >
               取消
             </Button>
             <Button type="button" onClick={confirmRemoveFood} disabled={foodMutation === 'delete'}>

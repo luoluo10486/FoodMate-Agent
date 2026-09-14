@@ -40,13 +40,18 @@ describe('compositeDishService', () => {
     const data = { composite_dish_id: '10', dish_name: '鸡肉饭' };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await createCompositeDish({
-      dish_name: '鸡肉饭',
-      total_servings: 2,
-      components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
-    });
+    await createCompositeDish(
+      {
+        dish_name: '鸡肉饭',
+        total_servings: 2,
+        components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
+      },
+      controller.signal,
+    );
     expect(fetchMock.mock.calls[0][0]).toBe('/api/composite-dishes');
+    expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal);
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({
       components: [{ nutrition_food_id: 171477, amount: 300 }],
     });
@@ -56,16 +61,22 @@ describe('compositeDishService', () => {
     const data = { composite_dish_id: '10', dish_name: '更新后的鸡肉饭' };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await updateCompositeDish('10', 3, {
-      dish_name: '更新后的鸡肉饭',
-      total_servings: 2,
-      components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
-    });
+    await updateCompositeDish(
+      '10',
+      3,
+      {
+        dish_name: '更新后的鸡肉饭',
+        total_servings: 2,
+        components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
+      },
+      controller.signal,
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/composite-dishes/10?revision=3',
-      expect.objectContaining({ method: 'PATCH' }),
+      expect.objectContaining({ method: 'PATCH', signal: controller.signal }),
     );
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toMatchObject({ dish_name: '更新后的鸡肉饭' });
   });
@@ -75,12 +86,13 @@ describe('compositeDishService', () => {
       .fn()
       .mockResolvedValue(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(deleteCompositeDish('10', 4)).resolves.toBeUndefined();
+    await expect(deleteCompositeDish('10', 4, controller.signal)).resolves.toBeUndefined();
 
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/composite-dishes/10?revision=4',
-      expect.objectContaining({ method: 'DELETE' }),
+      expect.objectContaining({ method: 'DELETE', signal: controller.signal }),
     );
   });
 });

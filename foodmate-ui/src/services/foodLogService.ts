@@ -47,11 +47,12 @@ export async function loadFoodLogs(from: string, to: string, signal?: AbortSigna
   );
 }
 
-export async function createFoodLog(request: FoodLogWriteRequest): Promise<FoodLog> {
+export async function createFoodLog(request: FoodLogWriteRequest, signal?: AbortSignal): Promise<FoodLog> {
   return apiRequest<FoodLog>('/api/food-logs', {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-create') },
     body: JSON.stringify(request),
+    signal,
   });
 }
 
@@ -59,18 +60,21 @@ export async function updateFoodLog(
   foodLogId: string,
   revision: number,
   request: FoodLogWriteRequest,
+  signal?: AbortSignal,
 ): Promise<FoodLog> {
   return apiRequest<FoodLog>(`/api/food-logs/${encodeURIComponent(foodLogId)}?revision=${revision}`, {
     method: 'PATCH',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-update') },
     body: JSON.stringify(request),
+    signal,
   });
 }
 
-export async function deleteFoodLog(foodLogId: string, revision: number): Promise<void> {
+export async function deleteFoodLog(foodLogId: string, revision: number, signal?: AbortSignal): Promise<void> {
   await apiRequest<void>(`/api/food-logs/${encodeURIComponent(foodLogId)}?revision=${revision}`, {
     method: 'DELETE',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-delete') },
+    signal,
   });
 }
 
@@ -78,10 +82,11 @@ export async function loadDeletedFoodLogs(signal?: AbortSignal): Promise<FoodLog
   return apiRequest<FoodLog[]>('/api/food-logs/deleted', signal ? { signal } : undefined);
 }
 
-export async function restoreFoodLog(foodLogId: string, revision: number): Promise<FoodLog> {
+export async function restoreFoodLog(foodLogId: string, revision: number, signal?: AbortSignal): Promise<FoodLog> {
   return apiRequest<FoodLog>(`/api/food-logs/${encodeURIComponent(foodLogId)}/restore?revision=${revision}`, {
     method: 'POST',
     headers: { 'Idempotency-Key': idempotencyKey('food-log-restore') },
+    signal,
   });
 }
 

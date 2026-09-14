@@ -196,6 +196,7 @@ describe('DietRecordsPage real mode', () => {
           dish_name: '鸡肉饭',
           components: [{ nutrition_food_id: 171477, raw_name: '熟鸡胸肉', amount: 300, unit: 'g' }],
         }),
+        expect.any(AbortSignal),
       ),
     );
     await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
@@ -222,6 +223,7 @@ describe('DietRecordsPage real mode', () => {
         '21',
         4,
         expect.objectContaining({ dish_name: '更新后的鸡肉饭' }),
+        expect.any(AbortSignal),
       ),
     );
     await waitFor(() => expect(screen.getByText('更新后的鸡肉饭')).toBeInTheDocument());
@@ -244,7 +246,7 @@ describe('DietRecordsPage real mode', () => {
     await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('复合菜已被修改，请重新加载后再试。'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('鸡肉饭')).toBeInTheDocument();
-    expect(deleteCompositeDish).toHaveBeenCalledWith('21', 4);
+    expect(deleteCompositeDish).toHaveBeenCalledWith('21', 4, expect.any(AbortSignal));
   });
 
   it('can retry the composite dish list after a real request failure', async () => {
@@ -299,10 +301,38 @@ describe('DietRecordsPage real mode', () => {
     await user.click(screen.getByRole('button', { name: /^添加$/ }));
 
     await waitFor(() =>
-      expect(createFoodLog).toHaveBeenCalledWith(expect.objectContaining({ meal_type: 'breakfast' })),
+      expect(createFoodLog).toHaveBeenCalledWith(
+        expect.objectContaining({ meal_type: 'breakfast' }),
+        expect.any(AbortSignal),
+      ),
     );
     expect(screen.getByText('新食物')).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('新食物 已提交');
+  });
+
+  it('cancels a pending food-log create when the dialog closes and ignores the late response', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    const pending = deferred<typeof log>();
+    vi.mocked(createFoodLog).mockImplementation((_request, signal) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return pending.promise;
+    });
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '记录一餐' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '记录一餐' }));
+    await user.type(screen.getByPlaceholderText('例如：煮鸡蛋 2 个'), '待取消食物');
+    await user.click(screen.getByRole('button', { name: /^添加$/ }));
+
+    await waitFor(() => expect(createFoodLog).toHaveBeenCalledTimes(1));
+    const signal = vi.mocked(createFoodLog).mock.calls[0][1];
+    await user.click(screen.getByRole('button', { name: '取消' }));
+
+    expect(signal?.aborted).toBe(true);
+    pending.resolve({ ...log, food_log_id: 'cancelled', items: [{ ...log.items[0], raw_name: '待取消食物' }] });
+    await Promise.resolve();
+    expect(screen.queryByText('待取消食物 已提交')).not.toBeInTheDocument();
   });
 
   it('submits the explicitly selected nutrition catalog candidate', async () => {
@@ -348,6 +378,7 @@ describe('DietRecordsPage real mode', () => {
         expect.objectContaining({
           items: [{ raw_name: '熟鸡胸肉', amount: 150, unit: 'g', nutrition_food_id: '171477' }],
         }),
+        expect.any(AbortSignal),
       ),
     );
   });
@@ -362,7 +393,7 @@ describe('DietRecordsPage real mode', () => {
     await user.click(screen.getByRole('button', { name: '删除服务端燕麦所在记录' }));
     await user.click(screen.getByRole('button', { name: '确认移除' }));
 
-    await waitFor(() => expect(deleteFoodLog).toHaveBeenCalledWith('11', 2));
+    await waitFor(() => expect(deleteFoodLog).toHaveBeenCalledWith('11', 2, expect.any(AbortSignal)));
     expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
   });
 
@@ -384,6 +415,7 @@ describe('DietRecordsPage real mode', () => {
         expect.objectContaining({
           items: [{ raw_name: '保留香蕉', amount: 100, unit: 'g' }],
         }),
+        expect.any(AbortSignal),
       ),
     );
     expect(deleteFoodLog).not.toHaveBeenCalled();
@@ -467,6 +499,7 @@ describe('DietRecordsPage real mode', () => {
         expect.objectContaining({
           items: [{ raw_name: '编辑后的燕麦', amount: 100, unit: 'g' }],
         }),
+        expect.any(AbortSignal),
       ),
     );
     expect(screen.getByText('编辑后的燕麦')).toBeInTheDocument();
@@ -484,8 +517,55 @@ describe('DietRecordsPage real mode', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
     await user.click(screen.getByRole('button', { name: '恢复服务端燕麦' }));
 
-    await waitFor(() => expect(restoreFoodLog).toHaveBeenCalledWith('11', 2));
+    await waitFor(() => expect(restoreFoodLog).toHaveBeenCalledWith('11', 2, expect.any(AbortSignal)));
     expect(screen.queryByRole('button', { name: '恢复服务端燕麦' })).not.toBeInTheDocument();
+  });
+
+  it('cancels a pending restore when the page unmounts', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadDeletedFoodLogs).mockResolvedValue([log]);
+    const pending = deferred<typeof log>();
+    vi.mocked(restoreFoodLog).mockImplementation((_foodLogId, _revision, signal) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return pending.promise;
+    });
+    const user = userEvent.setup();
+    const { unmount } = renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '已删除记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '已删除记录' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: '恢复服务端燕麦' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '恢复服务端燕麦' }));
+    await waitFor(() => expect(restoreFoodLog).toHaveBeenCalledTimes(1));
+
+    const signal = vi.mocked(restoreFoodLog).mock.calls[0][2];
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    pending.resolve({ ...log, deleted: false });
+    await Promise.resolve();
+  });
+
+  it('cancels a pending composite-dish delete when the page unmounts', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    vi.mocked(loadCompositeDishes).mockResolvedValue([compositeDish]);
+    const pending = deferred<void>();
+    vi.mocked(deleteCompositeDish).mockImplementation((_dishId, _revision, signal) => {
+      expect(signal).toBeInstanceOf(AbortSignal);
+      return pending.promise;
+    });
+    const user = userEvent.setup();
+    const { unmount } = renderPage();
+
+    await waitFor(() => expect(screen.getByText('鸡肉饭')).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: /^删除$/ }));
+    await user.click(screen.getByRole('button', { name: '确认删除' }));
+    await waitFor(() => expect(deleteCompositeDish).toHaveBeenCalledTimes(1));
+
+    const signal = vi.mocked(deleteCompositeDish).mock.calls[0][2];
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    pending.resolve();
+    await Promise.resolve();
   });
 
   it('loads a seven-day range when switching to week view', async () => {

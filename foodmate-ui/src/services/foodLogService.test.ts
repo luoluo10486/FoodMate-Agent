@@ -47,23 +47,33 @@ describe('foodLogService', () => {
         new Response(JSON.stringify({ success: true, data: { food_log_id: '12' } }), { status: 200 }),
       );
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await createFoodLog({
-      meal_time: '2026-08-22T08:00:00Z',
-      meal_type: 'breakfast',
-      items: [{ raw_name: '燕麦', amount: 1, unit: '份' }],
-    });
-    await deleteFoodLog('12', 2);
-    await updateFoodLog('12', 2, {
-      meal_time: '2026-08-22T08:00:00Z',
-      meal_type: 'breakfast',
-      items: [{ raw_name: '燕麦', amount: 2, unit: '份' }],
-    });
-    await restoreFoodLog('12', 3);
+    await createFoodLog(
+      {
+        meal_time: '2026-08-22T08:00:00Z',
+        meal_type: 'breakfast',
+        items: [{ raw_name: '燕麦', amount: 1, unit: '份' }],
+      },
+      controller.signal,
+    );
+    await deleteFoodLog('12', 2, controller.signal);
+    await updateFoodLog(
+      '12',
+      2,
+      {
+        meal_time: '2026-08-22T08:00:00Z',
+        meal_type: 'breakfast',
+        items: [{ raw_name: '燕麦', amount: 2, unit: '份' }],
+      },
+      controller.signal,
+    );
+    await restoreFoodLog('12', 3, controller.signal);
     expect(new Headers(fetchMock.mock.calls[0][1].headers).get('Idempotency-Key')).toMatch(/^food-log-create-/);
     expect(new Headers(fetchMock.mock.calls[1][1].headers).get('Idempotency-Key')).toMatch(/^food-log-delete-/);
     expect(new Headers(fetchMock.mock.calls[2][1].headers).get('Idempotency-Key')).toMatch(/^food-log-update-/);
     expect(new Headers(fetchMock.mock.calls[3][1].headers).get('Idempotency-Key')).toMatch(/^food-log-restore-/);
+    expect(fetchMock.mock.calls.every(([, init]) => init.signal === controller.signal)).toBe(true);
   });
 
   it('sends the revision and complete remaining items when updating a record', async () => {
