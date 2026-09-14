@@ -1,5 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { cancelChatRun, createChatRun, streamChatRun, type ChatRunEvent } from './chatApi';
+import {
+  cancelChatRun,
+  createChatRun,
+  getChatRun,
+  getChatRunEvents,
+  streamChatRun,
+  type ChatRunEvent,
+} from './chatApi';
 
 function ok(data: unknown) {
   return new Response(JSON.stringify({ success: true, data }), { status: 200 });
@@ -61,6 +68,24 @@ describe('chatApi HTTP contract', () => {
     });
 
     expect(JSON.parse(String(fetchMock.mock.calls[1][1].body))).toEqual({ reason: 'user_cancelled' });
+  });
+
+  it('forwards the cancellation signal to ChatRun reads and mutations', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(ok({ run_id: '42', dispatch_id: 'dsp-1', status: 'DISPATCHED', duplicate: false }))
+      .mockResolvedValueOnce(ok({ run_id: '42', status: 'RUNNING' }))
+      .mockResolvedValueOnce(ok([]))
+      .mockResolvedValueOnce(ok({ run_id: '42', status: 'accepted', terminal: false }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createChatRun('记录午餐', 'session-1', controller.signal);
+    await getChatRun('42', controller.signal);
+    await getChatRunEvents('42', controller.signal);
+    await cancelChatRun('42', controller.signal);
+
+    expect(fetchMock.mock.calls.every(([, init]) => init?.signal === controller.signal)).toBe(true);
   });
 
   it('reconnects the Chat stream, resumes the cursor, deduplicates events and closes on terminal state', () => {

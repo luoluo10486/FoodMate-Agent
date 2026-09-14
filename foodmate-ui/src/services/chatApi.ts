@@ -32,16 +32,18 @@ import { apiRequest } from './apiClient';
 import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
 import { openSseStream } from './sseStream';
 
-export function createChatRun(prompt: string, sessionId?: string): Promise<ChatRun> {
+export function createChatRun(prompt: string, sessionId?: string, signal?: AbortSignal): Promise<ChatRun> {
   return apiRequest<ChatRunPayload>('/api/chat/runs', {
     method: 'POST',
+    signal,
     body: JSON.stringify({ prompt, session_id: sessionId }),
   }).then(normalizeChatRun);
 }
 
-export function getChatRun(runId: string): Promise<{ run_id: string; status: string }> {
+export function getChatRun(runId: string, signal?: AbortSignal): Promise<{ run_id: string; status: string }> {
   return apiRequest<{ run_id?: string; runId?: string | number; status?: string }>(
     `/api/chat/runs/${encodeURIComponent(runId)}`,
+    { signal },
   ).then((result) => ({
     run_id: String(result.run_id ?? result.runId ?? runId),
     status: String(result.status ?? ''),
@@ -59,8 +61,8 @@ export type ChatRunEvent = {
   sse_event_id?: string;
 };
 
-export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
-  return apiRequest<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`).then((events) =>
+export function getChatRunEvents(runId: string, signal?: AbortSignal): Promise<ChatRunEvent[]> {
+  return apiRequest<ChatRunEvent[]>(`/api/chat/runs/${encodeURIComponent(runId)}/events`, { signal }).then((events) =>
     events.map((event) => ({
       ...event,
       event_id: String(event.event_id ?? ''),
@@ -71,9 +73,10 @@ export function getChatRunEvents(runId: string): Promise<ChatRunEvent[]> {
   );
 }
 
-export async function cancelChatRun(runId: string): Promise<ChatCancellationResult> {
+export async function cancelChatRun(runId: string, signal?: AbortSignal): Promise<ChatCancellationResult> {
   const result = await apiRequest<ChatCancellationPayload>(`/api/chat/runs/${encodeURIComponent(runId)}/cancel`, {
     method: 'POST',
+    signal,
     body: JSON.stringify({ reason: 'user_cancelled' }),
   });
   return {

@@ -145,7 +145,7 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     act(() => subscriptions[0].onEvent(event('run.answer_stream', { text: '已接收部分回答' }, 'event-1')));
 
     act(() => result.current.stop());
-    await waitFor(() => expect(cancelChatRun).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(cancelChatRun).toHaveBeenCalledWith('42', expect.any(AbortSignal)));
     await waitFor(() => expect(subscriptions).toHaveLength(2));
 
     expect(result.current.cancelling).toBe(true);
@@ -196,5 +196,41 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     act(() => result.current.reconnect());
     await waitFor(() => expect(streamChatRun).toHaveBeenCalledTimes(2));
     expect(result.current.run.connection?.state).toBe('connected');
+  });
+
+  it('卸载时取消 ChatRun 的历史和状态请求', async () => {
+    const messageSignals: AbortSignal[] = [];
+    const statusSignals: AbortSignal[] = [];
+    const eventSignals: AbortSignal[] = [];
+    loadSessionMessages.mockImplementation((_sessionId: string, _params: unknown, signal?: AbortSignal) => {
+      if (signal) messageSignals.push(signal);
+      return Promise.resolve([
+        {
+          message_id: 'message-1',
+          role: 'assistant',
+          content: '已保存的回答',
+          created_at: '2026-09-15T00:00:00Z',
+          sequence_no: 1,
+          agent_run_id: '42',
+        },
+      ]);
+    });
+    getChatRun.mockImplementation((_runId: string, signal?: AbortSignal) => {
+      if (signal) statusSignals.push(signal);
+      return new Promise(() => undefined);
+    });
+    getChatRunEvents.mockImplementation((_runId: string, signal?: AbortSignal) => {
+      if (signal) eventSignals.push(signal);
+      return new Promise(() => undefined);
+    });
+
+    const { unmount } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+    await waitFor(() => expect(statusSignals).toHaveLength(1));
+
+    unmount();
+
+    expect(messageSignals[0]?.aborted).toBe(true);
+    expect(statusSignals[0]?.aborted).toBe(true);
+    expect(eventSignals[0]?.aborted).toBe(true);
   });
 });

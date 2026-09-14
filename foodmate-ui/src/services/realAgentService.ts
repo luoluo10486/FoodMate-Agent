@@ -9,6 +9,7 @@ import type {
 import type { Message } from '../types/session';
 import type { AgentCard } from '../mock/agentReplayData';
 import { flattenAgentEventPayload, resolveAgentEventType } from '../lib/agentEvent';
+import { isAbortError } from './apiClient';
 import { loadSessionMessages } from './sessionService';
 import {
   cancelChatRun,
@@ -216,6 +217,9 @@ export function useRealAgentReplay(
   const seededRef = useRef(false);
   const mountedRef = useRef(true);
   const sessionGenerationRef = useRef(0);
+  const sessionLoadControllerRef = useRef<AbortController>();
+  const runRefreshControllerRef = useRef<AbortController>();
+  const mutationControllerRef = useRef<AbortController>();
   const maxAttempts = Math.max(1, options.maxAttempts ?? 5);
 
   const publishConnection = useCallback((nextConnection: AgentStreamConnection) => {
@@ -227,6 +231,15 @@ export function useRealAgentReplay(
     const current = streamRef.current;
     streamRef.current = undefined;
     current?.close();
+  }, []);
+
+  const abortPendingRequests = useCallback(() => {
+    sessionLoadControllerRef.current?.abort();
+    runRefreshControllerRef.current?.abort();
+    mutationControllerRef.current?.abort();
+    sessionLoadControllerRef.current = undefined;
+    runRefreshControllerRef.current = undefined;
+    mutationControllerRef.current = undefined;
   }, []);
 
   const applyEvent = useCallback((eventType: string, event: ChatRunEvent) => {
@@ -342,9 +355,9 @@ export function useRealAgentReplay(
   );
 
   const refreshRun = useCallback(
-    async (runId: string, preserveContent = false) => {
-      const [status, history] = await Promise.all([getChatRun(runId), getChatRunEvents(runId)]);
-      if (!mountedRef.current || activeRunIdRef.current !== runId) return false;
+    async (runId: string, preserveContent = false, signal?: AbortSignal) => {
+      const [status, history] = await Promise.all([getChatRun(runId, signal), getChatRunEvents(runId, signal)]);
+      if (!mountedRef.current || activeRunIdRef.current !== runId || signal?.aborted) return false;
       closeStream();
       eventIdentitiesRef.current = new Set();
       eventsRef.current = [];
@@ -381,13 +394,15 @@ export function useRealAgentReplay(
     mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      abortPendingRequests();
       closeStream();
     };
-  }, [closeStream]);
+  }, [abortPendingRequests, closeStream]);
 
   useEffect(() => {
     const generation = ++sessionGenerationRef.current;
     seededRef.current = false;
+    abortPendingRequests();
     closeStream();
     activeRunIdRef.current = undefined;
     eventIdentitiesRef.current = new Set();
@@ -413,9 +428,17 @@ export function useRealAgentReplay(
     }
     setLoading(true);
     let cancelled = false;
-    loadSessionMessages(sessionId)
+    const controller = new AbortController();
+    sessionLoadControllerRef.current = controller;
+    loadSessionMessages(sessionId, {}, controller.signal)
       .then((rows) => {
-        if (cancelled || generation !== sessionGenerationRef.current || !mountedRef.current) return;
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          generation !== sessionGenerationRef.current ||
+          !mountedRef.current
+        )
+          return;
         const ordered = [...rows].sort((left, right) => left.sequence_no - right.sequence_no);
         setMessages(
           ordered.map((message) => ({
@@ -434,30 +457,50 @@ export function useRealAgentReplay(
         }
       })
       .catch((reason) => {
-        if (!cancelled && generation === sessionGenerationRef.current && mountedRef.current)
+        if (
+          !cancelled &&
+          !controller.signal.aborted &&
+          !isAbortError(reason) &&
+          generation === sessionGenerationRef.current &&
+          mountedRef.current
+        )
           setError(reason instanceof Error ? reason.message : 'ChatRun 消息加载失败。');
       })
       .finally(() => {
-        if (!cancelled && generation === sessionGenerationRef.current && mountedRef.current) setLoading(false);
+        if (
+          !cancelled &&
+          !controller.signal.aborted &&
+          generation === sessionGenerationRef.current &&
+          mountedRef.current
+        )
+          setLoading(false);
+        if (sessionLoadControllerRef.current === controller) sessionLoadControllerRef.current = undefined;
       });
     return () => {
       cancelled = true;
+      controller.abort();
+      if (sessionLoadControllerRef.current === controller) sessionLoadControllerRef.current = undefined;
     };
-  }, [closeStream, enabled, maxAttempts, publishConnection, sessionId]);
+  }, [abortPendingRequests, closeStream, enabled, maxAttempts, publishConnection, sessionId]);
 
   useEffect(() => {
     if (!enabled || !activeRunId) return undefined;
     let cancelled = false;
+    const controller = new AbortController();
+    runRefreshControllerRef.current?.abort();
+    runRefreshControllerRef.current = controller;
     // 状态查询会启动外部 SSE 订阅，并在回调中同步 React 状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refreshRun(activeRunId).catch((reason) => {
-      if (!cancelled && mountedRef.current) {
+    void refreshRun(activeRunId, false, controller.signal).catch((reason) => {
+      if (!cancelled && !controller.signal.aborted && !isAbortError(reason) && mountedRef.current) {
         setRunning(false);
         setError(reason instanceof Error ? reason.message : 'ChatRun 状态加载失败。');
       }
     });
     return () => {
       cancelled = true;
+      controller.abort();
+      if (runRefreshControllerRef.current === controller) runRefreshControllerRef.current = undefined;
       closeStream();
     };
   }, [activeRunId, closeStream, enabled, refreshRun]);
@@ -471,9 +514,12 @@ export function useRealAgentReplay(
       setError(undefined);
       setCard({ type: 'none' });
       setRunning(true);
+      mutationControllerRef.current?.abort();
+      const controller = new AbortController();
+      mutationControllerRef.current = controller;
       try {
-        const started = await createChatRun(prompt, sessionId);
-        if (!mountedRef.current) return;
+        const started = await createChatRun(prompt, sessionId, controller.signal);
+        if (!mountedRef.current || controller.signal.aborted) return;
         const targetSessionId = started.session_id;
         const optimisticMessage: Message = {
           id: started.user_message_id ?? `chat-run-user-${Date.now()}`,
@@ -495,11 +541,13 @@ export function useRealAgentReplay(
         setRun(emptyRun(normalizedRunId));
         setActiveRunId(normalizedRunId);
       } catch (reason) {
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || controller.signal.aborted || isAbortError(reason)) return;
         setRunning(false);
         const message = reason instanceof Error ? reason.message : 'ChatRun 创建失败，请稍后重试。';
         setError(message);
         setCard({ type: 'error', message });
+      } finally {
+        if (mutationControllerRef.current === controller) mutationControllerRef.current = undefined;
       }
     },
     [cancelling, enabled, input, options, running, sessionId],
@@ -522,18 +570,30 @@ export function useRealAgentReplay(
     setRunning(false);
     setCancelAcknowledged(false);
     setError(undefined);
-    void cancelChatRun(runId)
+    mutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    mutationControllerRef.current = controller;
+    void cancelChatRun(runId, controller.signal)
       .then(() => {
-        if (!mountedRef.current || activeRunIdRef.current !== runId) return;
+        if (!mountedRef.current || controller.signal.aborted || activeRunIdRef.current !== runId) return;
         // 取消 HTTP 响应只代表请求被接受，必须重新订阅并等待 cancelled 事件。
         openStream(runId, cursor, true);
       })
       .catch((reason) => {
-        if (!mountedRef.current || activeRunIdRef.current !== runId) return;
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          isAbortError(reason) ||
+          activeRunIdRef.current !== runId
+        )
+          return;
         setCancelling(false);
         setRunning(true);
         setError(reason instanceof Error ? reason.message : '取消 ChatRun 失败，请稍后重试。');
         openStream(runId, cursor, true);
+      })
+      .finally(() => {
+        if (mutationControllerRef.current === controller) mutationControllerRef.current = undefined;
       });
   }, [cancelling, closeStream, openStream, running]);
 
