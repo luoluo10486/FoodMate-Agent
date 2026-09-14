@@ -28,14 +28,16 @@ describe('knowledgeService', () => {
       .fn()
       .mockResolvedValue(new Response(JSON.stringify({ success: true, data: response }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(searchKnowledge('  公共饮食指南  ')).resolves.toEqual(response.citations);
+    await expect(searchKnowledge('  公共饮食指南  ', controller.signal)).resolves.toEqual(response.citations);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/knowledge-base/search',
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
     );
     const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toEqual({ query: '公共饮食指南' });
+    expect(init.signal).toBe(controller.signal);
   });
 
   it('does not call the API for a blank query', async () => {

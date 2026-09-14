@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../services/apiClient';
 import { KnowledgePage } from './KnowledgePage';
-import { searchKnowledge } from '../../services/knowledgeService';
+import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 
 vi.mock('../../services/knowledgeService', () => ({
   searchKnowledge: vi.fn(),
@@ -66,7 +66,7 @@ describe('KnowledgePage real mode', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => expect(screen.getByRole('heading', { name: '低 GI 早餐指南' })).toBeInTheDocument());
-    expect(searchKnowledge).toHaveBeenCalledWith('低 GI');
+    expect(searchKnowledge).toHaveBeenCalledWith('低 GI', expect.any(AbortSignal));
     expect(screen.getByText('cit-42-1')).toBeInTheDocument();
     expect(screen.getByText('版本 2026.08')).toBeInTheDocument();
     expect(screen.getByText('章节 早餐/谷物')).toBeInTheDocument();
@@ -107,5 +107,51 @@ describe('KnowledgePage real mode', () => {
 
     await user.click(screen.getByRole('button', { name: '重新检索' }));
     await waitFor(() => expect(searchKnowledge).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not let a stale search result replace the latest query', async () => {
+    let resolveFirst: ((value: KnowledgeCitation[]) => void) | undefined;
+    let resolveSecond: ((value: KnowledgeCitation[]) => void) | undefined;
+    vi.mocked(searchKnowledge).mockImplementation((value, signal) => {
+      return new Promise<KnowledgeCitation[]>((resolve, reject) => {
+        if (value === '第一次') resolveFirst = resolve;
+        else resolveSecond = resolve;
+        signal?.addEventListener('abort', () => reject(Object.assign(new Error('请求已取消'), { name: 'AbortError' })));
+      });
+    });
+    const user = userEvent.setup();
+    renderPage();
+    const search = await screen.findByRole('textbox', { name: '搜索食物知识、食材、烹饪技巧' });
+
+    await user.type(search, '第一次');
+    await user.keyboard('{Enter}');
+    await user.clear(search);
+    await user.type(search, '第二次');
+    await user.keyboard('{Enter}');
+
+    resolveSecond?.([
+      {
+        document_id: 2,
+        citation_id: 'cit-second',
+        title: '第二次结果',
+        version: 'v2',
+        section_path: '最新',
+        snippet: '最新结果',
+      },
+    ]);
+    expect(await screen.findByRole('heading', { name: '第二次结果' })).toBeInTheDocument();
+
+    resolveFirst?.([
+      {
+        document_id: 1,
+        citation_id: 'cit-first',
+        title: '第一次结果',
+        version: 'v1',
+        section_path: '旧结果',
+        snippet: '旧结果',
+      },
+    ]);
+    await waitFor(() => expect(screen.queryByRole('heading', { name: '第一次结果' })).not.toBeInTheDocument());
+    expect(searchKnowledge).toHaveBeenCalledTimes(2);
   });
 });

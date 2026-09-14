@@ -1,5 +1,5 @@
 import { FileText, Search, UploadCloud } from 'lucide-react';
-import { ChangeEvent, DragEvent, useEffect, useId, useRef, useState } from 'react';
+import { ChangeEvent, DragEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -13,7 +13,7 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ApiError } from '../../../services/apiClient';
+import { ApiError, isAbortError } from '../../../services/apiClient';
 import styles from '../AdminPage.module.css';
 import { type KnowledgeRow, canManage } from './AdminShared';
 import type { AdminActionPayload } from './types';
@@ -160,6 +160,14 @@ export function KnowledgeSection({
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const [uploading, setUploading] = useState(false);
+  const listRequestIdRef = useRef(0);
+  const listControllerRef = useRef<AbortController>();
+  const uploadRequestIdRef = useRef(0);
+  const uploadControllerRef = useRef<AbortController>();
+  const visibilityRequestIdRef = useRef(0);
+  const visibilityControllerRef = useRef<AbortController>();
+  const mountedRef = useRef(true);
   const pageSize = 20;
   const fileInputId = useId();
 
@@ -172,38 +180,57 @@ export function KnowledgeSection({
   }, [openUploadRequest]);
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      listControllerRef.current?.abort();
+      uploadControllerRef.current?.abort();
+      visibilityControllerRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isRealMode) return;
     let active = true;
-    // The effect owns the request lifecycle, so loading/error reset belongs to this subscription boundary.
+    listControllerRef.current?.abort();
+    const requestId = ++listRequestIdRef.current;
+    const controller = new AbortController();
+    listControllerRef.current = controller;
+    // 当前订阅负责请求生命周期，因此加载和错误状态也在订阅边界内重置。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminKnowledge({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: statusFilter,
-      visibility: visibilityFilter,
-    })
+    loadAdminKnowledge(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: statusFilter,
+        visibility: visibilityFilter,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted || requestId !== listRequestIdRef.current) return;
         const rows = result.items as KnowledgeRow[];
         setDocuments(rows);
         setTotalDocuments(result.total);
         setSelectedDoc(rows[0]);
       })
       .catch((cause) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted || requestId !== listRequestIdRef.current || isAbortError(cause))
+          return;
         setDocuments([]);
         setTotalDocuments(0);
         setSelectedDoc(undefined);
         setLoadError(cause instanceof Error ? cause.message : '知识库数据加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && !controller.signal.aborted && requestId === listRequestIdRef.current) setLoading(false);
       });
     return () => {
       active = false;
+      controller.abort();
+      if (listControllerRef.current === controller) listControllerRef.current = undefined;
     };
   }, [isRealMode, localRefreshNonce, page, query, refreshNonce, statusFilter, visibilityFilter]);
 
@@ -233,11 +260,20 @@ export function KnowledgeSection({
     if (selected.length) setUploadVisible(true);
   };
   const closeUpload = () => {
+    uploadRequestIdRef.current += 1;
+    uploadControllerRef.current?.abort();
+    uploadControllerRef.current = undefined;
+    setUploading(false);
     setUploadVisible(false);
     setUploadFiles([]);
     setUploadMode('batch');
   };
   const submitUpload = async () => {
+    uploadControllerRef.current?.abort();
+    const requestId = ++uploadRequestIdRef.current;
+    const controller = new AbortController();
+    uploadControllerRef.current = controller;
+    setUploading(true);
     try {
       if (isRealMode && !canManageAccess) {
         return notify('当前角色没有知识库上传权限。', 'warning');
@@ -249,7 +285,8 @@ export function KnowledgeSection({
         if (uploadFiles.length !== 1) {
           return notify('单文件上传只能选择一个文件。', 'warning');
         }
-        const uploaded = await uploadKnowledgeDocument(uploadFiles[0]);
+        const uploaded = await uploadKnowledgeDocument(uploadFiles[0], controller.signal);
+        if (controller.signal.aborted || requestId !== uploadRequestIdRef.current) return;
         setLocalRefreshNonce((current) => current + 1);
         closeUpload();
         notify(`文档 ${uploaded.document_id} 已提交`, 'success');
@@ -259,14 +296,18 @@ export function KnowledgeSection({
         if (!sourceName.trim() || !sourceVersion.trim() || !licenseNotice.trim()) {
           return notify('请完整填写来源、版本和授权说明。', 'warning');
         }
-        const uploaded = await uploadKnowledgeBatch({
-          files: uploadFiles,
-          sourceType: 'admin_upload',
-          sourceName,
-          sourceVersion,
-          licenseNotice,
-          idempotencyKey: crypto.randomUUID(),
-        });
+        const uploaded = await uploadKnowledgeBatch(
+          {
+            files: uploadFiles,
+            sourceType: 'admin_upload',
+            sourceName,
+            sourceVersion,
+            licenseNotice,
+            idempotencyKey: crypto.randomUUID(),
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted || requestId !== uploadRequestIdRef.current) return;
         setBatchId(uploaded.batch_id);
         window.localStorage.setItem('foodmate:admin:knowledge:last-batch', uploaded.batch_id);
         setLocalRefreshNonce((current) => current + 1);
@@ -274,26 +315,43 @@ export function KnowledgeSection({
       closeUpload();
       notify('文档上传已提交', 'success');
     } catch (cause) {
+      if (controller.signal.aborted || requestId !== uploadRequestIdRef.current || isAbortError(cause)) return;
       notify(cause instanceof Error ? cause.message : '文档上传失败，请重试。', 'warning');
+    } finally {
+      if (uploadControllerRef.current === controller) {
+        uploadControllerRef.current = undefined;
+        setUploading(false);
+      }
     }
   };
   const requestVisibilityChange = (visibility: 'published' | 'disabled' | 'draft' | 'deleted', label: string) => {
     if (!selectedDoc) return;
+    visibilityControllerRef.current?.abort();
+    const requestId = ++visibilityRequestIdRef.current;
+    const controller = new AbortController();
+    visibilityControllerRef.current = controller;
+    const selectedDocumentId = selectedDoc.documentId;
     onAction({
       action: label,
-      targetLabel: selectedDoc.documentId,
+      targetLabel: selectedDocumentId,
       targetType: 'knowledge_document',
-      targetId: selectedDoc.documentId,
+      targetId: selectedDocumentId,
       execute: async () => {
-        if (isRealMode) await changeKnowledgeVisibility(selectedDoc.documentId, visibility);
-        else await updateKnowledgeStatus(selectedDoc.documentId, visibility === 'disabled' ? 'disabled' : 'indexed');
+        if (isRealMode) await changeKnowledgeVisibility(selectedDocumentId, visibility, controller.signal);
+        else
+          await updateKnowledgeStatus(
+            selectedDocumentId,
+            visibility === 'disabled' ? 'disabled' : 'indexed',
+            controller.signal,
+          );
       },
       onApply: () => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== visibilityRequestIdRef.current) return;
         setDocuments((current) =>
           visibility === 'deleted'
-            ? current.filter((document) => document.documentId !== selectedDoc.documentId)
+            ? current.filter((document) => document.documentId !== selectedDocumentId)
             : current.map((document) =>
-                document.documentId === selectedDoc.documentId
+                document.documentId === selectedDocumentId
                   ? {
                       ...document,
                       visibility,
@@ -519,7 +577,13 @@ export function KnowledgeSection({
           </div>
         ) : null}
       </Card>
-      <Dialog open={uploadVisible} onOpenChange={setUploadVisible}>
+      <Dialog
+        open={uploadVisible}
+        onOpenChange={(open) => {
+          if (open) setUploadVisible(true);
+          else closeUpload();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>上传知识库文档</DialogTitle>
@@ -577,7 +641,9 @@ export function KnowledgeSection({
             <Button variant="outline" onClick={closeUpload}>
               取消
             </Button>
-            <Button onClick={() => void submitUpload()}>提交上传</Button>
+            <Button disabled={uploading} onClick={() => void submitUpload()}>
+              {uploading ? '上传中...' : '提交上传'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -585,8 +651,8 @@ export function KnowledgeSection({
         <BatchProgress
           batchId={batchId}
           canManageAccess={canManageAccess}
-          onRetry={(documentId) => retryKnowledgeItem(batchId, documentId)}
-          onReindex={(documentId) => reindexKnowledgeItem(batchId, documentId)}
+          onRetry={(documentId, signal) => retryKnowledgeItem(batchId, documentId, signal)}
+          onReindex={(documentId, signal) => reindexKnowledgeItem(batchId, documentId, signal)}
         />
       ) : null}
     </section>
@@ -601,8 +667,8 @@ function BatchProgress({
 }: {
   batchId: string;
   canManageAccess: boolean;
-  onRetry: (documentId: string) => Promise<unknown>;
-  onReindex: (documentId: string) => Promise<unknown>;
+  onRetry: (documentId: string, signal?: AbortSignal) => Promise<unknown>;
+  onReindex: (documentId: string, signal?: AbortSignal) => Promise<unknown>;
 }) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
   const [retryingItemId, setRetryingItemId] = useState<string>();
@@ -619,75 +685,126 @@ function BatchProgress({
   });
   const streamBatchRef = useRef<string>();
   const streamCursorRef = useRef<string>();
-  const refresh = async () => {
+  const detailRequestIdRef = useRef(0);
+  const detailControllerRef = useRef<AbortController>();
+  const retryControllerRef = useRef<AbortController>();
+  const reindexControllerRef = useRef<AbortController>();
+  const lifecycleRef = useRef(0);
+  const mountedRef = useRef(true);
+  const refresh = useCallback(async () => {
+    detailControllerRef.current?.abort();
+    const requestId = ++detailRequestIdRef.current;
+    const controller = new AbortController();
+    detailControllerRef.current = controller;
     try {
-      const next = await loadKnowledgeBatch(batchId);
+      const next = await loadKnowledgeBatch(batchId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current || requestId !== detailRequestIdRef.current)
+        return undefined;
       setDetail(next);
       setDetailError('');
       return next;
     } catch (cause) {
+      if (
+        controller.signal.aborted ||
+        !mountedRef.current ||
+        requestId !== detailRequestIdRef.current ||
+        isAbortError(cause)
+      )
+        return undefined;
       setDetailError(knowledgeBatchErrorMessage(cause, '批次详情读取失败，请重试。'));
       throw cause;
+    } finally {
+      if (detailControllerRef.current === controller) detailControllerRef.current = undefined;
     }
-  };
+  }, [batchId]);
   const retry = async (itemId: string, documentId: string) => {
+    retryControllerRef.current?.abort();
+    const controller = new AbortController();
+    retryControllerRef.current = controller;
     setRetryingItemId(itemId);
     setRetryError('');
     try {
-      await onRetry(documentId);
-      await refresh();
+      await onRetry(documentId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current) return;
+      const next = await refresh();
+      if (controller.signal.aborted || !mountedRef.current || !next) return;
       setStreamRetryNonce((value) => value + 1);
     } catch (cause) {
+      if (controller.signal.aborted || !mountedRef.current || isAbortError(cause)) return;
       setRetryError(cause instanceof Error ? cause.message : '索引重试失败，请稍后重试');
     } finally {
-      setRetryingItemId(undefined);
+      if (retryControllerRef.current === controller) {
+        retryControllerRef.current = undefined;
+        setRetryingItemId(undefined);
+      }
     }
   };
   const reindex = async (itemId: string, documentId: string) => {
+    reindexControllerRef.current?.abort();
+    const controller = new AbortController();
+    reindexControllerRef.current = controller;
     setReindexingItemId(itemId);
     setReindexError('');
     try {
-      await onReindex(documentId);
-      await refresh();
+      await onReindex(documentId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current) return;
+      const next = await refresh();
+      if (controller.signal.aborted || !mountedRef.current || !next) return;
       setStreamRetryNonce((value) => value + 1);
     } catch (cause) {
+      if (controller.signal.aborted || !mountedRef.current || isAbortError(cause)) return;
       setReindexError(cause instanceof Error ? cause.message : '重新索引失败，请稍后重试');
     } finally {
-      setReindexingItemId(undefined);
+      if (reindexControllerRef.current === controller) {
+        reindexControllerRef.current = undefined;
+        setReindexingItemId(undefined);
+      }
     }
   };
   useEffect(() => {
     let active = true;
+    const lifecycle = ++lifecycleRef.current;
+    const streamController = new AbortController();
     if (streamBatchRef.current !== batchId) {
       streamBatchRef.current = batchId;
       streamCursorRef.current = undefined;
     }
-    const load = () =>
-      loadKnowledgeBatch(batchId)
-        .then((value) => {
-          if (active) {
-            setDetail(value);
-            setDetailError('');
-          }
-          return value;
-        })
-        .catch((cause) => {
-          if (active) setDetailError(knowledgeBatchErrorMessage(cause, '批次详情读取失败，请重试。'));
-          return undefined;
-        });
-    load();
-    const stream = streamKnowledgeBatch(batchId, load, {
-      lastEventId: streamCursorRef.current,
-      onStateChange: (connection) => {
-        streamCursorRef.current = connection.lastEventId;
-        if (active) setStreamConnection(connection);
+    // 每次批次订阅重建时重置连接状态，但保留已确认的 SSE 游标。
+    setStreamConnection({ state: 'connecting', attempt: 1, maxAttempts: 5, lastEventId: streamCursorRef.current });
+    void refresh().catch(() => undefined);
+    const stream = streamKnowledgeBatch(
+      batchId,
+      () => {
+        void refresh().catch(() => undefined);
       },
-    });
+      {
+        lastEventId: streamCursorRef.current,
+        signal: streamController.signal,
+        onStateChange: (connection) => {
+          if (!active || lifecycle !== lifecycleRef.current) return;
+          streamCursorRef.current = connection.lastEventId;
+          setStreamConnection(connection);
+        },
+      },
+    );
     return () => {
       active = false;
+      if (lifecycle === lifecycleRef.current) lifecycleRef.current += 1;
+      streamController.abort();
       stream.close();
+      detailControllerRef.current?.abort();
+      retryControllerRef.current?.abort();
+      reindexControllerRef.current?.abort();
     };
-  }, [batchId, detailReloadNonce, streamRetryNonce]);
+  }, [batchId, detailReloadNonce, refresh, streamRetryNonce]);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      detailControllerRef.current?.abort();
+      retryControllerRef.current?.abort();
+      reindexControllerRef.current?.abort();
+    };
+  }, []);
   const streamLabel =
     streamConnection.state === 'connecting'
       ? '正在连接实时进度...'

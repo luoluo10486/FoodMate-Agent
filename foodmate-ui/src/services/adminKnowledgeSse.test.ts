@@ -121,4 +121,22 @@ describe('admin knowledge batch SSE', () => {
     expect(stream.getConnection().lastEventId).toBe('message-2');
     stream.close();
   });
+
+  it('closes the stream and prevents reconnect after cancellation', async () => {
+    const controller = new AbortController();
+    const stream = streamKnowledgeBatch('9001', () => undefined, {
+      signal: controller.signal,
+      reconnectDelayMs: 10,
+    });
+    const source = FakeEventSource.instances[0];
+
+    controller.abort();
+    expect(source.closed).toBe(true);
+    expect(stream.getConnection()).toMatchObject({ state: 'closed' });
+
+    source.fail();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(FakeEventSource.instances).toHaveLength(1);
+    stream.close();
+  });
 });

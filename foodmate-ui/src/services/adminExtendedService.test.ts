@@ -1,13 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   approveRetentionPurge,
+  changeKnowledgeVisibility,
   createModelBudget,
   createModelPrice,
+  loadAdminKnowledge,
   loadAdminAuditReport,
   loadAdminDeletedResourcesPage,
   loadAdminQuery,
   loadAdminExportStatus,
   loadAdminOperationAuditsPage,
+  loadKnowledgeBatch,
   loadModelGovernance,
   loadRetentionPurge,
   loadRetentionPurgePreflight,
@@ -16,6 +19,8 @@ import {
   releaseRetentionHold,
   replayAdminDlq,
   requestRetentionPurge,
+  retryKnowledgeItem,
+  updateKnowledgeStatus,
 } from './adminService';
 
 function ok(data: unknown) {
@@ -99,6 +104,28 @@ describe('admin extended APIs', () => {
       '/api/admin/knowledge-upload-batches/9001/documents/42/reindex',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('forwards cancellation through knowledge reads and writes', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(
+          ok({ resource: 'knowledge', items: [], total: 0, page: 1, size: 20, batch: { job: {}, items: [] } }),
+        ),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAdminKnowledge({}, controller.signal);
+    await loadKnowledgeBatch('9001', controller.signal);
+    await updateKnowledgeStatus('42', 'indexed', controller.signal);
+    await retryKnowledgeItem('9001', '42', controller.signal);
+    await changeKnowledgeVisibility('42', 'published', controller.signal);
+
+    for (const [, init] of fetchMock.mock.calls) {
+      expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
+    }
   });
 
   it('sends stable confirmation digests for DLQ and retention operations', async () => {

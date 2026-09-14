@@ -11,6 +11,7 @@ export type SseStreamOptions<T> = {
   path: string;
   eventTypes: readonly string[];
   lastEventId?: string;
+  signal?: AbortSignal;
   maxAttempts?: number;
   reconnectDelayMs?: number;
   parseEvent?: (event: MessageEvent<string>, registeredType: string) => ParsedSseEvent<T>;
@@ -53,6 +54,7 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
     maxAttempts,
     lastEventId: initialLastEventId,
   };
+  let removeAbortListener: () => void = () => undefined;
 
   const publishState = (state: AgentStreamConnectionState, patch: Partial<AgentStreamConnection> = {}) => {
     connection = { ...connection, ...patch, state };
@@ -74,8 +76,26 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
       reconnectTimer = undefined;
     }
     closeSource();
+    removeAbortListener();
     publishState('closed');
   };
+
+  const abortListener = () => close();
+
+  if (options.signal?.aborted) {
+    closed = true;
+    terminal = true;
+    connection = { ...connection, state: 'closed' };
+    options.onStateChange?.(connection);
+    return { close, getConnection: () => connection };
+  }
+
+  if (options.signal) {
+    options.signal.addEventListener('abort', abortListener, { once: true });
+    removeAbortListener = () => {
+      options.signal?.removeEventListener('abort', abortListener);
+    };
+  }
 
   const handleConnectionFailure = (failedSource?: EventSource) => {
     // 旧连接的延迟 error 或解析错误不能影响已经建立的新连接。
@@ -142,6 +162,7 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
         if (options.isTerminal?.(eventType, parsed.payload)) {
           terminal = true;
           closeSource(nextSource);
+          removeAbortListener();
           publishState('closed');
         }
       });

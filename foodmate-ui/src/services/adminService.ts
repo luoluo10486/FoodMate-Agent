@@ -638,11 +638,18 @@ export async function loadAdminQuery<T>(resource: string, params: AdminQueryPara
 }
 
 /** 管理端知识库使用专用分页查询，避免把 dashboard 概览当成明细数据源。 */
-export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminKnowledgeRow>> {
-  const data = await loadAdminQuery<AdminKnowledgeResponse>('knowledge', {
-    size: 20,
-    ...params,
-  });
+export async function loadAdminKnowledge(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminKnowledgeRow>> {
+  const data = await loadAdminQuery<AdminKnowledgeResponse>(
+    'knowledge',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
   return {
     items: data.items.map(normalizeKnowledgeRow),
     total: data.total,
@@ -1087,11 +1094,18 @@ export async function loadAdminUserDetail(userId: string, signal?: AbortSignal):
   return apiRequest<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(userId)}/detail`, readRequestInit(signal));
 }
 
-async function adminWrite<T>(path: string, method: string, payload?: object, idempotencyPrefix?: string): Promise<T> {
+async function adminWrite<T>(
+  path: string,
+  method: string,
+  payload?: object,
+  idempotencyPrefix?: string,
+  signal?: AbortSignal,
+): Promise<T> {
   return apiRequest<T>(path, {
     method,
     headers: idempotencyPrefix ? { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) } : undefined,
     body: payload === undefined ? undefined : JSON.stringify(payload),
+    signal,
   });
 }
 
@@ -1124,8 +1138,8 @@ export async function updateAdminToolStatus(name: string, status: string, revisi
     'admin-tool-status',
   );
 }
-export const updateKnowledgeStatus = (id: string, status: string) =>
-  adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
+export const updateKnowledgeStatus = (id: string, status: string, signal?: AbortSignal) =>
+  adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status }, undefined, signal);
 export async function restoreAdminResource(type: string, id: string, revision = 1) {
   const action = 'admin.resource.restore';
   const digest = await confirmationDigest(action, type, id, revision);
@@ -1137,12 +1151,13 @@ export async function restoreAdminResource(type: string, id: string, revision = 
   );
 }
 
-export async function uploadKnowledgeDocument(file: File) {
+export async function uploadKnowledgeDocument(file: File, signal?: AbortSignal) {
   const form = new FormData();
   form.append('file', file);
   return apiRequest<{ document_id: number }>('/api/admin/knowledge', {
     method: 'POST',
     body: form,
+    signal,
   });
 }
 
@@ -1178,13 +1193,17 @@ export type KnowledgeBatchEvent = {
 
 export type KnowledgeBatchStreamOptions = {
   lastEventId?: string;
+  signal?: AbortSignal;
   maxAttempts?: number;
   reconnectDelayMs?: number;
   onStateChange?: (connection: AgentStreamConnection) => void;
   onError?: (connection: AgentStreamConnection) => void;
 };
 
-export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
+export async function uploadKnowledgeBatch(
+  batch: KnowledgeUploadBatch,
+  signal?: AbortSignal,
+): Promise<{ batch_id: string }> {
   const form = new FormData();
   batch.files.forEach((file) => form.append('files', file));
   form.append('source_type', batch.sourceType);
@@ -1195,11 +1214,15 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
   return apiRequest<{ batch_id: string }>('/api/admin/knowledge-documents/upload-batches', {
     method: 'POST',
     body: form,
+    signal,
   });
 }
 
-export const loadKnowledgeBatch = (batchId: string) =>
-  apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
+export const loadKnowledgeBatch = (batchId: string, signal?: AbortSignal) =>
+  apiRequest<KnowledgeBatchDetail>(
+    `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`,
+    readRequestInit(signal),
+  );
 
 const knowledgeBatchEventTypes = [
   'knowledge.index.indexed',
@@ -1229,6 +1252,7 @@ export function streamKnowledgeBatch(
     path: `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
     eventTypes: knowledgeBatchEventTypes,
     lastEventId: options.lastEventId,
+    signal: options.signal,
     maxAttempts: options.maxAttempts,
     reconnectDelayMs: options.reconnectDelayMs,
     onStateChange: options.onStateChange,
@@ -1257,23 +1281,33 @@ export function streamKnowledgeBatch(
     isTerminal: isTerminalKnowledgeBatchEvent,
   });
 }
-export const retryKnowledgeItem = (batchId: string, itemId: string) =>
+export const retryKnowledgeItem = (batchId: string, itemId: string, signal?: AbortSignal) =>
   adminWrite(
     `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`,
     'POST',
+    undefined,
+    undefined,
+    signal,
   );
-export const reindexKnowledgeItem = (batchId: string, itemId: string) =>
+export const reindexKnowledgeItem = (batchId: string, itemId: string, signal?: AbortSignal) =>
   adminWrite(
     `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/reindex`,
     'POST',
+    undefined,
+    undefined,
+    signal,
   );
 export const changeKnowledgeVisibility = (
   documentId: string,
   visibility: 'published' | 'disabled' | 'draft' | 'deleted',
+  signal?: AbortSignal,
 ) =>
   adminWrite(
     `/api/admin/knowledge-documents/${encodeURIComponent(documentId)}/${visibility === 'draft' ? 'restore' : visibility}`,
     'POST',
+    undefined,
+    undefined,
+    signal,
   );
 
 export type ModelGovernanceProvider = {

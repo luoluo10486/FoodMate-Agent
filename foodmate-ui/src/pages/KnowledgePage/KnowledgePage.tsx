@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FIXTURE_KNOWLEDGE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 import type { SessionSummary } from '../../types/session';
 import styles from './KnowledgePage.module.css';
@@ -140,6 +140,8 @@ export function KnowledgePage() {
   const [searchError, setSearchError] = useState<KnowledgeSearchError>();
   const [hasSearched, setHasSearched] = useState(false);
   const initialQuery = useRef(searchParams.get('q') ?? '');
+  const searchRequestIdRef = useRef(0);
+  const searchControllerRef = useRef<AbortController>();
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
   const displayedState: KnowledgeState = isRealMode
     ? searchError
@@ -186,21 +188,29 @@ export function KnowledgePage() {
   const executeRemoteSearch = useCallback(
     async (value: string) => {
       const normalizedQuery = value.trim();
+      searchControllerRef.current?.abort();
+      searchControllerRef.current = undefined;
+      const requestId = ++searchRequestIdRef.current;
       setSearchError(undefined);
       setHasSearched(Boolean(normalizedQuery));
       if (!normalizedQuery) {
         setRemoteResults([]);
         updateState('default');
+        setSearchLoading(false);
         return;
       }
+      const controller = new AbortController();
+      searchControllerRef.current = controller;
       setSearchLoading(true);
       try {
-        const citations = await searchKnowledge(normalizedQuery);
+        const citations = await searchKnowledge(normalizedQuery, controller.signal);
+        if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
         const results = citations.map(toKnowledgeResult);
         setRemoteResults(results);
         setSelectedResultTitle(results[0]?.title ?? '');
         updateState('default');
       } catch (cause) {
+        if (controller.signal.aborted || requestId !== searchRequestIdRef.current || isAbortError(cause)) return;
         setRemoteResults([]);
         setSelectedResultTitle('');
         setSearchError(
@@ -209,11 +219,22 @@ export function KnowledgePage() {
             : { message: cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试' },
         );
       } finally {
-        setSearchLoading(false);
+        if (requestId === searchRequestIdRef.current) {
+          if (searchControllerRef.current === controller) searchControllerRef.current = undefined;
+          setSearchLoading(false);
+        }
       }
     },
     [updateState],
   );
+
+  useEffect(() => {
+    return () => {
+      searchRequestIdRef.current += 1;
+      searchControllerRef.current?.abort();
+      searchControllerRef.current = undefined;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isRealMode || !initialQuery.current.trim()) return;
@@ -234,11 +255,15 @@ export function KnowledgePage() {
   };
 
   const clearFilters = () => {
+    searchRequestIdRef.current += 1;
+    searchControllerRef.current?.abort();
+    searchControllerRef.current = undefined;
     setQuery('');
     setActiveFilter('全部主题');
     setRemoteResults([]);
     setSearchError(undefined);
     setHasSearched(false);
+    setSearchLoading(false);
     setSearchParams(new URLSearchParams());
   };
 
