@@ -335,10 +335,26 @@ type PlanningFeedbackViewProps = {
   kind: 'empty' | 'error';
   onPrimary: () => void;
   onSecondary?: () => void;
+  title?: string;
+  description?: string;
+  errorCode?: string;
 };
 
-function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedbackViewProps) {
+function PlanningFeedbackView({
+  kind,
+  onPrimary,
+  onSecondary,
+  title,
+  description,
+  errorCode,
+}: PlanningFeedbackViewProps) {
   const isError = kind === 'error';
+  const feedbackTitle = title ?? (isError ? '规划方案加载失败' : '暂无周餐食规划');
+  const feedbackDescription =
+    description ??
+    (isError
+      ? '由于网络连接中断或云端模型服务异常，暂时无法加载您在 FoodMate 上的餐食规划日程。'
+      : 'FoodMate 还没有为您生成本周的科学减脂/增肌饮食方案。即刻告诉 AI 助手您的膳食目标，一键生成健康食谱。');
 
   return (
     <div
@@ -350,14 +366,10 @@ function PlanningFeedbackView({ kind, onPrimary, onSecondary }: PlanningFeedback
           {isError ? <CircleAlert /> : <UtensilsCrossed />}
         </div>
         <div className={styles.feedbackCopy}>
-          <h1>{isError ? '规划方案加载失败' : '暂无周餐食规划'}</h1>
-          <p>
-            {isError
-              ? '由于网络连接中断或云端模型服务异常，暂时无法加载您在 FoodMate 上的餐食规划日程。'
-              : 'FoodMate 还没有为您生成本周的科学减脂/增肌饮食方案。即刻告诉 AI 助手您的膳食目标，一键生成健康食谱。'}
-          </p>
+          <h1>{feedbackTitle}</h1>
+          <p>{feedbackDescription}</p>
         </div>
-        {isError ? <span className={styles.errorCode}>错误代码: GATEWAY_TIMEOUT (504)</span> : null}
+        {isError ? <span className={styles.errorCode}>{errorCode ?? '错误代码: GATEWAY_TIMEOUT (504)'}</span> : null}
         <div className={styles.feedbackActions}>
           <Button className={styles.feedbackPrimary} onClick={onPrimary}>
             <span className={styles.feedbackPrimaryIcon}>
@@ -734,6 +746,9 @@ export function PlanningPage() {
   const [realPlans, setRealPlans] = useState<MealPlan[]>([]);
   const [realLoading, setRealLoading] = useState(isRealMode);
   const [realError, setRealError] = useState<string>();
+  const [realPlanDetailLoading, setRealPlanDetailLoading] = useState(false);
+  const [realPlanDetailError, setRealPlanDetailError] = useState<string>();
+  const [loadedPlanDetailId, setLoadedPlanDetailId] = useState<string>();
   const [realShoppingList, setRealShoppingList] = useState<ShoppingList>();
   const [realShoppingLoading, setRealShoppingLoading] = useState(false);
   const [realShoppingError, setRealShoppingError] = useState<string>();
@@ -748,6 +763,7 @@ export function PlanningPage() {
   const [planActionId, setPlanActionId] = useState<string>();
   const [planActionError, setPlanActionError] = useState<string>();
   const [planReloadNonce, setPlanReloadNonce] = useState(0);
+  const [planDetailReloadNonce, setPlanDetailReloadNonce] = useState(0);
 
   useEffect(() => {
     if (!isRealMode) return;
@@ -763,7 +779,13 @@ export function PlanningPage() {
         }
       })
       .catch((error: unknown) => {
-        if (!cancelled) setRealError(planningErrorMessage(error, '餐食计划加载失败，请重试。'));
+        if (!cancelled) {
+          // 列表请求失败后清空旧事实，避免用户继续操作过期的餐食计划。
+          setRealPlans([]);
+          setRealShoppingList(undefined);
+          setRealProgress(undefined);
+          setRealError(planningErrorMessage(error, '餐食计划加载失败，请重试。'));
+        }
       })
       .finally(() => {
         if (!cancelled) setRealLoading(false);
@@ -774,26 +796,43 @@ export function PlanningPage() {
   }, [isRealMode, planReloadNonce]);
 
   const selectedPlanId = searchParams.get('planId');
-  const selectedPlan =
-    realPlans.find((plan) => plan.meal_plan_id === selectedPlanId) ??
-    realPlans.find((plan) => !plan.deleted) ??
-    realPlans[0];
+  const selectedPlan = selectedPlanId
+    ? realPlans.find((plan) => plan.meal_plan_id === selectedPlanId)
+    : (realPlans.find((plan) => !plan.deleted) ?? realPlans[0]);
 
   useEffect(() => {
-    if (!isRealMode || !selectedPlanId) return;
+    if (!isRealMode || !selectedPlanId) {
+      // 没有指定详情路由时，不保留上一条计划详情的加载状态。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setRealPlanDetailLoading(false);
+      setRealPlanDetailError(undefined);
+      setLoadedPlanDetailId(undefined);
+      return;
+    }
     let cancelled = false;
+    // 详情请求单独管理生命周期，不能把列表中的旧计划当作最新详情。
+    setRealPlanDetailLoading(true);
+    setRealPlanDetailError(undefined);
+    setLoadedPlanDetailId(undefined);
+    setPlanActionError(undefined);
     loadMealPlan(selectedPlanId)
       .then((value) => {
         if (cancelled) return;
         setRealPlans((current) => [value, ...current.filter((plan) => plan.meal_plan_id !== value.meal_plan_id)]);
+        setLoadedPlanDetailId(selectedPlanId);
       })
       .catch((error: unknown) => {
-        if (!cancelled) setPlanActionError(planningErrorMessage(error, '餐食计划详情加载失败，请重试。'));
+        if (!cancelled) {
+          setRealPlanDetailError(planningErrorMessage(error, '餐食计划详情加载失败，请重试。'));
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setRealPlanDetailLoading(false);
       });
     return () => {
       cancelled = true;
     };
-  }, [isRealMode, selectedPlanId]);
+  }, [isRealMode, selectedPlanId, planDetailReloadNonce]);
 
   useEffect(() => {
     if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
@@ -805,6 +844,7 @@ export function PlanningPage() {
       return;
     }
     let cancelled = false;
+    setRealShoppingList(undefined);
     setRealShoppingLoading(true);
     setRealShoppingError(undefined);
     loadShoppingList(selectedPlan.meal_plan_id)
@@ -834,6 +874,7 @@ export function PlanningPage() {
       return;
     }
     let cancelled = false;
+    setRealProgress(undefined);
     setRealProgressError(undefined);
     loadMealPlanProgress(selectedPlan.meal_plan_id)
       .then((value) => {
@@ -981,6 +1022,8 @@ export function PlanningPage() {
     if (!selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved' || creatingShoppingList) return;
     setCreatingShoppingList(true);
     setRealShoppingError(undefined);
+    // 手动刷新期间不继续展示上一份可能已经过期的清单。
+    setRealShoppingList(undefined);
     try {
       const shoppingList = await createShoppingList(selectedPlan.meal_plan_id);
       setRealShoppingList(shoppingList);
@@ -1010,7 +1053,22 @@ export function PlanningPage() {
     realLoading ? (
       <PlanLoadingView />
     ) : realError ? (
-      <PlanningFeedbackView kind="error" onPrimary={() => navigate('/planning')} onSecondary={() => navigate('/')} />
+      <PlanningFeedbackView
+        kind="error"
+        onPrimary={() => setPlanReloadNonce((value) => value + 1)}
+        onSecondary={() => navigate('/')}
+      />
+    ) : realPlanDetailError ? (
+      <PlanningFeedbackView
+        kind="error"
+        title="餐食计划详情加载失败"
+        description={realPlanDetailError}
+        errorCode="错误代码: PLAN_DETAIL_LOAD_FAILED"
+        onPrimary={() => setPlanDetailReloadNonce((value) => value + 1)}
+        onSecondary={() => navigate('/planning?state=list')}
+      />
+    ) : realPlanDetailLoading || (selectedPlanId != null && loadedPlanDetailId !== selectedPlanId) ? (
+      <PlanLoadingView />
     ) : view === 'list' ? (
       <MealPlanningFlow
         view="list"

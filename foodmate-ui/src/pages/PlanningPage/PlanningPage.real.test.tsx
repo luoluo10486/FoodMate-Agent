@@ -240,6 +240,43 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByRole('heading', { name: '步骤 1: 设置基本目标' })).toBeInTheDocument();
   });
 
+  it('retries a failed plan list request without showing stale plan data', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMealPlans).mockRejectedValueOnce(new Error('列表暂不可用')).mockResolvedValueOnce([plan]);
+    renderPage('/planning');
+
+    expect(await screen.findByRole('heading', { name: '规划方案加载失败' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '服务端增肌计划' })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新加载' }));
+
+    expect(await screen.findByRole('heading', { name: '服务端增肌计划' })).toBeInTheDocument();
+    expect(loadMealPlans).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not fall back to another plan when the selected plan detail fails', async () => {
+    const otherPlan = { ...plan, meal_plan_id: '702', plan_name: '不应显示的其它计划' };
+    vi.mocked(loadMealPlans).mockResolvedValue([otherPlan]);
+    vi.mocked(loadMealPlan).mockRejectedValue(new ApiError('NOT_FOUND', '计划不存在', 404));
+    renderPage('/planning?planId=701');
+
+    expect(await screen.findByRole('heading', { name: '餐食计划详情加载失败' })).toBeInTheDocument();
+    expect(screen.getByText('计划不存在')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: '不应显示的其它计划' })).not.toBeInTheDocument();
+  });
+
+  it('clears the previous shopping list while a manual refresh fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(createShoppingList).mockRejectedValue(new Error('购物清单服务不可用'));
+    renderPage('/planning?planId=701');
+
+    expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '刷新清单' }));
+
+    expect(await screen.findByText('购物清单服务不可用')).toBeInTheDocument();
+    expect(screen.queryByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).not.toBeInTheDocument();
+  });
+
   it('keeps validated and saved plans in separate real status views', async () => {
     vi.mocked(loadMealPlans).mockResolvedValue([
       plan,
