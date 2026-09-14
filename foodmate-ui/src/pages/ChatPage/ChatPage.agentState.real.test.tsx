@@ -83,7 +83,7 @@ vi.mock('../../services/sessionService', async () => {
 
 function renderState(state: string, query = '') {
   const suffix = query ? `&${query}` : '';
-  render(
+  return render(
     <MemoryRouter initialEntries={[`/chat?state=${state}${suffix}`]}>
       <Routes>
         <Route path="/chat/:session_id?" element={<ChatPage />} />
@@ -193,8 +193,10 @@ describe('ChatPage Agent 状态真实动作', () => {
 
     await user.click(await screen.findByRole('button', { name: '确认并执行' }));
 
-    await waitFor(() => expect(confirmAgentWrite).toHaveBeenCalledWith('8', proposalParameters));
-    expect(executeAgentWrite).toHaveBeenCalledWith('8', proposalParameters);
+    await waitFor(() =>
+      expect(confirmAgentWrite).toHaveBeenCalledWith('8', proposalParameters, expect.any(AbortSignal)),
+    );
+    expect(executeAgentWrite).toHaveBeenCalledWith('8', proposalParameters, expect.any(AbortSignal));
     expect(await screen.findByText(/后端已返回执行状态：executed/)).toBeInTheDocument();
   });
 
@@ -210,7 +212,9 @@ describe('ChatPage Agent 状态真实动作', () => {
 
     await user.click(await screen.findByRole('button', { name: '拒绝写入' }));
 
-    await waitFor(() => expect(rejectAgentWrite).toHaveBeenCalledWith('8', proposalParameters));
+    await waitFor(() =>
+      expect(rejectAgentWrite).toHaveBeenCalledWith('8', proposalParameters, expect.any(AbortSignal)),
+    );
     expect(executeAgentWrite).not.toHaveBeenCalled();
     expect(await screen.findByText(/后端已返回审批状态：rejected/)).toBeInTheDocument();
   });
@@ -228,15 +232,18 @@ describe('ChatPage Agent 状态真实动作', () => {
     await user.click(await screen.findByRole('button', { name: '创建写入提案' }));
 
     await waitFor(() =>
-      expect(createApprovalProposal).toHaveBeenCalledWith({
-        agentRunId: 42,
-        operation: 'food_log.create',
-        resourceType: 'food_log',
-        parameters: proposalParameters,
-        idempotencyKey: expect.stringContaining('real-agent-state-42'),
-        resourceId: undefined,
-        sessionId: undefined,
-      }),
+      expect(createApprovalProposal).toHaveBeenCalledWith(
+        {
+          agentRunId: 42,
+          operation: 'food_log.create',
+          resourceType: 'food_log',
+          parameters: proposalParameters,
+          idempotencyKey: expect.stringContaining('real-agent-state-42'),
+          resourceId: undefined,
+          sessionId: undefined,
+        },
+        expect.any(AbortSignal),
+      ),
     );
     expect(await screen.findByText(/提案已创建：9/)).toBeInTheDocument();
   });
@@ -260,11 +267,13 @@ describe('ChatPage Agent 状态真实动作', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: '追加 20,000 tokens' }));
-    await waitFor(() => expect(extendAgentRunBudget).toHaveBeenCalledWith('42', 20000, '0.15'));
+    await waitFor(() =>
+      expect(extendAgentRunBudget).toHaveBeenCalledWith('42', 20000, '0.15', undefined, expect.any(AbortSignal)),
+    );
     expect(await screen.findByText(/当前 Run 已返回预算追加状态/)).toBeInTheDocument();
 
     await user.click(await screen.findByRole('button', { name: '结束当前 Run' }));
-    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42', 'user_requested', expect.any(AbortSignal)));
   });
 
   it('真实状态页取消时先关闭旧 SSE，再使用原游标续接当前 Run', async () => {
@@ -296,7 +305,7 @@ describe('ChatPage Agent 状态真实动作', () => {
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(1));
     await user.click(await screen.findByRole('button', { name: '停止生成' }));
 
-    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('42', 'user_requested', expect.any(AbortSignal)));
     // React effect 清理和主动切换都可能调用同一个幂等关闭句柄，验证连接确实已关闭即可。
     expect(firstClose).toHaveBeenCalled();
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
@@ -318,7 +327,7 @@ describe('ChatPage Agent 状态真实动作', () => {
 
     expect(screen.queryByRole('button', { name: '跳过此步骤' })).not.toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: '重试当前 Run' }));
-    await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('42', expect.any(AbortSignal)));
     expect(await screen.findByText(/后端已返回重试状态：queued/)).toBeInTheDocument();
   });
 
@@ -350,7 +359,7 @@ describe('ChatPage Agent 状态真实动作', () => {
     });
 
     await user.click(await screen.findByRole('button', { name: '从 checkpoint 恢复' }));
-    await waitFor(() => expect(recoverAgentRunFromCheckpoint).toHaveBeenCalledWith('42'));
+    await waitFor(() => expect(recoverAgentRunFromCheckpoint).toHaveBeenCalledWith('42', expect.any(AbortSignal)));
     expect(await screen.findByText(/后端已返回恢复状态：queued/)).toBeInTheDocument();
   });
 
@@ -364,11 +373,15 @@ describe('ChatPage Agent 状态真实动作', () => {
     await user.click(await screen.findByRole('button', { name: '提交恢复请求' }));
 
     await waitFor(() =>
-      expect(recoverAgentRun).toHaveBeenCalledWith('42', {
-        checkpointVersion: 4,
-        checkpointDigest: 'sha256:checkpoint',
-        completedInvocationIds: ['inv-1'],
-      }),
+      expect(recoverAgentRun).toHaveBeenCalledWith(
+        '42',
+        {
+          checkpointVersion: 4,
+          checkpointDigest: 'sha256:checkpoint',
+          completedInvocationIds: ['inv-1'],
+        },
+        expect.any(AbortSignal),
+      ),
     );
     expect(recoverAgentRunFromCheckpoint).not.toHaveBeenCalled();
     expect(await screen.findByText(/后端已返回恢复状态：queued/)).toBeInTheDocument();
@@ -393,5 +406,39 @@ describe('ChatPage Agent 状态真实动作', () => {
 
     expect(await screen.findByText('连接已中断，正在重新连接...')).toBeInTheDocument();
     expect(screen.getByText('第 2 / 5 次尝试 · 最近事件 event-17')).toBeInTheDocument();
+  });
+
+  it('卸载真实状态页时取消 SSE 事件触发的 Approval 详情请求', async () => {
+    let approvalSignal: AbortSignal | undefined;
+    loadApprovalProposal.mockImplementation((_approvalId: string, signal?: AbortSignal) => {
+      approvalSignal = signal;
+      return new Promise((_resolve, reject) => {
+        signal?.addEventListener(
+          'abort',
+          () => reject(Object.assign(new Error('提案读取已取消'), { name: 'AbortError' })),
+          { once: true },
+        );
+      });
+    });
+    const view = renderState('safety-degraded', 'run_id=42');
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledWith('42', expect.any(Function), expect.anything()));
+    const onStreamEvent = openAgentRunStream.mock.calls[0][1] as (
+      eventType: string,
+      payload: AgentRunEvent,
+      eventId?: string,
+    ) => void;
+
+    await act(async () => {
+      onStreamEvent(
+        'run.clarification_requested',
+        { event_type: 'run.clarification_requested', approval_request_id: '9' } as AgentRunEvent,
+        'approval-event',
+      );
+    });
+    await waitFor(() => expect(approvalSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(approvalSignal?.aborted).toBe(true);
   });
 });

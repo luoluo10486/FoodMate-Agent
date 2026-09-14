@@ -105,13 +105,17 @@ export async function loadSessionsPage(
 }
 
 // 以下方法统一通过 apiRequest 发送真实会话和消息请求，由 apiRequest 负责 Cookie、CSRF 和错误映射。
-export async function createSession(title?: string): Promise<RealSession> {
-  return apiRequest('/api/sessions', { method: 'POST', body: JSON.stringify({ title: title ?? '', mode: 'chat' }) });
+export async function createSession(title?: string, signal?: AbortSignal): Promise<RealSession> {
+  return apiRequest('/api/sessions', {
+    method: 'POST',
+    body: JSON.stringify({ title: title ?? '', mode: 'chat' }),
+    ...requestInit(signal),
+  });
 }
 
-export async function loadSessions(params: SessionListParams = {}): Promise<SessionSummary[]> {
+export async function loadSessions(params: SessionListParams = {}, signal?: AbortSignal): Promise<SessionSummary[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockSessions;
-  const page = await loadSessionsPage(params);
+  const page = await loadSessionsPage(params, signal);
   return page.items.map(mapSessionSummary);
 }
 
@@ -143,63 +147,88 @@ export async function loadSessionMessages(
   }
   return sortMessages(items);
 }
-export async function sendUserMessage(sessionId: string, content: string): Promise<RealMessage> {
+export async function sendUserMessage(sessionId: string, content: string, signal?: AbortSignal): Promise<RealMessage> {
   return apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/messages`, {
     method: 'POST',
     body: JSON.stringify({ role: 'user', content }),
+    ...requestInit(signal),
   });
 }
 
-export async function updateMessage(sessionId: string, messageId: string, content: string): Promise<RealMessage> {
+export async function updateMessage(
+  sessionId: string,
+  messageId: string,
+  content: string,
+  signal?: AbortSignal,
+): Promise<RealMessage> {
   return apiRequest<RealMessage>(
     `/api/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`,
     {
       method: 'PATCH',
       body: JSON.stringify({ content }),
+      ...requestInit(signal),
     },
   );
 }
 
-export async function deleteMessage(sessionId: string, messageId: string): Promise<void> {
+export async function deleteMessage(sessionId: string, messageId: string, signal?: AbortSignal): Promise<void> {
   await apiRequest<void>(`/api/sessions/${encodeURIComponent(sessionId)}/messages/${encodeURIComponent(messageId)}`, {
     method: 'DELETE',
+    ...requestInit(signal),
   });
 }
-export async function renameSession(sessionId: string, title: string): Promise<void> {
+export async function renameSession(sessionId: string, title: string, signal?: AbortSignal): Promise<void> {
   await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}`, {
     method: 'PATCH',
     body: JSON.stringify({ title }),
+    ...requestInit(signal),
   });
 }
-export async function archiveSession(sessionId: string): Promise<void> {
-  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/archive`, { method: 'POST' });
+export async function archiveSession(sessionId: string, signal?: AbortSignal): Promise<void> {
+  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/archive`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
 }
-export async function unarchiveSession(sessionId: string): Promise<void> {
-  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/unarchive`, { method: 'POST' });
+export async function unarchiveSession(sessionId: string, signal?: AbortSignal): Promise<void> {
+  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/unarchive`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
 }
-export async function deleteSession(sessionId: string): Promise<void> {
-  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' });
+export async function deleteSession(sessionId: string, signal?: AbortSignal): Promise<void> {
+  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE', ...requestInit(signal) });
 }
-export async function loadDeletedSessionsPage(params: MessageListParams = {}): Promise<PageResult<RealSession>> {
+export async function loadDeletedSessionsPage(
+  params: MessageListParams = {},
+  signal?: AbortSignal,
+): Promise<PageResult<RealSession>> {
   return apiRequest<PageResult<RealSession>>(
     `/api/sessions/deleted?${messageQuery({ ...params, size: params.size ?? 50 }).toString()}`,
+    requestInit(signal),
   );
 }
 
-export async function loadDeletedSessions(params: MessageListParams = {}): Promise<RealSession[]> {
-  const firstPage = await loadDeletedSessionsPage(params);
+export async function loadDeletedSessions(
+  params: MessageListParams = {},
+  signal?: AbortSignal,
+): Promise<RealSession[]> {
+  const firstPage = await loadDeletedSessionsPage(params, signal);
   const items = [...firstPage.items];
   const pageCount = Math.ceil(firstPage.total / firstPage.size);
   if (firstPage.page === 1 && pageCount > 1) {
     for (let page = 2; page <= pageCount; page += 1) {
-      const nextPage = await loadDeletedSessionsPage({ page, size: firstPage.size });
+      const nextPage = await loadDeletedSessionsPage({ page, size: firstPage.size }, signal);
       items.push(...nextPage.items);
     }
   }
   return items;
 }
-export async function restoreSession(sessionId: string): Promise<void> {
-  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/restore`, { method: 'POST' });
+export async function restoreSession(sessionId: string, signal?: AbortSignal): Promise<void> {
+  await apiRequest(`/api/sessions/${encodeURIComponent(sessionId)}/restore`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
 }
 export async function searchSessions(
   query: string,

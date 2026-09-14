@@ -2182,6 +2182,9 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   const seenEventIdsRef = useRef(new Set<string>());
   const proposalKeyRef = useRef<string>();
   const streamResumeRef = useRef<{ lastEventId?: string }>({});
+  const loadControllerRef = useRef<AbortController>();
+  const approvalLoadControllerRef = useRef<AbortController>();
+  const actionControllerRef = useRef<AbortController>();
 
   useEffect(() => {
     mountedRef.current = true;
@@ -2189,11 +2192,22 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       mountedRef.current = false;
       streamRef.current?.close();
       streamRef.current = undefined;
+      loadControllerRef.current?.abort();
+      loadControllerRef.current = undefined;
+      approvalLoadControllerRef.current?.abort();
+      approvalLoadControllerRef.current = undefined;
+      actionControllerRef.current?.abort();
+      actionControllerRef.current = undefined;
     };
   }, []);
 
   useEffect(() => {
     // 查询参数变化时清理旧状态，避免上一条 Run 的事件泄漏到当前状态页。
+    loadControllerRef.current?.abort();
+    approvalLoadControllerRef.current?.abort();
+    approvalLoadControllerRef.current = undefined;
+    const loadController = new AbortController();
+    loadControllerRef.current = loadController;
     streamRef.current?.close();
     streamRef.current = undefined;
     seenEventIdsRef.current = new Set();
@@ -2229,20 +2243,20 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     const loads: Promise<void>[] = [];
     if (sessionId) {
       loads.push(
-        loadSessionMessages(sessionId)
+        loadSessionMessages(sessionId, {}, loadController.signal)
           .then((rows) => {
             if (!cancelled && mountedRef.current)
               setMessages([...rows].sort((left, right) => left.sequence_no - right.sequence_no));
           })
           .catch((reason) => {
-            if (!cancelled && mountedRef.current)
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
               setError(reason instanceof Error ? reason.message : '会话消息加载失败。');
           }),
       );
     }
     if (runId) {
       loads.push(
-        loadAgentRun(runId)
+        loadAgentRun(runId, loadController.signal)
           .then((run) => {
             if (cancelled || !mountedRef.current) return;
             setRawRunStatus(run.status);
@@ -2250,28 +2264,31 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
             setAcceptedEventCount(run.accepted_event_count);
           })
           .catch((reason) => {
-            if (!cancelled && mountedRef.current)
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
               setError(reason instanceof Error ? reason.message : '运行状态加载失败。');
           }),
       );
     }
     if (requestedApprovalId) {
       loads.push(
-        loadApprovalProposal(requestedApprovalId)
+        loadApprovalProposal(requestedApprovalId, loadController.signal)
           .then((proposal) => {
             if (!cancelled && mountedRef.current) setApproval(proposal);
           })
           .catch((reason) => {
-            if (!cancelled && mountedRef.current)
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
               setError(reason instanceof Error ? reason.message : '写入提案加载失败。');
           }),
       );
     }
     Promise.all(loads).finally(() => {
-      if (!cancelled && mountedRef.current) setLoading(false);
+      if (!cancelled && mountedRef.current && !loadController.signal.aborted) setLoading(false);
+      if (loadControllerRef.current === loadController) loadControllerRef.current = undefined;
     });
     return () => {
       cancelled = true;
+      loadController.abort();
+      if (loadControllerRef.current === loadController) loadControllerRef.current = undefined;
     };
   }, [explicitRecoveryRequest, requestedApprovalId, runId, searchParams, sessionId]);
 
@@ -2350,13 +2367,20 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
           }
           if (normalizedPayload.approval_request_id) {
             const nextApprovalId = String(normalizedPayload.approval_request_id);
-            void loadApprovalProposal(nextApprovalId)
+            approvalLoadControllerRef.current?.abort();
+            const approvalLoadController = new AbortController();
+            approvalLoadControllerRef.current = approvalLoadController;
+            void loadApprovalProposal(nextApprovalId, approvalLoadController.signal)
               .then((proposal) => {
-                if (active && mountedRef.current) setApproval(proposal);
+                if (active && mountedRef.current && !approvalLoadController.signal.aborted) setApproval(proposal);
               })
               .catch((reason) => {
-                if (active && mountedRef.current)
+                if (active && mountedRef.current && !approvalLoadController.signal.aborted && !isAbortError(reason))
                   setError(reason instanceof Error ? reason.message : '写入提案加载失败。');
+              })
+              .finally(() => {
+                if (approvalLoadControllerRef.current === approvalLoadController)
+                  approvalLoadControllerRef.current = undefined;
               });
           }
         }
@@ -2381,10 +2405,24 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     };
   }, [queryKey, runId, streamRevision]);
 
-  const refreshApproval = async (targetId: string) => {
-    const next = await loadApprovalProposal(targetId);
+  const refreshApproval = async (targetId: string, signal?: AbortSignal) => {
+    const next = await loadApprovalProposal(targetId, signal);
     if (mountedRef.current) setApproval(next);
     return next;
+  };
+
+  const startAction = () => {
+    actionControllerRef.current?.abort();
+    const controller = new AbortController();
+    actionControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentAction = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && actionControllerRef.current === controller;
+
+  const finishAction = (controller: AbortController) => {
+    if (actionControllerRef.current === controller) actionControllerRef.current = undefined;
   };
 
   const closeRunStream = () => {
@@ -2415,28 +2453,35 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     setActionMessage(
       mode === 'confirm' ? '确认请求已提交，等待后端返回执行状态。' : '取消请求已提交，等待后端返回审批状态。',
     );
+    const controller = startAction();
     try {
       if (mode === 'reject') {
-        const rejected = await rejectAgentWrite(approvalId, parameters);
+        const rejected = await rejectAgentWrite(approvalId, parameters, controller.signal);
+        if (!isCurrentAction(controller)) return;
         setApproval(rejected);
         setActionState('success');
         setActionMessage(`后端已返回审批状态：${rejected.status || '未知'}。`);
         return;
       }
-      const confirmed = await confirmAgentWrite(approvalId, parameters);
+      const confirmed = await confirmAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentAction(controller)) return;
       setApproval(confirmed);
       if (!['confirmed', 'executed'].includes(confirmed.status.toLowerCase())) {
         setActionState('error');
         setActionMessage(`后端未进入可执行状态，当前状态：${confirmed.status || '未知'}。`);
         return;
       }
-      const executed = await executeAgentWrite(approvalId, parameters);
+      const executed = await executeAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentAction(controller)) return;
       setActionState('success');
       setActionMessage(`后端已返回执行状态：${executed.status || '未知'}，页面不推断额外业务结果。`);
-      await refreshApproval(approvalId);
+      await refreshApproval(approvalId, controller.signal);
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '写入提案操作失败，请稍后重试。');
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2444,26 +2489,34 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     if (!proposalDraft || actionState === 'loading') return;
     setActionState('loading');
     setActionMessage('正在创建写入提案，等待后端返回提案状态。');
+    const controller = startAction();
     try {
-      const created = await createApprovalProposal({
-        sessionId: queryNumber(sessionId ?? null) ?? sessionId,
-        agentRunId: queryNumber(runId ?? null) ?? runId,
-        operation: proposalDraft.operation,
-        resourceType: proposalDraft.resourceType,
-        resourceId: proposalDraft.resourceId,
-        parameters: proposalDraft.parameters,
-        idempotencyKey:
-          proposalKeyRef.current ??
-          (proposalKeyRef.current = `real-agent-state-${runId ?? sessionId ?? requestedApprovalId ?? 'proposal'}`),
-      });
+      const created = await createApprovalProposal(
+        {
+          sessionId: queryNumber(sessionId ?? null) ?? sessionId,
+          agentRunId: queryNumber(runId ?? null) ?? runId,
+          operation: proposalDraft.operation,
+          resourceType: proposalDraft.resourceType,
+          resourceId: proposalDraft.resourceId,
+          parameters: proposalDraft.parameters,
+          idempotencyKey:
+            proposalKeyRef.current ??
+            (proposalKeyRef.current = `real-agent-state-${runId ?? sessionId ?? requestedApprovalId ?? 'proposal'}`),
+        },
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
       setApprovalId(created.approval_request_id);
       setApproval(created);
       setProposalParameters(proposalDraft.parameters);
       setActionState('success');
       setActionMessage(`提案已创建：${created.approval_request_id}，当前状态为 ${created.status || '未知'}。`);
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '创建写入提案失败，请稍后重试。');
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2473,15 +2526,20 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     closeRunStream();
     setActionState('loading');
     setActionMessage('取消请求已提交，终态以服务端 cancelled 事件为准。');
+    const controller = startAction();
     try {
-      const result = await cancelAgentRun(runId);
+      const result = await cancelAgentRun(runId, 'user_requested', controller.signal);
+      if (!isCurrentAction(controller)) return;
       setActionState('success');
       setActionMessage(`后端已接受取消请求：${result.status || '未知'}。`);
       resumeRunStream();
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '取消运行失败，请稍后重试。');
       resumeRunStream();
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2491,8 +2549,16 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     closeRunStream();
     setActionState('loading');
     setActionMessage('预算追加请求已提交，当前 Run 将继续等待后端事件。');
+    const controller = startAction();
     try {
-      const result = await extendAgentRunBudget(runId, budgetFacts.additionalTokens, budgetFacts.additionalCostCny);
+      const result = await extendAgentRunBudget(
+        runId,
+        budgetFacts.additionalTokens,
+        budgetFacts.additionalCostCny,
+        undefined,
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
       setActionState('success');
       setActionMessage(
         `当前 Run 已返回预算追加状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`,
@@ -2501,9 +2567,12 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       setBudgetFacts((current) => ({ ...current, additionalTokens: undefined, additionalCostCny: undefined }));
       resumeRunStream();
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
       resumeRunStream();
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2512,17 +2581,22 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     closeRunStream();
     setActionState('loading');
     setActionMessage('重试请求已提交，等待后端运行事件。');
+    const controller = startAction();
     try {
-      const result = await retryAgentRun(runId);
+      const result = await retryAgentRun(runId, controller.signal);
+      if (!isCurrentAction(controller)) return;
       setActionState('success');
       setActionMessage(`后端已返回重试状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
       setRetryable(false);
       setRunStatus('routing');
       resumeRunStream();
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
       resumeRunStream();
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2535,10 +2609,12 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
         ? '正在提交 checkpoint 元数据，等待后端校验并恢复当前 Run。'
         : '正在请求从已持久化 checkpoint 恢复当前 Run。',
     );
+    const controller = startAction();
     try {
       const result = checkpointRecovery
-        ? await recoverAgentRun(runId, checkpointRecovery)
-        : await recoverAgentRunFromCheckpoint(runId);
+        ? await recoverAgentRun(runId, checkpointRecovery, controller.signal)
+        : await recoverAgentRunFromCheckpoint(runId, controller.signal);
+      if (!isCurrentAction(controller)) return;
       setCheckpointAvailable(false);
       setCheckpointRecovery(undefined);
       setActionState('success');
@@ -2546,9 +2622,12 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
       setRunStatus('routing');
       resumeRunStream();
     } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
       setActionState('error');
       setActionMessage(reason instanceof Error ? reason.message : '运行恢复失败，请稍后重试。');
       resumeRunStream();
+    } finally {
+      finishAction(controller);
     }
   };
 
@@ -2873,6 +2952,9 @@ function RealChatPage() {
   const streamRef = useRef<AgentStreamHandle>();
   const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
   const mountedRef = useRef(true);
+  const sendControllerRef = useRef<AbortController>();
+  const runActionControllerRef = useRef<AbortController>();
+  const messageMutationControllerRef = useRef<AbortController>();
 
   useEffect(() => {
     // 在订阅新 Run 前同步历史消息，避免回放时重复追加已持久化的回答。
@@ -2885,11 +2967,23 @@ function RealChatPage() {
       messageLoadControllerRef.current?.abort();
       messageLoadControllerRef.current = undefined;
       messageLoadGenerationRef.current += 1;
+      sendControllerRef.current?.abort();
+      sendControllerRef.current = undefined;
+      runActionControllerRef.current?.abort();
+      runActionControllerRef.current = undefined;
+      messageMutationControllerRef.current?.abort();
+      messageMutationControllerRef.current = undefined;
     };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    sendControllerRef.current?.abort();
+    sendControllerRef.current = undefined;
+    runActionControllerRef.current?.abort();
+    runActionControllerRef.current = undefined;
+    messageMutationControllerRef.current?.abort();
+    messageMutationControllerRef.current = undefined;
     messageLoadControllerRef.current?.abort();
     messageLoadControllerRef.current = undefined;
     messageLoadGenerationRef.current += 1;
@@ -3198,6 +3292,46 @@ function RealChatPage() {
     };
   }, [activeRunId, sessionId, streamGeneration]);
 
+  const startRunAction = () => {
+    runActionControllerRef.current?.abort();
+    const controller = new AbortController();
+    runActionControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentRunAction = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && runActionControllerRef.current === controller;
+
+  const finishRunAction = (controller: AbortController) => {
+    if (runActionControllerRef.current === controller) runActionControllerRef.current = undefined;
+  };
+
+  const submitApprovalAction = async (
+    action: 'confirm' | 'reject',
+    approvalId: string,
+    parameters: Record<string, unknown>,
+  ) => {
+    if (approvalSubmitting) return;
+    const controller = startRunAction();
+    setApprovalSubmitting(true);
+    try {
+      if (action === 'reject') {
+        await rejectAgentWrite(approvalId, parameters, controller.signal);
+        if (!isCurrentRunAction(controller)) return;
+        return;
+      }
+      await confirmAgentWrite(approvalId, parameters, controller.signal);
+      await executeAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentRunAction(controller)) return;
+    } catch (reason) {
+      if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+      setError(reason instanceof Error ? reason.message : action === 'confirm' ? '饮食记录写入失败' : '取消写入失败');
+    } finally {
+      if (isCurrentRunAction(controller)) setApprovalSubmitting(false);
+      finishRunAction(controller);
+    }
+  };
+
   const send = async () => {
     const content = input.trim();
     if (!content || sending) return;
@@ -3214,16 +3348,20 @@ function RealChatPage() {
     setAssistantText('');
     setAssistantTime('');
     setAssistantMessageId(undefined);
+    sendControllerRef.current?.abort();
+    const controller = new AbortController();
+    sendControllerRef.current = controller;
     let createdSessionId: string | undefined;
     try {
       let target = sessionId;
       if (!target) {
-        const created = await createSession(content.slice(0, 40));
+        const created = await createSession(content.slice(0, 40), controller.signal);
         target = String(created.session_id);
         if (!target || target === 'undefined') throw new Error('会话创建响应缺少 session_id。');
         createdSessionId = target;
       }
-      const saved = await sendUserMessage(target, content);
+      const saved = await sendUserMessage(target, content, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted || sendControllerRef.current !== controller) return;
       if (createdSessionId) {
         // 新会话先确认首条消息已被服务端接收，再切换路由加载真实消息和 Run。
         setInput('');
@@ -3243,6 +3381,7 @@ function RealChatPage() {
       setCitations([]);
       setInput('');
     } catch (reason) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(reason)) return;
       const message = reason instanceof Error ? reason.message : '消息发送失败';
       if (createdSessionId) {
         // 会话已创建但首条消息失败时保留真实会话，用户可以在当前路由重试发送。
@@ -3254,7 +3393,10 @@ function RealChatPage() {
       }
       setError(message);
     } finally {
-      setSending(false);
+      if (sendControllerRef.current === controller) {
+        sendControllerRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) setSending(false);
+      }
     }
   };
 
@@ -3267,9 +3409,10 @@ function RealChatPage() {
     setRetrying(true);
     setRetryAvailable(false);
     setError(undefined);
-    void retryAgentRun(activeRunId)
+    const controller = startRunAction();
+    void retryAgentRun(activeRunId, controller.signal)
       .then(() => {
-        if (!mountedRef.current) return;
+        if (!isCurrentRunAction(controller)) return;
         setRunStatus('queued');
         setToolCalls([]);
         setAssistantText('');
@@ -3281,12 +3424,13 @@ function RealChatPage() {
         setStreamGeneration((current) => current + 1);
       })
       .catch((reason) => {
-        if (!mountedRef.current) return;
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
         setRetryAvailable(true);
         setError(reason instanceof Error ? reason.message : '重试请求失败');
       })
       .finally(() => {
-        if (mountedRef.current) setRetrying(false);
+        if (isCurrentRunAction(controller)) setRetrying(false);
+        finishRunAction(controller);
       });
   };
 
@@ -3302,19 +3446,23 @@ function RealChatPage() {
     setCancelling(true);
     setBudgetConfirmation(false);
     setBudgetSubmitting(false);
-    void cancelAgentRun(activeRunId)
+    const controller = startRunAction();
+    void cancelAgentRun(activeRunId, 'user_requested', controller.signal)
       .then(() => {
-        if (!mountedRef.current) return;
+        if (!isCurrentRunAction(controller)) return;
         setCheckpointAvailable(false);
         // HTTP 200 只表示取消请求已被接受，真正的 cancelled 必须来自 SSE 终态事件。
         setStreamGeneration((current) => current + 1);
       })
       .catch((reason) => {
-        if (!mountedRef.current) return;
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
         setError(reason instanceof Error ? reason.message : '取消运行失败');
         setCancelling(false);
         // 取消失败时恢复原订阅，继续接收尚未结束的运行事件。
         setStreamGeneration((current) => current + 1);
+      })
+      .finally(() => {
+        finishRunAction(controller);
       });
   };
 
@@ -3348,26 +3496,43 @@ function RealChatPage() {
     setMessageError(undefined);
   };
 
+  const startMessageMutation = () => {
+    messageMutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    messageMutationControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentMessageMutation = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && messageMutationControllerRef.current === controller;
+
+  const finishMessageMutation = (controller: AbortController) => {
+    if (messageMutationControllerRef.current === controller) messageMutationControllerRef.current = undefined;
+  };
+
   const saveMessageEdit = async (message: RealMessage) => {
     if (!sessionId || !editingContent.trim() || messageMutation) return;
     const originalContent = message.content;
     setMessageError(undefined);
     setMessageNotice(undefined);
     setMessageMutation({ messageId: message.message_id, action: 'edit' });
+    const controller = startMessageMutation();
     try {
-      await updateMessage(sessionId, message.message_id, editingContent.trim());
+      await updateMessage(sessionId, message.message_id, editingContent.trim(), controller.signal);
+      if (!isCurrentMessageMutation(controller)) return;
       const refreshed = await refreshMessages(sessionId);
-      if (!refreshed || !mountedRef.current) return;
+      if (!refreshed || !isCurrentMessageMutation(controller)) return;
       setEditingMessageId(undefined);
       setEditingContent('');
       setMessageNotice('消息已更新。');
     } catch (reason) {
-      if (!mountedRef.current || isAbortError(reason)) return;
+      if (!isCurrentMessageMutation(controller) || isAbortError(reason)) return;
       // 服务端失败时恢复原文，避免本地草稿被误认为已经写入。
       setEditingContent(originalContent);
       setMessageError(messageMutationError(reason, '消息更新失败，请稍后重试。'));
     } finally {
-      if (mountedRef.current) setMessageMutation(undefined);
+      if (isCurrentMessageMutation(controller)) setMessageMutation(undefined);
+      finishMessageMutation(controller);
     }
   };
 
@@ -3376,19 +3541,83 @@ function RealChatPage() {
     setMessageError(undefined);
     setMessageNotice(undefined);
     setMessageMutation({ messageId: messageToDelete.message_id, action: 'delete' });
+    const controller = startMessageMutation();
     try {
-      await deleteMessage(sessionId, messageToDelete.message_id);
+      await deleteMessage(sessionId, messageToDelete.message_id, controller.signal);
+      if (!isCurrentMessageMutation(controller)) return;
       const refreshed = await refreshMessages(sessionId);
-      if (!refreshed || !mountedRef.current) return;
+      if (!refreshed || !isCurrentMessageMutation(controller)) return;
       setMessageToDelete(undefined);
       setMessageNotice('消息已删除。');
     } catch (reason) {
-      if (!mountedRef.current || isAbortError(reason)) return;
+      if (!isCurrentMessageMutation(controller) || isAbortError(reason)) return;
       // 删除请求未成功时不改变本地列表，原消息继续保留。
       setMessageError(messageMutationError(reason, '消息删除失败，请稍后重试。'));
     } finally {
-      if (mountedRef.current) setMessageMutation(undefined);
+      if (isCurrentMessageMutation(controller)) setMessageMutation(undefined);
+      finishMessageMutation(controller);
     }
+  };
+
+  const recoverFromCheckpoint = () => {
+    if (!activeRunId || approvalSubmitting) return;
+    const controller = startRunAction();
+    const recovery = checkpointRecovery;
+    setApprovalSubmitting(true);
+    const request = recovery
+      ? recoverAgentRun(activeRunId, recovery, controller.signal)
+      : recoverAgentRunFromCheckpoint(activeRunId, controller.signal);
+    void request
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setCheckpointAvailable(false);
+        setCheckpointRecovery(undefined);
+        setRunStatus('queued');
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '运行恢复失败');
+      })
+      .finally(() => {
+        if (isCurrentRunAction(controller)) setApprovalSubmitting(false);
+        finishRunAction(controller);
+      });
+  };
+
+  const extendBudgetFromConfirmation = () => {
+    if (!activeRunId || budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny || budgetSubmitting)
+      return;
+    const currentStream = streamRef.current;
+    const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
+    // 预算追加会创建新的 dispatch attempt，先关闭旧连接，再从原游标接收新 Run 事件。
+    currentStream?.close();
+    if (streamRef.current === currentStream) streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+    const controller = startRunAction();
+    setBudgetSubmitting(true);
+    void extendAgentRunBudget(
+      activeRunId,
+      budgetFacts.additionalTokens,
+      budgetFacts.additionalCostCny,
+      undefined,
+      controller.signal,
+    )
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setBudgetConfirmation(false);
+        setRunStatus('queued');
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '预算追加失败');
+        setStreamGeneration((current) => current + 1);
+      })
+      .finally(() => {
+        if (isCurrentRunAction(controller)) setBudgetSubmitting(false);
+        finishRunAction(controller);
+      });
   };
 
   const realRun: AgentRunView = {
@@ -3591,22 +3820,13 @@ function RealChatPage() {
                 errorText="当前写入类型无法识别，请重新发送需求。"
                 data={approvalData(approval.details, resourceType)}
                 onConfirm={() => {
-                  if (!supported) return;
-                  const parameters = approvalParameters(approval.details, resourceType);
-                  setApprovalSubmitting(true);
-                  void confirmAgentWrite(approval.id, parameters)
-                    .then(() => executeAgentWrite(approval.id, parameters))
-                    .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
-                    .finally(() => setApprovalSubmitting(false));
+                  if (supported)
+                    submitApprovalAction('confirm', approval.id, approvalParameters(approval.details, resourceType));
                 }}
                 onEdit={() => setError('请发送一条新消息修改食物和份量。')}
                 onCancel={() => {
-                  if (!supported) return;
-                  const parameters = approvalParameters(approval.details, resourceType);
-                  setApprovalSubmitting(true);
-                  void rejectAgentWrite(approval.id, parameters)
-                    .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
-                    .finally(() => setApprovalSubmitting(false));
+                  if (supported)
+                    submitApprovalAction('reject', approval.id, approvalParameters(approval.details, resourceType));
                 }}
               />
             );
@@ -3628,21 +3848,7 @@ function RealChatPage() {
               { label: '恢复方式', value: '从已校验 checkpoint 恢复' },
               { label: '安全校验', value: 'Java 服务端完成' },
             ]}
-            onConfirm={() => {
-              const recovery = checkpointRecovery;
-              setApprovalSubmitting(true);
-              const recoveryRequest = recovery
-                ? recoverAgentRun(activeRunId, recovery)
-                : recoverAgentRunFromCheckpoint(activeRunId);
-              void recoveryRequest
-                .then(() => {
-                  setCheckpointAvailable(false);
-                  setCheckpointRecovery(undefined);
-                  setRunStatus('queued');
-                })
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败'))
-                .finally(() => setApprovalSubmitting(false));
-            }}
+            onConfirm={recoverFromCheckpoint}
             onEdit={() => setError('恢复参数来自服务端 checkpoint 事件，页面不提供手工修改。')}
             onCancel={() => setCheckpointAvailable(false)}
           />
@@ -3685,31 +3891,7 @@ function RealChatPage() {
                 value: budgetFacts.additionalCostCny ? `¥${budgetFacts.additionalCostCny}` : '后端未返回',
               },
             ]}
-            onConfirm={() => {
-              if (budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny || budgetSubmitting) return;
-              const currentStream = streamRef.current;
-              const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
-              // 预算追加会创建新的 dispatch attempt，先关闭旧连接，再从原游标接收新 Run 事件。
-              currentStream?.close();
-              if (streamRef.current === currentStream) streamRef.current = undefined;
-              streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
-              setBudgetSubmitting(true);
-              void extendAgentRunBudget(activeRunId, budgetFacts.additionalTokens, budgetFacts.additionalCostCny)
-                .then(() => {
-                  if (!mountedRef.current) return;
-                  setBudgetConfirmation(false);
-                  setRunStatus('queued');
-                  setStreamGeneration((current) => current + 1);
-                })
-                .catch((reason) => {
-                  if (!mountedRef.current) return;
-                  setError(reason instanceof Error ? reason.message : '预算追加失败');
-                  setStreamGeneration((current) => current + 1);
-                })
-                .finally(() => {
-                  if (mountedRef.current) setBudgetSubmitting(false);
-                });
-            }}
+            onConfirm={extendBudgetFromConfirmation}
             onEdit={() => setError('追加额度由后端返回，页面不能修改。')}
             onCancel={cancelActiveRun}
           />

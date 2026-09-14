@@ -3,6 +3,10 @@ import { isTerminalAgentEvent } from '../lib/agentEvent';
 import { apiRequest } from './apiClient';
 import { openSseStream } from './sseStream';
 
+function requestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
+
 export type AgentRunEvent = {
   event_id?: string;
   sse_event_id?: string;
@@ -226,14 +230,19 @@ export function openAgentRunStream(
   });
 }
 
-export async function loadAgentRun(runId: string): Promise<AgentRunStatus> {
-  return apiRequest<AgentRunStatus>(`/api/agent-runs/${encodeURIComponent(runId)}`);
+export async function loadAgentRun(runId: string, signal?: AbortSignal): Promise<AgentRunStatus> {
+  return apiRequest<AgentRunStatus>(`/api/agent-runs/${encodeURIComponent(runId)}`, requestInit(signal));
 }
 
-export async function cancelAgentRun(runId: string, reason = 'user_requested'): Promise<AgentCancellationResult> {
+export async function cancelAgentRun(
+  runId: string,
+  reason = 'user_requested',
+  signal?: AbortSignal,
+): Promise<AgentCancellationResult> {
   const result = await apiRequest<AgentCancellationPayload>(`/api/agent-runs/${encodeURIComponent(runId)}/cancel`, {
     method: 'POST',
     body: JSON.stringify({ reason }),
+    ...requestInit(signal),
   });
   return normalizeCancellationResult(result);
 }
@@ -243,6 +252,7 @@ export async function extendAgentRunBudget(
   additionalTokens: number,
   additionalCostCny: string,
   confirmationDigest?: string,
+  signal?: AbortSignal,
 ): Promise<AgentBudgetExtensionResult> {
   const digest =
     confirmationDigest ??
@@ -256,6 +266,7 @@ export async function extendAgentRunBudget(
         additionalCostCny,
         confirmationDigest: digest,
       }),
+      ...requestInit(signal),
     },
   );
   return normalizeBudgetExtensionResult(result);
@@ -264,7 +275,11 @@ export async function extendAgentRunBudget(
 /**
  * 根据已持久化的 checkpoint 恢复时，前端不提交 checkpoint 内容。
  */
-export async function recoverAgentRun(runId: string, request: AgentRecoveryRequest): Promise<AgentRecoveryResult> {
+export async function recoverAgentRun(
+  runId: string,
+  request: AgentRecoveryRequest,
+  signal?: AbortSignal,
+): Promise<AgentRecoveryResult> {
   return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover`, {
     method: 'POST',
     body: JSON.stringify({
@@ -272,19 +287,22 @@ export async function recoverAgentRun(runId: string, request: AgentRecoveryReque
       checkpoint_digest: request.checkpointDigest,
       completed_invocation_ids: request.completedInvocationIds ?? [],
     }),
+    ...requestInit(signal),
   });
 }
 
-export async function recoverAgentRunFromCheckpoint(runId: string): Promise<AgentRecoveryResult> {
+export async function recoverAgentRunFromCheckpoint(runId: string, signal?: AbortSignal): Promise<AgentRecoveryResult> {
   return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
     method: 'POST',
+    ...requestInit(signal),
   });
 }
 
 /** 失败重试由 Java 根据 Runtime 的 retryable 事件和持久化事实裁决。 */
-export async function retryAgentRun(runId: string): Promise<AgentRecoveryResult> {
+export async function retryAgentRun(runId: string, signal?: AbortSignal): Promise<AgentRecoveryResult> {
   return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/retry`, {
     method: 'POST',
+    ...requestInit(signal),
   });
 }
 
@@ -292,6 +310,7 @@ export async function submitAgentFeedback(
   runId: string,
   messageId: string,
   request: AgentFeedbackRequest,
+  signal?: AbortSignal,
 ): Promise<AgentFeedbackResponse> {
   return apiRequest<AgentFeedbackResponse>(
     `/api/agent-runs/${encodeURIComponent(runId)}/messages/${encodeURIComponent(messageId)}/feedback`,
@@ -303,11 +322,15 @@ export async function submitAgentFeedback(
         reason_codes: request.reasonCodes ?? [],
         comment: request.comment || undefined,
       }),
+      ...requestInit(signal),
     },
   );
 }
 
-export async function createApprovalProposal(request: ApprovalProposalRequest): Promise<ApprovalProposalResponse> {
+export async function createApprovalProposal(
+  request: ApprovalProposalRequest,
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
   return apiRequest<ApprovalProposalResponse>('/api/approvals/proposals', {
     method: 'POST',
     body: JSON.stringify({
@@ -320,22 +343,31 @@ export async function createApprovalProposal(request: ApprovalProposalRequest): 
       idempotency_key: request.idempotencyKey ?? idempotencyKey('approval-proposal'),
       expires_in_seconds: request.expiresInSeconds ?? 900,
     }),
+    ...requestInit(signal),
   });
 }
 
-export async function loadApprovalProposal(approvalRequestId: string | number): Promise<ApprovalProposalResponse> {
-  return apiRequest<ApprovalProposalResponse>(`/api/approvals/${encodeURIComponent(String(approvalRequestId))}`);
+export async function loadApprovalProposal(
+  approvalRequestId: string | number,
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}`,
+    requestInit(signal),
+  );
 }
 
 export async function confirmAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
+  signal?: AbortSignal,
 ): Promise<ApprovalProposalResponse> {
   return apiRequest<ApprovalProposalResponse>(
     `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`,
     {
       method: 'POST',
       body: JSON.stringify(parameters),
+      ...requestInit(signal),
     },
   );
 }
@@ -343,12 +375,14 @@ export async function confirmAgentWrite(
 export async function executeAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown>,
+  signal?: AbortSignal,
 ): Promise<ApprovalExecuteResponse> {
   return apiRequest<ApprovalExecuteResponse>(
     `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`,
     {
       method: 'POST',
       body: JSON.stringify(parameters),
+      ...requestInit(signal),
     },
   );
 }
@@ -356,12 +390,14 @@ export async function executeAgentWrite(
 export async function rejectAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
+  signal?: AbortSignal,
 ): Promise<ApprovalProposalResponse> {
   return apiRequest<ApprovalProposalResponse>(
     `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`,
     {
       method: 'POST',
       body: JSON.stringify(parameters),
+      ...requestInit(signal),
     },
   );
 }

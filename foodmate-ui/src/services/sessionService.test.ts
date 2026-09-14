@@ -1,11 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  archiveSession,
+  createSession,
   deleteMessage,
+  deleteSession,
+  loadDeletedSessionsPage,
   loadSessionMessages,
   loadSessionMessagesPage,
   loadSessions,
   loadSessionsPage,
+  renameSession,
+  restoreSession,
   searchSessions,
+  sendUserMessage,
+  unarchiveSession,
   updateMessage,
 } from './sessionService';
 
@@ -208,5 +216,31 @@ describe('sessionService', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ signal: controller.signal }));
     expect(fetchMock.mock.calls[1][1]).toEqual(expect.objectContaining({ signal: controller.signal }));
+  });
+
+  it('将同一个取消信号透传到会话和消息写操作', async () => {
+    const controller = new AbortController();
+    const data = { items: [], total: 0, page: 1, size: 50 };
+    const fetchMock = vi
+      .fn()
+      .mockImplementation(() =>
+        Promise.resolve(new Response(JSON.stringify({ success: true, data }), { status: 200 })),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await createSession('新的会话', controller.signal);
+    await sendUserMessage('7', '请分析午餐', controller.signal);
+    await updateMessage('7', '99', '更新后的内容', controller.signal);
+    await deleteMessage('7', '99', controller.signal);
+    await renameSession('7', '重命名会话', controller.signal);
+    await archiveSession('7', controller.signal);
+    await unarchiveSession('7', controller.signal);
+    await deleteSession('7', controller.signal);
+    await restoreSession('7', controller.signal);
+    await loadDeletedSessionsPage({}, controller.signal);
+    await searchSessions('早餐', {}, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledTimes(11);
+    expect(fetchMock.mock.calls.every(([, init]) => init.signal === controller.signal)).toBe(true);
   });
 });

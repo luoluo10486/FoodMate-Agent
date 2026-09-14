@@ -144,8 +144,10 @@ describe('ChatPage 真实历史会话回放', () => {
     await user.type(composer, '分析我的午餐');
     await user.click(screen.getByRole('button', { name: '发送消息' }));
 
-    await waitFor(() => expect(createSession).toHaveBeenCalledWith('分析我的午餐'));
-    await waitFor(() => expect(sendUserMessage).toHaveBeenCalledWith('session-new', '分析我的午餐'));
+    await waitFor(() => expect(createSession).toHaveBeenCalledWith('分析我的午餐', expect.any(AbortSignal)));
+    await waitFor(() =>
+      expect(sendUserMessage).toHaveBeenCalledWith('session-new', '分析我的午餐', expect.any(AbortSignal)),
+    );
     expect(createSession.mock.invocationCallOrder[0]).toBeLessThan(sendUserMessage.mock.invocationCallOrder[0]);
     await waitFor(() =>
       expect(openAgentRunStream).toHaveBeenCalledWith('run-new', expect.any(Function), expect.anything()),
@@ -323,7 +325,7 @@ describe('ChatPage 真实历史会话回放', () => {
 
     const retryButton = await screen.findByRole('button', { name: '重试' });
     await user.click(retryButton);
-    await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('run-1'));
+    await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('run-1', expect.any(AbortSignal)));
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
     expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'failed-event' });
   });
@@ -492,7 +494,9 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getByText('20,000')).toBeInTheDocument();
     expect(screen.queryByText('30,000')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '追加预算' }));
-    await waitFor(() => expect(extendAgentRunBudget).toHaveBeenCalledWith('run-1', 20000, '0.15'));
+    await waitFor(() =>
+      expect(extendAgentRunBudget).toHaveBeenCalledWith('run-1', 20000, '0.15', undefined, expect.any(AbortSignal)),
+    );
   });
 
   it('流式回答处于 composing 状态而不是 validating 状态', async () => {
@@ -811,7 +815,9 @@ describe('ChatPage 真实历史会话回放', () => {
     await user.click(screen.getByRole('button', { name: '停止生成' }));
 
     expect(firstClose).toHaveBeenCalled();
-    await waitFor(() => expect(cancelAgentRun).toHaveBeenCalledWith('run-1'));
+    await waitFor(() =>
+      expect(cancelAgentRun).toHaveBeenCalledWith('run-1', 'user_requested', expect.any(AbortSignal)),
+    );
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledTimes(2));
     expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'event-1' });
     expect(screen.getByText('正在取消当前运行...')).toBeInTheDocument();
@@ -902,7 +908,9 @@ describe('ChatPage 真实历史会话回放', () => {
     await user.type(editor, '更新后的消息');
     await user.click(screen.getByRole('button', { name: '保存消息' }));
 
-    await waitFor(() => expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '更新后的消息'));
+    await waitFor(() =>
+      expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '更新后的消息', expect.any(AbortSignal)),
+    );
     await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('更新后的消息')).toBeInTheDocument();
     expect(screen.queryByText('原始消息')).not.toBeInTheDocument();
@@ -937,7 +945,9 @@ describe('ChatPage 真实历史会话回放', () => {
     await user.type(editor, '本地草稿');
     await user.click(screen.getByRole('button', { name: '保存消息' }));
 
-    await waitFor(() => expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '本地草稿'));
+    await waitFor(() =>
+      expect(updateMessage).toHaveBeenCalledWith('session-1', 'message-1', '本地草稿', expect.any(AbortSignal)),
+    );
     expect(await screen.findByText(/这条消息已被其他操作更新/)).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: '编辑消息内容' })).toHaveValue('原始消息');
     expect(screen.getByRole('button', { name: '取消编辑消息' })).toBeInTheDocument();
@@ -970,7 +980,7 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(dialog).toHaveTextContent('需要删除的消息');
     await user.click(within(dialog).getByRole('button', { name: '删除消息' }));
 
-    await waitFor(() => expect(deleteMessage).toHaveBeenCalledWith('session-1', 'message-1'));
+    await waitFor(() => expect(deleteMessage).toHaveBeenCalledWith('session-1', 'message-1', expect.any(AbortSignal)));
     await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
     expect(await screen.findByText('消息已删除。')).toBeInTheDocument();
     expect(screen.queryByText('需要删除的消息')).not.toBeInTheDocument();
@@ -1079,5 +1089,38 @@ describe('ChatPage 真实历史会话回放', () => {
     view.unmount();
 
     expect(refreshSignal?.aborted).toBe(true);
+  });
+
+  it('卸载真实 Chat 页面时取消未完成的新会话发送请求', async () => {
+    const user = userEvent.setup();
+    let sendSignal: AbortSignal | undefined;
+    createSession.mockImplementation(
+      (_title: string, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          sendSignal = signal;
+          signal?.addEventListener(
+            'abort',
+            () => reject(Object.assign(new Error('会话创建已取消'), { name: 'AbortError' })),
+            { once: true },
+          );
+        }),
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/chat']}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    const composer = await screen.findByPlaceholderText('追问或添加自定义指令...');
+    await user.type(composer, '取消中的新消息');
+    await user.click(screen.getByRole('button', { name: '发送消息' }));
+    await waitFor(() => expect(sendSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(sendSignal?.aborted).toBe(true);
   });
 });

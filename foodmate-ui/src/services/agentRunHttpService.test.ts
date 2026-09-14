@@ -166,4 +166,58 @@ describe('agentRunService HTTP APIs', () => {
     const feedbackBody = JSON.parse(String(fetchMock.mock.calls[0][1].body));
     expect(feedbackBody).toEqual({ helpful: false, reason_codes: ['incorrect'], comment: '需要修正' });
   });
+
+  it('将同一个取消信号透传到所有 Agent 和 Approval HTTP 接口', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        ok({
+          run_id: '42',
+          dispatch_id: 'dispatch-1',
+          attempt: 1,
+          budget_revision: 1,
+          status: 'queued',
+          accepted_event_count: 0,
+          approval_request_id: '8',
+          operation: 'food_log.create',
+          resource_type: 'food_log',
+          resource_id: null,
+          parameters_digest: 'sha256:proposal',
+          expires_at: '2026-09-14T13:00:00Z',
+          confirmed_at: null,
+          executed_at: null,
+          terminal: false,
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAgentRun('42', controller.signal);
+    await cancelAgentRun('42', 'user_cancelled', controller.signal);
+    await extendAgentRunBudget('42', 5000, '0.12', 'sha256:digest', controller.signal);
+    await recoverAgentRun(
+      '42',
+      { checkpointVersion: 4, checkpointDigest: 'sha256:checkpoint', completedInvocationIds: ['inv-1'] },
+      controller.signal,
+    );
+    await recoverAgentRunFromCheckpoint('42', controller.signal);
+    await retryAgentRun('42', controller.signal);
+    await submitAgentFeedback('42', '99', { helpful: true }, controller.signal);
+    await createApprovalProposal(
+      {
+        agentRunId: '42',
+        operation: 'food_log.create',
+        resourceType: 'food_log',
+        parameters: { meal_type: 'lunch' },
+      },
+      controller.signal,
+    );
+    await loadApprovalProposal('8', controller.signal);
+    await confirmAgentWrite('8', { confirmed: true }, controller.signal);
+    await executeAgentWrite('8', { confirmed: true }, controller.signal);
+    await rejectAgentWrite('8', { reason: 'user_cancelled' }, controller.signal);
+
+    expect(fetchMock).toHaveBeenCalledTimes(12);
+    expect(fetchMock.mock.calls.every(([, init]) => init.signal === controller.signal)).toBe(true);
+  });
 });
