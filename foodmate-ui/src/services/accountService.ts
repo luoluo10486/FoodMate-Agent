@@ -1,5 +1,9 @@
 import { apiRequest } from './apiClient';
 
+function requestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
+
 export type Profile = {
   user_id: number;
   display_name?: string;
@@ -63,18 +67,25 @@ export type ExportJob = {
 
 export const getProfile = (signal?: AbortSignal) =>
   apiRequest<Profile>('/api/users/me/profile', signal ? { signal } : {});
-export const updateProfile = (profile: ProfileUpdateRequest) =>
-  apiRequest<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
-export const changePassword = (currentPassword: string, newPassword: string) =>
+export const updateProfile = (profile: ProfileUpdateRequest, signal?: AbortSignal) =>
+  apiRequest<Profile>('/api/users/me/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profile),
+    ...requestInit(signal),
+  });
+export const changePassword = (currentPassword: string, newPassword: string, signal?: AbortSignal) =>
   apiRequest<void>('/api/users/me/password', {
     method: 'POST',
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    ...requestInit(signal),
   });
 export const getAuthSessions = (signal?: AbortSignal) =>
   apiRequest<AuthSession[]>('/api/users/me/sessions', signal ? { signal } : {});
-export const revokeAuthSession = (id: number) => apiRequest<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });
-export const revokeAllAuthSessions = () => apiRequest<void>('/api/users/me/sessions/revoke-all', { method: 'POST' });
-export const uploadAvatar = (file: File) => {
+export const revokeAuthSession = (id: number, signal?: AbortSignal) =>
+  apiRequest<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE', ...requestInit(signal) });
+export const revokeAllAuthSessions = (signal?: AbortSignal) =>
+  apiRequest<void>('/api/users/me/sessions/revoke-all', { method: 'POST', ...requestInit(signal) });
+export const uploadAvatar = (file: File, signal?: AbortSignal) => {
   const form = new FormData();
   form.append('file', file);
   return apiRequest<{
@@ -82,18 +93,19 @@ export const uploadAvatar = (file: File) => {
     avatar_url: string;
     mime_type: string;
     size_bytes: number;
-  }>('/api/users/me/avatar', { method: 'POST', body: form });
+  }>('/api/users/me/avatar', { method: 'POST', body: form, ...requestInit(signal) });
 };
 // 头像读取接口返回 302，作为图片地址使用，不经过 JSON 响应解析。
 export const getAvatarUrl = () => {
   const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
   return `${baseUrl}/api/users/me/avatar`;
 };
-export const deleteAvatar = () => apiRequest<void>('/api/users/me/avatar', { method: 'DELETE' });
-export const requestDataExport = () =>
-  apiRequest<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
-export async function getDataExport(id: number): Promise<ExportJob> {
-  const response = await apiRequest<ExportJobResponse>(`/api/users/me/export/${id}`);
+export const deleteAvatar = (signal?: AbortSignal) =>
+  apiRequest<void>('/api/users/me/avatar', { method: 'DELETE', ...requestInit(signal) });
+export const requestDataExport = (signal?: AbortSignal) =>
+  apiRequest<{ export_job_id: number }>('/api/users/me/export', { method: 'POST', ...requestInit(signal) });
+export async function getDataExport(id: number, signal?: AbortSignal): Promise<ExportJob> {
+  const response = await apiRequest<ExportJobResponse>(`/api/users/me/export/${id}`, requestInit(signal));
   return {
     export_job_id: response.export_job_id ?? response.exportJobId ?? id,
     status: response.status ?? 'unknown',
@@ -103,10 +115,14 @@ export async function getDataExport(id: number): Promise<ExportJob> {
     failure_code: response.failure_code ?? response.failureCode ?? undefined,
   };
 }
-export const downloadDataExport = (id: number) =>
-  apiRequest<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
-export const requestAccountDeletion = (confirmation: string, currentPassword: string) =>
+export const downloadDataExport = (id: number, signal?: AbortSignal) =>
+  apiRequest<{ download_url: string }>(`/api/users/me/export/${id}/download`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
+export const requestAccountDeletion = (confirmation: string, currentPassword: string, signal?: AbortSignal) =>
   apiRequest<{ deletion_job_id: number }>('/api/users/me/deletion', {
     method: 'POST',
     body: JSON.stringify({ confirmation, current_password: currentPassword }),
+    ...requestInit(signal),
   });

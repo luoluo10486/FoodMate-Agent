@@ -692,6 +692,22 @@ function BasicTab({
   const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [allergenDraft, setAllergenDraft] = useState('');
+  const mountedRef = useRef(true);
+  const profileMutationRef = useRef<AbortController>();
+  const avatarMutationRef = useRef<AbortController>();
+  const profileRequestRef = useRef(0);
+  const avatarRequestRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      profileRequestRef.current += 1;
+      avatarRequestRef.current += 1;
+      profileMutationRef.current?.abort();
+      avatarMutationRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!realMode) return;
@@ -747,6 +763,12 @@ function BasicTab({
     }
     if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
     const preview = URL.createObjectURL(file);
+    const rollbackPreview = avatarPreview.startsWith('blob:') ? '' : avatarPreview;
+    const rollbackFileName = rollbackPreview ? avatarFileName : '';
+    avatarMutationRef.current?.abort();
+    const requestId = ++avatarRequestRef.current;
+    const controller = new AbortController();
+    avatarMutationRef.current = controller;
     setAvatarPreview(preview);
     setAvatarFileName(file.name);
     setAvatarState(realMode ? 'submitting' : 'success');
@@ -754,21 +776,43 @@ function BasicTab({
       notice('头像已更新。', 'success');
       return;
     }
-    void uploadAvatar(file)
-      .then(() => {
+    void uploadAvatar(file, controller.signal)
+      .then((result) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          avatarMutationRef.current !== controller
+        )
+          return;
+        // 上传成功后使用后端返回的受信任地址，避免只保留临时 blob 预览。
+        setAvatarPreview(result.avatar_url || preview);
         setAvatarState('success');
         notice('头像已更新。', 'success');
       })
       .catch((error) => {
-        setAvatarPreview('');
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          isAbortError(error)
+        )
+          return;
+        setAvatarPreview(rollbackPreview);
+        setAvatarFileName(rollbackFileName);
         setAvatarState('failed');
         notice(error instanceof Error ? error.message : '头像上传失败。', 'error');
+      })
+      .finally(() => {
+        if (avatarMutationRef.current === controller) avatarMutationRef.current = undefined;
       });
   };
 
   const handleDeleteAvatar = () => {
     const previousPreview = avatarPreview;
     const previousFileName = avatarFileName;
+    avatarMutationRef.current?.abort();
+    const requestId = ++avatarRequestRef.current;
     setAvatarState(realMode ? 'submitting' : 'success');
     if (!realMode) {
       if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
@@ -777,8 +821,17 @@ function BasicTab({
       notice('头像已删除。', 'success');
       return;
     }
-    void deleteAvatar()
+    const controller = new AbortController();
+    avatarMutationRef.current = controller;
+    void deleteAvatar(controller.signal)
       .then(() => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          avatarMutationRef.current !== controller
+        )
+          return;
         if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
         setAvatarPreview('');
         setAvatarFileName('');
@@ -786,39 +839,76 @@ function BasicTab({
         notice('头像已删除。', 'success');
       })
       .catch((error) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          isAbortError(error)
+        )
+          return;
         setAvatarPreview(previousPreview);
         setAvatarFileName(previousFileName);
         setAvatarState('failed');
         notice(error instanceof Error ? error.message : '头像删除失败，请重试。', 'error');
+      })
+      .finally(() => {
+        if (avatarMutationRef.current === controller) avatarMutationRef.current = undefined;
       });
   };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    profileMutationRef.current?.abort();
+    const requestId = ++profileRequestRef.current;
+    const controller = new AbortController();
+    profileMutationRef.current = controller;
+    const submittedForm = profileForm;
     setSaving(true);
     const numberOrUndefined = (value: string) => (value.trim() ? Number(value) : undefined);
     const payload: ProfileUpdateRequest = {
-      display_name: profileForm.displayName,
-      gender: profileForm.gender || undefined,
-      height_cm: numberOrUndefined(profileForm.heightCm),
-      weight_kg: numberOrUndefined(profileForm.weightKg),
-      activity_level: profileForm.activityLevel,
-      diet_goal: profileForm.dietGoal,
-      calorie_target: numberOrUndefined(profileForm.calorieTarget),
-      protein_target: numberOrUndefined(profileForm.proteinTarget),
-      allergens: profileForm.allergens,
-      dislikes: profileForm.dislikes,
+      display_name: submittedForm.displayName,
+      gender: submittedForm.gender || undefined,
+      height_cm: numberOrUndefined(submittedForm.heightCm),
+      weight_kg: numberOrUndefined(submittedForm.weightKg),
+      activity_level: submittedForm.activityLevel,
+      diet_goal: submittedForm.dietGoal,
+      calorie_target: numberOrUndefined(submittedForm.calorieTarget),
+      protein_target: numberOrUndefined(submittedForm.proteinTarget),
+      allergens: submittedForm.allergens,
+      dislikes: submittedForm.dislikes,
     };
     try {
-      const savedProfile = realMode ? await updateProfile(payload) : undefined;
-      const nextForm = savedProfile ? profileFromApi(savedProfile, profileForm) : profileForm;
+      let nextForm = submittedForm;
+      if (realMode) {
+        await updateProfile(payload, controller.signal);
+        const savedProfile = await getProfile(controller.signal);
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== profileRequestRef.current ||
+          profileMutationRef.current !== controller
+        )
+          return;
+        nextForm = profileFromApi(savedProfile, submittedForm);
+      }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== profileRequestRef.current) return;
       setProfileForm(nextForm);
       setSavedForm(nextForm);
       notice('资料已保存。', 'success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== profileRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
       notice(error instanceof Error ? error.message : '资料保存失败，请重试。', 'error');
     } finally {
-      setSaving(false);
+      if (profileMutationRef.current === controller) {
+        profileMutationRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) setSaving(false);
+      }
     }
   };
 
@@ -1476,6 +1566,22 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const [logoutTarget, setLogoutTarget] = useState<'others' | AuthSession>();
   const [logoutState, setLogoutState] = useState<AsyncState>('idle');
   const sessionRequestRef = useRef(0);
+  const mountedRef = useRef(true);
+  const passwordMutationRef = useRef<AbortController>();
+  const logoutMutationRef = useRef<AbortController>();
+  const passwordRequestRef = useRef(0);
+  const logoutRequestRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      passwordRequestRef.current += 1;
+      logoutRequestRef.current += 1;
+      passwordMutationRef.current?.abort();
+      logoutMutationRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!realMode) return;
@@ -1523,49 +1629,108 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     setPasswordState('submitting');
+    passwordMutationRef.current?.abort();
+    const requestId = ++passwordRequestRef.current;
+    const controller = new AbortController();
+    passwordMutationRef.current = controller;
     try {
       if (realMode) {
-        await changePassword(passwords.current, passwords.next);
+        await changePassword(passwords.current, passwords.next, controller.signal);
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== passwordRequestRef.current ||
+          passwordMutationRef.current !== controller
+        )
+          return;
         // 修改密码会由后端撤销当前会话，不能再调用已经失效的远端登出接口。
-        await logout({ skipRemote: true });
+        await logout({ skipRemote: true, signal: controller.signal });
+        if (!mountedRef.current || controller.signal.aborted || requestId !== passwordRequestRef.current) return;
         window.location.assign('/login');
         return;
       }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== passwordRequestRef.current) return;
       setPasswordState('success');
       setPasswords({ current: '', next: '', confirm: '' });
       notice('密码已更新，其他设备会话已按安全策略处理。', 'success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== passwordRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
       setPasswordState('failed');
       notice(error instanceof Error ? error.message : '密码更新失败，请重新填写。', 'error');
+    } finally {
+      if (passwordMutationRef.current === controller) {
+        passwordMutationRef.current = undefined;
+      }
     }
   };
 
   const confirmLogout = async () => {
     if (!logoutTarget || logoutState === 'submitting') return;
     setLogoutState('submitting');
+    logoutMutationRef.current?.abort();
+    const requestId = ++logoutRequestRef.current;
+    const controller = new AbortController();
+    logoutMutationRef.current = controller;
     try {
       if (logoutTarget === 'others') {
         if (realMode) {
-          await revokeAllAuthSessions();
+          await revokeAllAuthSessions(controller.signal);
+          if (
+            !mountedRef.current ||
+            controller.signal.aborted ||
+            requestId !== logoutRequestRef.current ||
+            logoutMutationRef.current !== controller
+          )
+            return;
           // 后端会同时撤销当前会话和刷新凭证，直接清理本地身份即可。
-          await logout({ skipRemote: true });
+          await logout({ skipRemote: true, signal: controller.signal });
+          if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
           window.location.assign('/login');
           return;
         }
+        if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
         setSessions((items) => items.filter((item) => item.device_id === 'current'));
         notice('其他设备已退出，当前设备保持登录。', 'success');
       } else if (logoutTarget) {
-        if (realMode) await revokeAuthSession(logoutTarget.auth_session_id);
+        if (realMode) {
+          await revokeAuthSession(logoutTarget.auth_session_id, controller.signal);
+          if (
+            !mountedRef.current ||
+            controller.signal.aborted ||
+            requestId !== logoutRequestRef.current ||
+            logoutMutationRef.current !== controller
+          )
+            return;
+        }
+        if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
         setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
         notice('设备会话已退出。', 'success');
       }
       setLogoutState('success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== logoutRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
       setLogoutState('failed');
       notice(error instanceof Error ? error.message : '设备退出失败，请重试。', 'error');
     } finally {
-      setLogoutTarget(undefined);
-      setLogoutState('idle');
+      if (logoutMutationRef.current === controller) {
+        logoutMutationRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) {
+          setLogoutTarget(undefined);
+          setLogoutState('idle');
+        }
+      }
     }
   };
 
@@ -1813,26 +1978,41 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const [deletionState, setDeletionState] = useState<AsyncState>('idle');
   const pollRef = useRef<number>();
   const exportGenerationRef = useRef(0);
+  const mountedRef = useRef(true);
+  const exportCreateRef = useRef<AbortController>();
+  const exportPollRef = useRef<AbortController>();
+  const exportDownloadRef = useRef<AbortController>();
+  const deletionRequestRef = useRef<AbortController>();
+  const pollBusyRef = useRef(false);
 
-  useEffect(
-    () => () => {
+  const stopPolling = useCallback(() => {
+    if (pollRef.current !== undefined) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = undefined;
+    }
+    exportPollRef.current?.abort();
+    exportPollRef.current = undefined;
+    pollBusyRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
       exportGenerationRef.current += 1;
-      if (pollRef.current !== undefined) {
-        window.clearInterval(pollRef.current);
-        pollRef.current = undefined;
-      }
-    },
-    [],
-  );
+      stopPolling();
+      exportCreateRef.current?.abort();
+      exportDownloadRef.current?.abort();
+      deletionRequestRef.current?.abort();
+    };
+  }, [stopPolling]);
 
   const createExport = async () => {
     const generation = exportGenerationRef.current + 1;
     exportGenerationRef.current = generation;
     // 新建任务前清理旧轮询，避免重复点击或失败重试产生多个状态请求。
-    if (pollRef.current !== undefined) {
-      window.clearInterval(pollRef.current);
-      pollRef.current = undefined;
-    }
+    exportCreateRef.current?.abort();
+    stopPolling();
     setExportStatus('queued');
     setExportError('');
     if (!realMode) {
@@ -1843,9 +2023,17 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       notice('数据导出已排队。', 'success');
       return;
     }
+    const controller = new AbortController();
+    exportCreateRef.current = controller;
     try {
-      const created = await requestDataExport();
-      if (generation !== exportGenerationRef.current) return;
+      const created = await requestDataExport(controller.signal);
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        generation !== exportGenerationRef.current ||
+        exportCreateRef.current !== controller
+      )
+        return;
       setExportJobId(created.export_job_id);
       setExportRows((rows) => [
         {
@@ -1857,11 +2045,26 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
         },
         ...rows,
       ]);
-      pollRef.current = window.setInterval(async () => {
-        if (generation !== exportGenerationRef.current) return;
+      const poll = async () => {
+        if (
+          pollBusyRef.current ||
+          !mountedRef.current ||
+          generation !== exportGenerationRef.current ||
+          controller.signal.aborted
+        )
+          return;
+        pollBusyRef.current = true;
+        const pollController = new AbortController();
+        exportPollRef.current = pollController;
         try {
-          const job = await getDataExport(created.export_job_id);
-          if (generation !== exportGenerationRef.current) return;
+          const job = await getDataExport(created.export_job_id, pollController.signal);
+          if (
+            !mountedRef.current ||
+            pollController.signal.aborted ||
+            generation !== exportGenerationRef.current ||
+            exportPollRef.current !== pollController
+          )
+            return;
           const status = normalizeExportStatus(job.status);
           setExportStatus(status);
           setExportRows((rows) =>
@@ -1871,26 +2074,37 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
                 : row,
             ),
           );
-          if (status === 'completed' || status === 'failed' || status === 'expired') {
-            if (generation === exportGenerationRef.current && pollRef.current !== undefined) {
-              window.clearInterval(pollRef.current);
-              pollRef.current = undefined;
-            }
-          }
+          if (status === 'completed' || status === 'failed' || status === 'expired') stopPolling();
         } catch (error) {
-          if (generation !== exportGenerationRef.current) return;
-          if (pollRef.current !== undefined) {
-            window.clearInterval(pollRef.current);
-            pollRef.current = undefined;
-          }
+          if (
+            !mountedRef.current ||
+            pollController.signal.aborted ||
+            generation !== exportGenerationRef.current ||
+            isAbortError(error)
+          )
+            return;
+          stopPolling();
           setExportStatus('failed');
           setExportError(error instanceof Error ? error.message : '导出状态读取失败，请重新创建。');
+        } finally {
+          if (exportPollRef.current === pollController) exportPollRef.current = undefined;
+          pollBusyRef.current = false;
         }
-      }, 2000);
+      };
+      pollRef.current = window.setInterval(() => void poll(), 2000);
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        generation !== exportGenerationRef.current ||
+        isAbortError(error)
+      )
+        return;
       setExportStatus('failed');
       setExportError(error instanceof Error ? error.message : '数据导出创建失败，请重试。');
       notice(error instanceof Error ? error.message : '数据导出创建失败，请重试。', 'error');
+    } finally {
+      if (exportCreateRef.current === controller) exportCreateRef.current = undefined;
     }
   };
 
@@ -1901,13 +2115,20 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     if (!row.jobId && !exportJobId) return;
+    exportDownloadRef.current?.abort();
+    const controller = new AbortController();
+    exportDownloadRef.current = controller;
     try {
-      const result = await downloadDataExport(row.jobId ?? exportJobId!);
+      const result = await downloadDataExport(row.jobId ?? exportJobId!, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted) return;
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
       notice('导出归档已开始下载。', 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       setExportError(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。');
       notice(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。', 'error');
+    } finally {
+      if (exportDownloadRef.current === controller) exportDownloadRef.current = undefined;
     }
   };
 
@@ -1917,19 +2138,29 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     setDeletionState('submitting');
+    deletionRequestRef.current?.abort();
+    const controller = new AbortController();
+    deletionRequestRef.current = controller;
     try {
       if (realMode) {
-        await requestAccountDeletion(deletionConfirmation, deletionPassword);
-        await logout();
+        await requestAccountDeletion(deletionConfirmation, deletionPassword, controller.signal);
+        if (!mountedRef.current || controller.signal.aborted) return;
+        // 注销请求会立即禁用账号并撤销全部会话，不能再调用已失效的远端登出接口。
+        await logout({ skipRemote: true, signal: controller.signal });
+        if (!mountedRef.current || controller.signal.aborted) return;
         window.location.href = '/login';
         return;
       }
+      if (!mountedRef.current || controller.signal.aborted) return;
       setDeletionState('success');
       setDeletionOpen(false);
       notice('注销请求已提交。', 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       setDeletionState('failed');
       notice(error instanceof Error ? error.message : '注销请求失败，请重新创建。', 'error');
+    } finally {
+      if (deletionRequestRef.current === controller) deletionRequestRef.current = undefined;
     }
   };
 

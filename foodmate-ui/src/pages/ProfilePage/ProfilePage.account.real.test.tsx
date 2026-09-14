@@ -4,10 +4,13 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
 import {
+  changePassword,
   getAuthSessions,
   getDataExport,
   getProfile,
   requestDataExport,
+  requestAccountDeletion,
+  revokeAuthSession,
   updateProfile,
 } from '../../services/accountService';
 
@@ -151,6 +154,129 @@ describe('ProfilePage real account states', () => {
     expect(capturedSignal?.aborted).toBe(true);
   });
 
+  it('aborts a profile save when the basic tab unmounts', async () => {
+    const user = userEvent.setup();
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(getProfile).mockResolvedValue({
+      user_id: 7,
+      display_name: '真实用户的工作区',
+      gender: '女',
+      height_cm: 170,
+      weight_kg: 60,
+      activity_level: 'Moderately Active (3-5d/wk)',
+      diet_goal: '维持健康',
+      calorie_target: 1800,
+      protein_target: 84,
+      allergens: '[]',
+      dislikes: '[]',
+    });
+    vi.mocked(updateProfile).mockImplementation((_profile, signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile');
+    await screen.findByRole('button', { name: '保存资料' });
+    await user.click(screen.getByRole('button', { name: '保存资料' }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('aborts a password update when the security tab unmounts', async () => {
+    const user = userEvent.setup();
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(getAuthSessions).mockResolvedValue([]);
+    vi.mocked(changePassword).mockImplementation((_current, _next, signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile/security');
+    await screen.findByRole('button', { name: '更新密码' });
+    await user.type(screen.getByLabelText('当前密码'), 'current-password');
+    await user.type(screen.getByLabelText('新密码'), 'StrongPass99!');
+    await user.type(screen.getByLabelText('确认密码'), 'StrongPass99!');
+    await user.click(screen.getByRole('button', { name: '更新密码' }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('aborts an individual session revocation when the security tab unmounts', async () => {
+    const user = userEvent.setup();
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(getAuthSessions).mockResolvedValue([
+      {
+        auth_session_id: 1,
+        device_id: 'current',
+        user_agent: '当前浏览器',
+        expires_at: '2026-10-01',
+      },
+      {
+        auth_session_id: 2,
+        device_id: 'other-browser',
+        user_agent: '其它浏览器',
+        expires_at: '2026-10-01',
+      },
+    ]);
+    vi.mocked(revokeAuthSession).mockImplementation((_id, signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile/security');
+    await screen.findByText('其它浏览器');
+    await user.click(screen.getByRole('button', { name: '退出登录' }));
+    await user.click(screen.getByRole('button', { name: '确认退出' }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('aborts export creation when the privacy tab unmounts', async () => {
+    const user = userEvent.setup();
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(requestDataExport).mockImplementation((signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile/data');
+    await user.click(await screen.findByRole('button', { name: '创建数据导出' }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('aborts account deletion when the privacy tab unmounts', async () => {
+    const user = userEvent.setup();
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(requestAccountDeletion).mockImplementation((_confirmation, _password, signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage('/profile/data');
+    await user.click(await screen.findByRole('button', { name: '申请注销账号' }));
+    await user.type(screen.getByLabelText('当前密码'), 'current-password');
+    await user.type(screen.getByPlaceholderText('DELETE_MY_ACCOUNT'), 'DELETE_MY_ACCOUNT');
+    await user.click(screen.getByRole('button', { name: '确认注销' }));
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
   it('ignores a profile fixture query in real mode', async () => {
     renderPage('/profile?state=security-password-success');
 
@@ -195,6 +321,7 @@ describe('ProfilePage real account states', () => {
     await waitFor(() =>
       expect(updateProfile).toHaveBeenCalledWith(
         expect.objectContaining({ allergens: ['乳糖', '花生'], dislikes: ['香菜'] }),
+        expect.any(AbortSignal),
       ),
     );
     await waitFor(() => expect(screen.queryByRole('button', { name: '花生' })).not.toBeInTheDocument());
@@ -216,7 +343,7 @@ describe('ProfilePage real account states', () => {
       fireEvent.click(exportButton);
 
       await waitFor(() => expect(requestDataExport).toHaveBeenCalledTimes(1));
-      await waitFor(() => expect(getDataExport).toHaveBeenCalledWith(42));
+      await waitFor(() => expect(getDataExport).toHaveBeenCalledWith(42, expect.any(AbortSignal)));
       expect(screen.getAllByText(/生成中/).length).toBeGreaterThan(0);
       expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
       expect(screen.queryByText('142 MB')).not.toBeInTheDocument();
