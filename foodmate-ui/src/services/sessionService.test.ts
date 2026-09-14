@@ -164,4 +164,49 @@ describe('sessionService', () => {
       expect.objectContaining({ signal: controller.signal }),
     );
   });
+
+  it('passes a cancellation signal through every message page', async () => {
+    const controller = new AbortController();
+    const firstPage = {
+      items: [
+        {
+          message_id: 'message-1',
+          session_id: '7',
+          role: 'user' as const,
+          content: '第一条',
+          sequence_no: 1,
+          created_at: '2026-09-13T09:00:01Z',
+        },
+      ],
+      total: 2,
+      page: 1,
+      size: 1,
+    };
+    const secondPage = {
+      items: [
+        {
+          message_id: 'message-2',
+          session_id: '7',
+          role: 'assistant' as const,
+          content: '第二条',
+          sequence_no: 2,
+          created_at: '2026-09-13T09:00:02Z',
+        },
+      ],
+      total: 2,
+      page: 2,
+      size: 1,
+    };
+    const fetchMock = vi.fn().mockImplementation((url: string) => {
+      const data = url.includes('page=2') ? secondPage : firstPage;
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(loadSessionMessages('7', { page: 1, size: 1 }, controller.signal)).resolves.toHaveLength(2);
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock.mock.calls[0][1]).toEqual(expect.objectContaining({ signal: controller.signal }));
+    expect(fetchMock.mock.calls[1][1]).toEqual(expect.objectContaining({ signal: controller.signal }));
+  });
 });

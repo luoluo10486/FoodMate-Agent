@@ -1006,4 +1006,78 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(screen.getAllByText('不能删除的消息')).toHaveLength(2);
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
+
+  it('卸载真实会话页面时取消未完成的消息历史请求', async () => {
+    let requestSignal: AbortSignal | undefined;
+    loadSessionMessages.mockImplementation(
+      (_sessionId: string, _params: unknown, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          requestSignal = signal;
+          signal?.addEventListener(
+            'abort',
+            () => reject(Object.assign(new Error('消息读取已取消'), { name: 'AbortError' })),
+            { once: true },
+          );
+        }),
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(requestSignal).toBeDefined());
+    view.unmount();
+
+    expect(requestSignal?.aborted).toBe(true);
+  });
+
+  it('完成终态刷新消息时传递取消信号，并在卸载时中止刷新', async () => {
+    let refreshSignal: AbortSignal | undefined;
+    loadSessionMessages
+      .mockResolvedValueOnce([
+        {
+          message_id: 'message-1',
+          session_id: 'session-1',
+          role: 'user',
+          content: '完成后刷新消息',
+          sequence_no: 1,
+          created_at: '2026-09-06T10:00:00Z',
+          agent_run_id: 'run-1',
+        },
+      ])
+      .mockImplementationOnce((_sessionId: string, _params: unknown, signal?: AbortSignal) => {
+        refreshSignal = signal;
+        return new Promise((_resolve, reject) => {
+          signal?.addEventListener(
+            'abort',
+            () => reject(Object.assign(new Error('完成刷新已取消'), { name: 'AbortError' })),
+            { once: true },
+          );
+        });
+      });
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent('run.completed', { event_type: 'run.completed', answer: '完成回答' }, 'completed-event');
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
+    expect(refreshSignal).toBeDefined();
+    view.unmount();
+
+    expect(refreshSignal?.aborted).toBe(true);
+  });
 });

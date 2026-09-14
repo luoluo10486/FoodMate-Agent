@@ -187,6 +187,14 @@
   --fm-figma-workspace-sidebar-nav-weight: 500;
   --fm-figma-workspace-search-text-size: 13px;
   --fm-figma-chat-user-text: #000000;
+  --fm-figma-chat-user-bubble-surface: #fff6e2;
+  --fm-figma-chat-assistant-surface: #f4f6f5;
+  --fm-figma-chat-meta-text: #6b7280;
+  --fm-figma-chat-trace-active-text: #b58cc4;
+  --fm-figma-chat-trace-success-text: #89b27c;
+  --fm-figma-chat-trace-warning-text: #c79654;
+  --fm-figma-chat-trace-success-surface: rgba(166, 217, 151, 0.1);
+  --fm-figma-chat-trace-warning-surface: rgba(255, 246, 226, 0.1);
   --fm-figma-home-metric-label-size: 12px;
   --fm-figma-home-metric-unit-size: 13px;
   --fm-figma-home-metric-unit-gap: 4px;

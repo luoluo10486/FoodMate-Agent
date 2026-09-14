@@ -53,7 +53,7 @@ import { flattenAgentEventPayload, resolveAgentEventType } from '../../lib/agent
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { useRealAgentReplay } from '../../services/realAgentService';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import {
   createSession,
   deleteMessage,
@@ -148,10 +148,12 @@ function messageMutationError(reason: unknown, fallback: string) {
 }
 
 function formatMessageTime(value: string) {
-  if (!value.includes('-')) return value;
+  const normalized = value.trim();
+  if (/^\d{1,2}:\d{2}\s?(?:AM|PM)$/i.test(normalized)) return normalized;
+  if (/^\d{1,2}:\d{2}$/.test(normalized)) return `${normalized} PM`;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 function normalizeRunIntent(value: string | undefined): AgentRunView['intent'] {
@@ -242,6 +244,7 @@ function MessageBubble({
   const resolvedGender = userAvatarGender ?? authUser.gender;
   const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, resolvedGender);
   const fixtureAvatar = import.meta.env.VITE_AGENT_MODE !== 'real' || Boolean(userAvatarSrc || userAvatarGender);
+  const displayName = fixtureAvatar ? 'Anddy' : authUser.displayName || authUser.username;
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
@@ -302,7 +305,9 @@ function MessageBubble({
               />
             </span>
           </div>
-          <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
+          <div className={styles.messageMeta}>
+            {displayName} · {formatMessageTime(message.time)}
+          </div>
           {userActions && !editing ? <div className={styles.userMessageActions}>{userActions}</div> : null}
         </>
       ) : (
@@ -314,7 +319,7 @@ function MessageBubble({
               {message.source ? <div className={styles.source}>{message.source}</div> : null}
               {children}
             </div>
-            <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)} PM</div>
+            <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)}</div>
           </div>
         </>
       )}
@@ -2864,6 +2869,7 @@ function RealChatPage() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesStateRef = useRef<RealMessage[]>([]);
   const messageLoadGenerationRef = useRef(0);
+  const messageLoadControllerRef = useRef<AbortController>();
   const streamRef = useRef<AgentStreamHandle>();
   const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
   const mountedRef = useRef(true);
@@ -2876,11 +2882,17 @@ function RealChatPage() {
   useEffect(() => {
     return () => {
       mountedRef.current = false;
+      messageLoadControllerRef.current?.abort();
+      messageLoadControllerRef.current = undefined;
+      messageLoadGenerationRef.current += 1;
     };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    messageLoadControllerRef.current?.abort();
+    messageLoadControllerRef.current = undefined;
+    messageLoadGenerationRef.current += 1;
     // 路由切换先关闭旧 Run，避免旧会话的事件继续写入新会话状态。
     streamRef.current?.close();
     streamRef.current = undefined;
@@ -2915,16 +2927,18 @@ function RealChatPage() {
     setMessageError(undefined);
     setMessageNotice(undefined);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
+    setError(navigationError);
     if (!sessionId) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    setError(navigationError);
+    const controller = new AbortController();
+    messageLoadControllerRef.current = controller;
     const loadGeneration = ++messageLoadGenerationRef.current;
-    loadSessionMessages(sessionId)
+    loadSessionMessages(sessionId, {}, controller.signal)
       .then((rows) => {
-        if (cancelled || loadGeneration !== messageLoadGenerationRef.current) return;
+        if (cancelled || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current) return;
         const ordered = [...rows].sort((a, b) => a.sequence_no - b.sequence_no);
         setMessages(ordered);
         // 重新进入历史会话时恢复最近一次 Run，才能回放终态事件和引用。
@@ -2932,14 +2946,30 @@ function RealChatPage() {
         if (latestRunId) setActiveRunId(String(latestRunId));
       })
       .catch((reason) => {
-        if (!cancelled && loadGeneration === messageLoadGenerationRef.current)
-          setError(reason instanceof Error ? reason.message : '消息加载失败');
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          isAbortError(reason) ||
+          loadGeneration !== messageLoadGenerationRef.current
+        )
+          return;
+        setError(reason instanceof Error ? reason.message : '消息加载失败');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (
+          !cancelled &&
+          mountedRef.current &&
+          !controller.signal.aborted &&
+          loadGeneration === messageLoadGenerationRef.current
+        )
+          setLoading(false);
+        if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
       });
     return () => {
       cancelled = true;
+      controller.abort();
+      if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+      messageLoadGenerationRef.current += 1;
     };
   }, [navigationError, pendingPrompt, seedPrompt, sessionId]);
 
@@ -3026,17 +3056,37 @@ function RealChatPage() {
           const degraded = normalizedPayload.result_type === 'safety_degraded';
           setSafetyDegraded(degraded);
           if (sessionId) {
-            void loadSessionMessages(sessionId)
+            messageLoadControllerRef.current?.abort();
+            const controller = new AbortController();
+            messageLoadControllerRef.current = controller;
+            const loadGeneration = ++messageLoadGenerationRef.current;
+            void loadSessionMessages(sessionId, {}, controller.signal)
               .then((rows) => {
-                if (!streamActive || !mountedRef.current) return;
+                if (
+                  !streamActive ||
+                  !mountedRef.current ||
+                  controller.signal.aborted ||
+                  loadGeneration !== messageLoadGenerationRef.current
+                )
+                  return;
                 const assistant = rows.find(
                   (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
                 );
                 setAssistantMessageId(assistant?.message_id);
               })
               .catch((reason) => {
-                if (!streamActive || !mountedRef.current) return;
+                if (
+                  !streamActive ||
+                  !mountedRef.current ||
+                  controller.signal.aborted ||
+                  isAbortError(reason) ||
+                  loadGeneration !== messageLoadGenerationRef.current
+                )
+                  return;
                 setError(reason instanceof Error ? reason.message : '回答完成后刷新消息失败，请刷新会话。');
+              })
+              .finally(() => {
+                if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
               });
           }
           setCitations(
@@ -3269,11 +3319,19 @@ function RealChatPage() {
   };
 
   const refreshMessages = async (targetSessionId: string) => {
+    messageLoadControllerRef.current?.abort();
+    const controller = new AbortController();
+    messageLoadControllerRef.current = controller;
     const loadGeneration = ++messageLoadGenerationRef.current;
-    const rows = await loadSessionMessages(targetSessionId);
-    if (!mountedRef.current || loadGeneration !== messageLoadGenerationRef.current) return false;
-    setMessages([...rows].sort((a, b) => a.sequence_no - b.sequence_no));
-    return true;
+    try {
+      const rows = await loadSessionMessages(targetSessionId, {}, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current)
+        return false;
+      setMessages([...rows].sort((a, b) => a.sequence_no - b.sequence_no));
+      return true;
+    } finally {
+      if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+    }
   };
 
   const startMessageEdit = (message: RealMessage) => {
@@ -3298,13 +3356,13 @@ function RealChatPage() {
     setMessageMutation({ messageId: message.message_id, action: 'edit' });
     try {
       await updateMessage(sessionId, message.message_id, editingContent.trim());
-      await refreshMessages(sessionId);
-      if (!mountedRef.current) return;
+      const refreshed = await refreshMessages(sessionId);
+      if (!refreshed || !mountedRef.current) return;
       setEditingMessageId(undefined);
       setEditingContent('');
       setMessageNotice('消息已更新。');
     } catch (reason) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || isAbortError(reason)) return;
       // 服务端失败时恢复原文，避免本地草稿被误认为已经写入。
       setEditingContent(originalContent);
       setMessageError(messageMutationError(reason, '消息更新失败，请稍后重试。'));
@@ -3320,12 +3378,12 @@ function RealChatPage() {
     setMessageMutation({ messageId: messageToDelete.message_id, action: 'delete' });
     try {
       await deleteMessage(sessionId, messageToDelete.message_id);
-      await refreshMessages(sessionId);
-      if (!mountedRef.current) return;
+      const refreshed = await refreshMessages(sessionId);
+      if (!refreshed || !mountedRef.current) return;
       setMessageToDelete(undefined);
       setMessageNotice('消息已删除。');
     } catch (reason) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || isAbortError(reason)) return;
       // 删除请求未成功时不改变本地列表，原消息继续保留。
       setMessageError(messageMutationError(reason, '消息删除失败，请稍后重试。'));
     } finally {

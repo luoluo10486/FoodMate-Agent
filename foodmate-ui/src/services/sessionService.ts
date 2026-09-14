@@ -118,20 +118,26 @@ export async function loadSessions(params: SessionListParams = {}): Promise<Sess
 export async function loadSessionMessagesPage(
   sessionId: string,
   params: MessageListParams = {},
+  signal?: AbortSignal,
 ): Promise<PageResult<RealMessage>> {
   return apiRequest<PageResult<RealMessage>>(
     `/api/sessions/${encodeURIComponent(sessionId)}/messages?${messageQuery(params).toString()}`,
+    requestInit(signal),
   );
 }
 
-export async function loadSessionMessages(sessionId: string, params: MessageListParams = {}): Promise<RealMessage[]> {
-  const firstPage = await loadSessionMessagesPage(sessionId, params);
+export async function loadSessionMessages(
+  sessionId: string,
+  params: MessageListParams = {},
+  signal?: AbortSignal,
+): Promise<RealMessage[]> {
+  const firstPage = await loadSessionMessagesPage(sessionId, params, signal);
   const items = [...firstPage.items];
   const requestedPage = firstPage.page;
   const pageCount = Math.ceil(firstPage.total / firstPage.size);
   if (requestedPage === 1 && pageCount > 1) {
     for (let page = 2; page <= pageCount; page += 1) {
-      const nextPage = await loadSessionMessagesPage(sessionId, { page, size: firstPage.size });
+      const nextPage = await loadSessionMessagesPage(sessionId, { page, size: firstPage.size }, signal);
       items.push(...nextPage.items);
     }
   }
