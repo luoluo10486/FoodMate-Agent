@@ -54,6 +54,44 @@ describe('apiClient authentication recovery', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps authentication business errors on the auth page', async () => {
+    window.history.pushState({}, '', '/login');
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_INVALID_CREDENTIALS', message: '用户名或密码错误' },
+        }),
+        { status: 401 },
+      ),
+    );
+
+    await expect(apiRequest('/api/auth/login', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      code: 'AUTH_INVALID_CREDENTIALS',
+      status: 401,
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves account lock and disable codes from forbidden responses', async () => {
+    const fetchMock = vi.mocked(fetch);
+    fetchMock.mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: { code: 'AUTH_ACCOUNT_LOCKED', message: '账号被锁定' },
+        }),
+        { status: 403 },
+      ),
+    );
+
+    await expect(apiRequest('/api/auth/login', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      code: 'AUTH_ACCOUNT_LOCKED',
+      status: 403,
+    });
+  });
+
   it('accepts an empty 204 response as a successful void request', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(new Response(null, { status: 204 }));

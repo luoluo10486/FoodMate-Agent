@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ForgotPasswordPage } from './ForgotPasswordPage/ForgotPasswordPage';
 import { LoginPage } from './LoginPage/LoginPage';
@@ -8,7 +8,8 @@ import { RegisterPage } from './RegisterPage/RegisterPage';
 import { ResetPasswordPage } from './ResetPasswordPage/ResetPasswordPage';
 
 function LocationProbe() {
-  return <output data-testid="location">当前路由</output>;
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname + location.search}</output>;
 }
 
 function renderAuth(initialEntry: string) {
@@ -221,6 +222,85 @@ describe('authentication pages', () => {
       expect(screen.getByLabelText('密码')).toHaveValue('');
     } finally {
       vi.unstubAllEnvs();
+    }
+  });
+
+  it('renders the backend credential error without redirecting in real mode', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'AUTH_INVALID_CREDENTIALS', message: '用户名或密码错误' },
+          }),
+          { status: 401 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/login?visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'wrong@example.com');
+      await user.type(screen.getByLabelText('密码'), 'wrong-password');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('邮箱或密码错误，请重试'));
+      expect(screen.queryByTestId('location')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '登录' })).toBeEnabled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('returns to a safe internal redirect after real login', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { user_id: 7, username: 'real-user', role: 'user', session_expires_at: '2026-09-14T00:00:00Z' },
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                user_id: 7,
+                username: 'real-user',
+                email: 'real@example.com',
+                role: 'user',
+                status: 'active',
+                gender: '男',
+              },
+            }),
+            { status: 200 },
+          ),
+        ),
+    );
+
+    try {
+      renderAuth('/login?redirect=%2Fchat%2F7%3Fmode%3Dcompact&visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'real@example.com');
+      await user.type(screen.getByLabelText('密码'), 'StrongPass99!');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/chat/7?mode=compact'));
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+      localStorage.clear();
     }
   });
 

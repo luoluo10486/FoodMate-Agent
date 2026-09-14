@@ -87,11 +87,15 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     }
   }
   const body = await envelope<T>(response);
-  if (response.status === 401) {
+  // 登录、注册和密码重置接口的 401 是业务结果，必须保留后端错误码交给页面处理。
+  // 只有受保护资源和 refresh 自身的 401 才代表当前会话不可用。
+  const isProtectedRequest = !path.startsWith('/api/auth/');
+  if (response.status === 401 && (isProtectedRequest || path === '/api/auth/refresh')) {
     redirectToLogin();
     throw new ApiError('AUTH_REQUIRED', '登录已失效，请重新登录', 401);
   }
-  if (response.status === 403) throw new ApiError('FORBIDDEN', body?.error?.message ?? '当前账号无权执行此操作', 403);
+  if (response.status === 403)
+    throw new ApiError(body?.error?.code ?? 'FORBIDDEN', body?.error?.message ?? '当前账号无权执行此操作', 403);
   if (!response.ok || !body?.success)
     throw new ApiError(
       body?.error?.code ?? 'SERVER_ERROR',

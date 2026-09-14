@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
 import { isVisualQaEnabled } from '../../lib/visualQa';
+import { ApiError } from '../../services/apiClient';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
 
@@ -89,6 +90,27 @@ const loginStates = new Set<LoginState>([
   'service-unavailable',
 ]);
 
+function safeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  try {
+    const target = new URL(value, window.location.origin);
+    if (target.origin !== window.location.origin) return '/';
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return '/';
+  }
+}
+
+function mapLoginErrorState(error: unknown): Exclude<LoginState, 'default' | 'submitting'> | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  if (error.code === 'AUTH_INVALID_CREDENTIALS') return 'credential-error';
+  if (error.code === 'AUTH_ACCOUNT_LOCKED') return 'account-locked';
+  if (error.code === 'AUTH_ACCOUNT_DISABLED') return 'account-disabled';
+  if (error.code === 'NETWORK_ERROR' || (error.status !== undefined && error.status >= 500))
+    return 'service-unavailable';
+  return undefined;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className={styles.field}>
@@ -124,14 +146,20 @@ export function LoginPage() {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
-  const state = !isRealMode && requestedState && loginStates.has(requestedState) ? requestedState : 'default';
+  const fixtureState = !isRealMode && requestedState && loginStates.has(requestedState) ? requestedState : 'default';
+  const redirectTarget = safeRedirectPath(searchParams.get('redirect'));
+  const [runtimeState, setRuntimeState] = useState<LoginState>('default');
+  const state = fixtureState !== 'default' ? fixtureState : runtimeState;
   const [submitting, setSubmitting] = useState(false);
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(() => {
-    if (state === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
-    if (state === 'credential-error') return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
-    if (state === 'account-locked') return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
-    if (state === 'account-disabled') return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
+    if (fixtureState === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
+    if (fixtureState === 'credential-error')
+      return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
+    if (fixtureState === 'account-locked')
+      return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
+    if (fixtureState === 'account-disabled')
+      return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
     return defaults;
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -183,13 +211,21 @@ export function LoginPage() {
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (state !== 'default') return;
+    if (
+      fixtureState !== 'default' ||
+      submitting ||
+      ['account-locked', 'account-disabled', 'service-unavailable'].includes(state)
+    )
+      return;
+    setRuntimeState('default');
     setSubmitting(true);
     try {
       await login(loginValues);
-      navigate('/');
+      navigate(redirectTarget, { replace: true });
     } catch (error) {
-      notify(error instanceof Error ? error.message : '登录失败', 'error');
+      const mappedState = mapLoginErrorState(error);
+      if (mappedState) setRuntimeState(mappedState);
+      else notify(error instanceof Error ? error.message : '登录失败', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -293,7 +329,10 @@ export function LoginPage() {
                 leadingIcon={<img src={loginAsset(visualState, 'user')} alt="" />}
                 value={loginValues.username}
                 required
-                onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
+                onChange={(event) => {
+                  setLoginValues((current) => ({ ...current, username: event.target.value }));
+                  if (isRealMode) setRuntimeState('default');
+                }}
               />
               {state === 'field-error' ? <span className={styles.loginFieldError}>请输入有效的邮箱地址</span> : null}
             </Field>
@@ -326,7 +365,10 @@ export function LoginPage() {
                 }
                 value={loginValues.password}
                 required
-                onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
+                onChange={(event) => {
+                  setLoginValues((current) => ({ ...current, password: event.target.value }));
+                  if (isRealMode) setRuntimeState('default');
+                }}
               />
               {state === 'field-error' ? <span className={styles.loginFieldError}>密码不能为空</span> : null}
             </Field>
