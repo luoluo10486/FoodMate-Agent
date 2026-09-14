@@ -1216,6 +1216,22 @@
   }
 }
 
+/* 短桌面视口优先保证认证页内容从顶部可滚动查看，避免居中布局裁掉底部操作区。 */
+@media (min-width: 521px) and (max-height: 820px) {
+  .authPage {
+    align-items: start;
+    padding: 32px 16px;
+  }
+
+  .authPage-login .authCard {
+    margin-block: 0;
+  }
+
+  .forgotContainer {
+    margin-block: 0;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .loginSpinner {
     animation: none;
