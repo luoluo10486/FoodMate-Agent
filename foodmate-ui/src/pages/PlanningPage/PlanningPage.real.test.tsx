@@ -1,7 +1,8 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Button } from '@/components/ui/button';
 import {
   createMealPlan,
   createShoppingList,
@@ -15,10 +16,37 @@ import {
   updateMealPlan,
   updateShoppingItemPurchased,
   validateMealPlan,
+  type MealPlan,
+  type MealPlanProgress,
+  type ShoppingList,
 } from '../../services/planningService';
 import { createSession, sendUserMessage } from '../../services/sessionService';
 import { ApiError } from '../../services/apiClient';
 import { PlanningPage } from './PlanningPage';
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+function NavigationProbe() {
+  const navigate = useNavigate();
+  return (
+    <div>
+      <Button type="button" onClick={() => navigate('/planning?planId=701')}>
+        测试切换到计划 701
+      </Button>
+      <Button type="button" onClick={() => navigate('/planning?planId=702')}>
+        测试切换到计划 702
+      </Button>
+    </div>
+  );
+}
 
 vi.mock('../../services/planningService', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../services/planningService')>();
@@ -77,11 +105,19 @@ const plan = {
   updated_at: '2026-08-22T12:00:00Z',
 };
 
-function renderPage(initialEntry = '/planning') {
+function renderPage(initialEntry = '/planning', withNavigationProbe = false) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
-        <Route path="/planning" element={<PlanningPage />} />
+        <Route
+          path="/planning"
+          element={
+            <>
+              <PlanningPage />
+              {withNavigationProbe ? <NavigationProbe /> : null}
+            </>
+          }
+        />
         <Route path="/chat/:sessionId" element={<div data-testid="chat-route">chat</div>} />
       </Routes>
     </MemoryRouter>,
@@ -225,7 +261,9 @@ describe('PlanningPage real mode', () => {
     const checkbox = await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' });
     await user.click(checkbox);
 
-    await waitFor(() => expect(updateShoppingItemPurchased).toHaveBeenCalledWith('701', 'item-1', true));
+    await waitFor(() =>
+      expect(updateShoppingItemPurchased).toHaveBeenCalledWith('701', 'item-1', true, expect.any(AbortSignal)),
+    );
     expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeChecked();
   });
 
@@ -387,6 +425,117 @@ describe('PlanningPage real mode', () => {
     renderPage('/planning?planId=701');
     expect(await screen.findByRole('button', { name: '刷新清单' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '刷新清单' }));
-    await waitFor(() => expect(createShoppingList).toHaveBeenCalledWith('701'));
+    await waitFor(() => expect(createShoppingList).toHaveBeenCalledWith('701', expect.any(AbortSignal)));
+  });
+
+  it('aborts the plan list request when the page unmounts', async () => {
+    const pending = deferred<MealPlan[]>();
+    let requestSignal: AbortSignal | undefined;
+    vi.mocked(loadMealPlans).mockImplementation((signal) => {
+      requestSignal = signal;
+      return pending.promise;
+    });
+    const view = renderPage('/planning');
+
+    await waitFor(() => expect(loadMealPlans).toHaveBeenCalledTimes(1));
+    expect(requestSignal).toBeDefined();
+    view.unmount();
+    expect(requestSignal?.aborted).toBe(true);
+    pending.resolve([plan]);
+  });
+
+  it('does not let a previous plan detail response replace the current plan', async () => {
+    const plan702: MealPlan = { ...plan, meal_plan_id: '702', plan_name: '服务端耐力计划' };
+    const detail701 = deferred<MealPlan>();
+    const detail702 = deferred<MealPlan>();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan, plan702]);
+    vi.mocked(loadMealPlan).mockImplementation((mealPlanId) =>
+      mealPlanId === '701' ? detail701.promise : detail702.promise,
+    );
+    const user = userEvent.setup();
+    renderPage('/planning?planId=701', true);
+
+    await waitFor(() => expect(loadMealPlan).toHaveBeenCalledWith('701', expect.any(AbortSignal)));
+    await user.click(screen.getByRole('button', { name: '测试切换到计划 702' }));
+    await waitFor(() => expect(loadMealPlan).toHaveBeenCalledWith('702', expect.any(AbortSignal)));
+
+    detail702.resolve(plan702);
+    expect(await screen.findByRole('heading', { name: '服务端耐力计划' })).toBeInTheDocument();
+    detail701.resolve({ ...plan, plan_name: '不应覆盖当前计划' });
+    await waitFor(() => expect(screen.getByRole('heading', { name: '服务端耐力计划' })).toBeInTheDocument());
+    expect(screen.queryByRole('heading', { name: '不应覆盖当前计划' })).not.toBeInTheDocument();
+  });
+
+  it('does not let a previous shopping list response replace the current plan', async () => {
+    const plan702: MealPlan = { ...plan, meal_plan_id: '702', plan_name: '服务端耐力计划' };
+    const shopping701 = deferred<ShoppingList>();
+    const shopping702 = deferred<ShoppingList>();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan, plan702]);
+    vi.mocked(loadMealPlan).mockImplementation((mealPlanId) => Promise.resolve(mealPlanId === '701' ? plan : plan702));
+    vi.mocked(loadShoppingList).mockImplementation((mealPlanId) =>
+      mealPlanId === '701' ? shopping701.promise : shopping702.promise,
+    );
+    const user = userEvent.setup();
+    renderPage('/planning?planId=701', true);
+
+    await waitFor(() => expect(loadShoppingList).toHaveBeenCalledWith('701', expect.any(AbortSignal)));
+    await user.click(screen.getByRole('button', { name: '测试切换到计划 702' }));
+    await waitFor(() => expect(loadShoppingList).toHaveBeenCalledWith('702', expect.any(AbortSignal)));
+
+    shopping702.resolve({
+      shopping_list_id: '902',
+      meal_plan_id: '702',
+      items: [{ shopping_list_item_id: 'item-702', name: '耐力燕麦', purchased: false }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+    expect(await screen.findByRole('checkbox', { name: '耐力燕麦' })).toBeInTheDocument();
+
+    shopping701.resolve({
+      shopping_list_id: '901',
+      meal_plan_id: '701',
+      items: [{ shopping_list_item_id: 'item-701', name: '旧计划食材', purchased: false }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+    await waitFor(() => expect(screen.getByRole('checkbox', { name: '耐力燕麦' })).toBeInTheDocument());
+    expect(screen.queryByRole('checkbox', { name: '旧计划食材' })).not.toBeInTheDocument();
+  });
+
+  it('does not let a previous progress response replace the current plan', async () => {
+    const plan702: MealPlan = { ...plan, meal_plan_id: '702', plan_name: '服务端耐力计划' };
+    const progress701 = deferred<MealPlanProgress>();
+    const progress702 = deferred<MealPlanProgress>();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan, plan702]);
+    vi.mocked(loadMealPlan).mockImplementation((mealPlanId) => Promise.resolve(mealPlanId === '701' ? plan : plan702));
+    vi.mocked(loadMealPlanProgress).mockImplementation((mealPlanId) =>
+      mealPlanId === '701' ? progress701.promise : progress702.promise,
+    );
+    const user = userEvent.setup();
+    renderPage('/planning?planId=701', true);
+
+    await waitFor(() => expect(loadMealPlanProgress).toHaveBeenCalledWith('701', expect.any(AbortSignal)));
+    await user.click(screen.getByRole('button', { name: '测试切换到计划 702' }));
+    await waitFor(() => expect(loadMealPlanProgress).toHaveBeenCalledWith('702', expect.any(AbortSignal)));
+
+    progress702.resolve({
+      meal_plan_id: '702',
+      executable_meal_count: 4,
+      completed_meal_count: 2,
+      completion_ratio: 0.5,
+      meal_slots: [],
+    });
+    expect(await screen.findByText(/已完成 2 \/ 4 餐次/)).toBeInTheDocument();
+    progress701.resolve({
+      meal_plan_id: '701',
+      executable_meal_count: 3,
+      completed_meal_count: 1,
+      completion_ratio: 1 / 3,
+      meal_slots: [],
+    });
+    await waitFor(() => expect(screen.getByText(/已完成 2 \/ 4 餐次/)).toBeInTheDocument());
+    expect(screen.queryByText(/已完成 1 \/ 3 餐次/)).not.toBeInTheDocument();
   });
 });

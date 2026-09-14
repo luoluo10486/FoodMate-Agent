@@ -3,10 +3,14 @@ import {
   createMealPlan,
   createShoppingList,
   deleteMealPlan,
+  loadMealPlan,
+  loadMealPlans,
   loadMealPlanProgress,
+  loadShoppingList,
   restoreMealPlan,
   saveMealPlan,
   updateMealPlan,
+  updateShoppingItemPurchased,
   validateMealPlan,
 } from './planningService';
 
@@ -129,5 +133,35 @@ describe('planningService lifecycle APIs', () => {
       completed_meal_count: 1,
       meal_slots: [{ meal_plan_meal_id: '100', day_index: 0, meal_type: 'lunch', completed: true }],
     });
+  });
+
+  it('forwards abort signals for planning reads and shopping mutations', async () => {
+    const fetchMock = vi.fn().mockImplementation((path: string) => {
+      const data = path === '/api/meal-plans' ? [] : path.endsWith('/shopping-list') ? { items: [] } : {};
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const signals = [
+      new AbortController().signal,
+      new AbortController().signal,
+      new AbortController().signal,
+      new AbortController().signal,
+    ];
+
+    await loadMealPlans(signals[0]);
+    await loadMealPlan('10', signals[1]);
+    await loadShoppingList('10', signals[2]);
+    await loadMealPlanProgress('10', signals[3]);
+    await createShoppingList('10', signals[0]);
+    await updateShoppingItemPurchased('10', 'item-1', true, signals[0]);
+
+    expect(fetchMock.mock.calls.map(([, init]) => init.signal)).toEqual([
+      signals[0],
+      signals[1],
+      signals[2],
+      signals[3],
+      signals[0],
+      signals[0],
+    ]);
   });
 });

@@ -1,5 +1,5 @@
 import { CircleAlert, Info, Plus, RotateCcw, UtensilsCrossed } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -7,7 +7,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
 import type { SessionSummary } from '../../types/session';
-import { ApiError } from '../../services/apiClient';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import {
   createMealPlan,
   createShoppingList,
@@ -608,16 +608,50 @@ function PlanSidebar({
   const [updatingItemId, setUpdatingItemId] = useState<string>();
   const [fixturePurchasedItems, setFixturePurchasedItems] = useState<Record<string, boolean>>({});
   const [shoppingMutationError, setShoppingMutationError] = useState<string>();
+  const shoppingMutationRequestId = useRef(0);
+  const shoppingMutationController = useRef<AbortController>();
+
+  useEffect(() => {
+    shoppingMutationRequestId.current += 1;
+    shoppingMutationController.current?.abort();
+    shoppingMutationController.current = undefined;
+    // 计划切换后，上一份购物清单的提交状态不能阻塞新计划。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUpdatingItemId(undefined);
+    setShoppingMutationError(undefined);
+    return () => {
+      shoppingMutationRequestId.current += 1;
+      shoppingMutationController.current?.abort();
+      shoppingMutationController.current = undefined;
+    };
+  }, [plan?.meal_plan_id]);
 
   const toggleShoppingItem = (item: ShoppingList['items'][number]) => {
     if (!plan || !item.shopping_list_item_id || !onShoppingListChange || updatingItemId) return;
     const nextPurchased = !item.purchased;
+    const mealPlanId = plan.meal_plan_id;
+    const shoppingListItemId = item.shopping_list_item_id;
+    const requestId = ++shoppingMutationRequestId.current;
+    const controller = new AbortController();
+    shoppingMutationController.current?.abort();
+    shoppingMutationController.current = controller;
     setUpdatingItemId(item.shopping_list_item_id);
     setShoppingMutationError(undefined);
-    void updateShoppingItemPurchased(plan.meal_plan_id, item.shopping_list_item_id, nextPurchased)
-      .then(onShoppingListChange)
-      .catch((cause) => setShoppingMutationError(planningErrorMessage(cause, '购物项更新失败，请重试。')))
-      .finally(() => setUpdatingItemId(undefined));
+    void updateShoppingItemPurchased(mealPlanId, shoppingListItemId, nextPurchased, controller.signal)
+      .then((value) => {
+        if (controller.signal.aborted || requestId !== shoppingMutationRequestId.current) return;
+        onShoppingListChange(value);
+      })
+      .catch((cause) => {
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== shoppingMutationRequestId.current) return;
+        setShoppingMutationError(planningErrorMessage(cause, '购物项更新失败，请重试。'));
+      })
+      .finally(() => {
+        if (requestId === shoppingMutationRequestId.current && shoppingMutationController.current === controller) {
+          shoppingMutationController.current = undefined;
+          setUpdatingItemId(undefined);
+        }
+      });
   };
 
   const toggleFixtureShoppingItem = (itemKey: string, checked: boolean) => {
@@ -764,34 +798,57 @@ export function PlanningPage() {
   const [planActionError, setPlanActionError] = useState<string>();
   const [planReloadNonce, setPlanReloadNonce] = useState(0);
   const [planDetailReloadNonce, setPlanDetailReloadNonce] = useState(0);
+  const mountedRef = useRef(false);
+  const planListRequestId = useRef(0);
+  const planDetailRequestId = useRef(0);
+  const shoppingListRequestId = useRef(0);
+  const progressRequestId = useRef(0);
+  const shoppingActionRequestId = useRef(0);
+  const shoppingActionController = useRef<AbortController>();
+  const planActionRequestId = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      planListRequestId.current += 1;
+      planDetailRequestId.current += 1;
+      shoppingListRequestId.current += 1;
+      progressRequestId.current += 1;
+      shoppingActionRequestId.current += 1;
+      shoppingActionController.current?.abort();
+      shoppingActionController.current = undefined;
+      planActionRequestId.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let cancelled = false;
+    const requestId = ++planListRequestId.current;
+    const controller = new AbortController();
     // 列表请求拥有完整生命周期，重试时先清理旧错误，避免旧状态覆盖新结果。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
-    loadMealPlans()
+    loadMealPlans(controller.signal)
       .then((value) => {
-        if (!cancelled) {
-          setRealPlans(value);
-        }
+        if (controller.signal.aborted || requestId !== planListRequestId.current) return;
+        setRealPlans(value);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          // 列表请求失败后清空旧事实，避免用户继续操作过期的餐食计划。
-          setRealPlans([]);
-          setRealShoppingList(undefined);
-          setRealProgress(undefined);
-          setRealError(planningErrorMessage(error, '餐食计划加载失败，请重试。'));
-        }
+        if (controller.signal.aborted || isAbortError(error) || requestId !== planListRequestId.current) return;
+        // 列表请求失败后清空旧事实，避免用户继续操作过期的餐食计划。
+        setRealPlans([]);
+        setRealShoppingList(undefined);
+        setRealProgress(undefined);
+        setRealError(planningErrorMessage(error, '餐食计划加载失败，请重试。'));
       })
       .finally(() => {
-        if (!cancelled) setRealLoading(false);
+        if (!controller.signal.aborted && requestId === planListRequestId.current) setRealLoading(false);
       });
     return () => {
-      cancelled = true;
+      planListRequestId.current += 1;
+      controller.abort();
     };
   }, [isRealMode, planReloadNonce]);
 
@@ -799,8 +856,19 @@ export function PlanningPage() {
   const selectedPlan = selectedPlanId
     ? realPlans.find((plan) => plan.meal_plan_id === selectedPlanId)
     : (realPlans.find((plan) => !plan.deleted) ?? realPlans[0]);
+  const activePlanId = selectedPlan?.meal_plan_id;
 
   useEffect(() => {
+    // 路由或默认计划变化时，旧的写操作结果不得回写到当前计划。
+    planActionRequestId.current += 1;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setPlanActionId(undefined);
+    setPlanActionError(undefined);
+    setSavingDraft(false);
+  }, [activePlanId, selectedPlanId, view]);
+
+  useEffect(() => {
+    const requestId = ++planDetailRequestId.current;
     if (!isRealMode || !selectedPlanId) {
       // 没有指定详情路由时，不保留上一条计划详情的加载状态。
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -809,33 +877,37 @@ export function PlanningPage() {
       setLoadedPlanDetailId(undefined);
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     // 详情请求单独管理生命周期，不能把列表中的旧计划当作最新详情。
     setRealPlanDetailLoading(true);
     setRealPlanDetailError(undefined);
     setLoadedPlanDetailId(undefined);
     setPlanActionError(undefined);
-    loadMealPlan(selectedPlanId)
+    loadMealPlan(selectedPlanId, controller.signal)
       .then((value) => {
-        if (cancelled) return;
+        if (controller.signal.aborted || requestId !== planDetailRequestId.current) return;
         setRealPlans((current) => [value, ...current.filter((plan) => plan.meal_plan_id !== value.meal_plan_id)]);
         setLoadedPlanDetailId(selectedPlanId);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setRealPlanDetailError(planningErrorMessage(error, '餐食计划详情加载失败，请重试。'));
-        }
+        if (controller.signal.aborted || isAbortError(error) || requestId !== planDetailRequestId.current) return;
+        setRealPlanDetailError(planningErrorMessage(error, '餐食计划详情加载失败，请重试。'));
       })
       .finally(() => {
-        if (!cancelled) setRealPlanDetailLoading(false);
+        if (!controller.signal.aborted && requestId === planDetailRequestId.current) setRealPlanDetailLoading(false);
       });
     return () => {
-      cancelled = true;
+      planDetailRequestId.current += 1;
+      controller.abort();
     };
   }, [isRealMode, selectedPlanId, planDetailReloadNonce]);
 
   useEffect(() => {
-    if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
+    const requestId = ++shoppingListRequestId.current;
+    const mealPlanId = activePlanId;
+    const canLoadShoppingList =
+      isRealMode && Boolean(mealPlanId) && !selectedPlan?.deleted && selectedPlan?.status === 'saved';
+    if (!canLoadShoppingList || !mealPlanId) {
       // 当前计划不再支持购物清单时，清理上一个计划残留的清单和错误。
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRealShoppingList(undefined);
@@ -843,53 +915,75 @@ export function PlanningPage() {
       setRealShoppingError(undefined);
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setRealShoppingList(undefined);
     setRealShoppingLoading(true);
     setRealShoppingError(undefined);
-    loadShoppingList(selectedPlan.meal_plan_id)
+    loadShoppingList(mealPlanId, controller.signal)
       .then((value) => {
-        if (!cancelled) setRealShoppingList(value);
+        if (controller.signal.aborted || requestId !== shoppingListRequestId.current) return;
+        setRealShoppingList(value);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setRealShoppingList(undefined);
-          setRealShoppingError(planningErrorMessage(error, '购物清单加载失败，请重试。'));
-        }
+        if (controller.signal.aborted || isAbortError(error) || requestId !== shoppingListRequestId.current) return;
+        setRealShoppingList(undefined);
+        setRealShoppingError(planningErrorMessage(error, '购物清单加载失败，请重试。'));
       })
       .finally(() => {
-        if (!cancelled) setRealShoppingLoading(false);
+        if (!controller.signal.aborted && requestId === shoppingListRequestId.current) setRealShoppingLoading(false);
       });
     return () => {
-      cancelled = true;
+      shoppingListRequestId.current += 1;
+      controller.abort();
     };
-  }, [isRealMode, selectedPlan]);
+  }, [isRealMode, activePlanId, selectedPlan?.deleted, selectedPlan?.status, planReloadNonce]);
 
   useEffect(() => {
-    if (!isRealMode || !selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved') {
+    const requestId = ++progressRequestId.current;
+    const mealPlanId = activePlanId;
+    const canLoadProgress =
+      isRealMode && Boolean(mealPlanId) && !selectedPlan?.deleted && selectedPlan?.status === 'saved';
+    if (!canLoadProgress || !mealPlanId) {
       // 只有已保存计划存在可计算的真实完成进度。
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setRealProgress(undefined);
       setRealProgressError(undefined);
       return;
     }
-    let cancelled = false;
+    const controller = new AbortController();
     setRealProgress(undefined);
     setRealProgressError(undefined);
-    loadMealPlanProgress(selectedPlan.meal_plan_id)
+    loadMealPlanProgress(mealPlanId, controller.signal)
       .then((value) => {
-        if (!cancelled) setRealProgress(value);
+        if (controller.signal.aborted || requestId !== progressRequestId.current) return;
+        setRealProgress(value);
       })
       .catch((error: unknown) => {
-        if (!cancelled) {
-          setRealProgress(undefined);
-          setRealProgressError(planningErrorMessage(error, '计划进度加载失败，请重试。'));
-        }
+        if (controller.signal.aborted || isAbortError(error) || requestId !== progressRequestId.current) return;
+        setRealProgress(undefined);
+        setRealProgressError(planningErrorMessage(error, '计划进度加载失败，请重试。'));
       });
     return () => {
-      cancelled = true;
+      progressRequestId.current += 1;
+      controller.abort();
     };
-  }, [isRealMode, selectedPlan]);
+  }, [isRealMode, activePlanId, selectedPlan?.deleted, selectedPlan?.status, planReloadNonce]);
+
+  useEffect(() => {
+    // 计划切换或组件卸载时，手动生成购物清单的结果不能写回新计划。
+    shoppingActionRequestId.current += 1;
+    shoppingActionController.current?.abort();
+    shoppingActionController.current = undefined;
+    // 计划切换后，上一份清单的生成状态不能阻塞当前计划。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCreatingShoppingList(false);
+    return () => {
+      shoppingActionRequestId.current += 1;
+      shoppingActionController.current?.abort();
+      shoppingActionController.current = undefined;
+    };
+  }, [activePlanId, selectedPlan?.deleted, selectedPlan?.status]);
+
   const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
   // 所有 Figma fixture 状态页都复用完整工作区侧栏，保证状态切换不改变壳层结构。
 
@@ -914,17 +1008,23 @@ export function PlanningPage() {
     return nextPlan;
   };
 
-  const runPlanAction = async <T,>(mealPlanId: string, action: () => Promise<T>, fallback: string): Promise<T> => {
+  const runPlanAction = async <T,>(
+    mealPlanId: string,
+    action: () => Promise<T>,
+    fallback: string,
+  ): Promise<{ value: T; requestId: number }> => {
     if (planActionId) throw new Error('当前已有餐食计划操作进行中');
+    const requestId = ++planActionRequestId.current;
     setPlanActionId(mealPlanId);
     setPlanActionError(undefined);
     try {
-      return await action();
+      return { value: await action(), requestId };
     } catch (error: unknown) {
-      setPlanActionError(planningErrorMessage(error, fallback));
+      if (mountedRef.current && requestId === planActionRequestId.current)
+        setPlanActionError(planningErrorMessage(error, fallback));
       throw error;
     } finally {
-      setPlanActionId(undefined);
+      if (mountedRef.current && requestId === planActionRequestId.current) setPlanActionId(undefined);
     }
   };
 
@@ -939,6 +1039,7 @@ export function PlanningPage() {
 
   const saveDraft = async () => {
     if (savingDraft) return;
+    const requestId = ++planActionRequestId.current;
     const editingPlan = editingPlanId
       ? realPlans.find((plan) => plan.meal_plan_id === editingPlanId && !plan.deleted)
       : undefined;
@@ -952,26 +1053,29 @@ export function PlanningPage() {
       const savedPlan = editingPlan
         ? await updateMealPlan(editingPlan.meal_plan_id, editingPlan.revision, mealPlanDraftToUpdateRequest(realDraft))
         : await createMealPlan(realDraft);
+      if (!mountedRef.current || requestId !== planActionRequestId.current) return;
       replacePlanInState(savedPlan);
       setEditingPlanId(undefined);
       setPlanReloadNonce((value) => value + 1);
       navigate(`/planning?planId=${encodeURIComponent(savedPlan.meal_plan_id)}`);
     } catch (error: unknown) {
-      setCreatePlanError(planningErrorMessage(error, '餐食计划保存失败，请重试。'));
+      if (mountedRef.current && requestId === planActionRequestId.current)
+        setCreatePlanError(planningErrorMessage(error, '餐食计划保存失败，请重试。'));
     } finally {
-      setSavingDraft(false);
+      if (mountedRef.current && requestId === planActionRequestId.current) setSavingDraft(false);
     }
   };
 
   const validateSelectedPlan = async () => {
     if (!selectedPlan || selectedPlan.deleted) return;
     try {
-      const validatedPlan = await runPlanAction(
+      const result = await runPlanAction(
         selectedPlan.meal_plan_id,
         () => validateMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
         '计划校验失败，请重试。',
       );
-      replacePlanInState(validatedPlan);
+      if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
+      replacePlanInState(result.value);
       setPlanReloadNonce((value) => value + 1);
     } catch {
       // 错误已由 runPlanAction 转换并展示在当前计划操作区域。
@@ -981,12 +1085,13 @@ export function PlanningPage() {
   const saveSelectedPlan = async () => {
     if (!selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'validated') return;
     try {
-      const savedPlan = await runPlanAction(
+      const result = await runPlanAction(
         selectedPlan.meal_plan_id,
         () => saveMealPlan(selectedPlan.meal_plan_id, selectedPlan.revision),
         '计划保存失败，请重试。',
       );
-      replacePlanInState(savedPlan);
+      if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
+      replacePlanInState(result.value);
       setPlanReloadNonce((value) => value + 1);
     } catch {
       // 错误已由 runPlanAction 转换并展示在当前计划操作区域。
@@ -994,11 +1099,12 @@ export function PlanningPage() {
   };
 
   const deleteRealPlan = async (plan: MealPlan) => {
-    await runPlanAction(
+    const result = await runPlanAction(
       plan.meal_plan_id,
       () => deleteMealPlan(plan.meal_plan_id, plan.revision),
       '餐食计划删除失败，请重试。',
     );
+    if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
     setRealPlans((current) => current.filter((item) => item.meal_plan_id !== plan.meal_plan_id));
     setPlanReloadNonce((value) => value + 1);
     if (selectedPlanId === plan.meal_plan_id) navigate('/planning?state=list');
@@ -1006,12 +1112,13 @@ export function PlanningPage() {
 
   const restoreRealPlan = async (plan: MealPlan) => {
     try {
-      const restoredPlan = await runPlanAction(
+      const result = await runPlanAction(
         plan.meal_plan_id,
         () => restoreMealPlan(plan.meal_plan_id, plan.revision),
         '餐食计划恢复失败，请重试。',
       );
-      replacePlanInState(restoredPlan);
+      if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
+      replacePlanInState(result.value);
       setPlanReloadNonce((value) => value + 1);
     } catch {
       // 错误已由 runPlanAction 转换并展示在计划列表区域。
@@ -1020,17 +1127,27 @@ export function PlanningPage() {
 
   const createRealShoppingList = async () => {
     if (!selectedPlan || selectedPlan.deleted || selectedPlan.status !== 'saved' || creatingShoppingList) return;
+    const mealPlanId = selectedPlan.meal_plan_id;
+    const requestId = ++shoppingActionRequestId.current;
+    const controller = new AbortController();
+    shoppingActionController.current?.abort();
+    shoppingActionController.current = controller;
     setCreatingShoppingList(true);
     setRealShoppingError(undefined);
     // 手动刷新期间不继续展示上一份可能已经过期的清单。
     setRealShoppingList(undefined);
     try {
-      const shoppingList = await createShoppingList(selectedPlan.meal_plan_id);
+      const shoppingList = await createShoppingList(mealPlanId, controller.signal);
+      if (controller.signal.aborted || requestId !== shoppingActionRequestId.current) return;
       setRealShoppingList(shoppingList);
     } catch (error: unknown) {
+      if (controller.signal.aborted || isAbortError(error) || requestId !== shoppingActionRequestId.current) return;
       setRealShoppingError(planningErrorMessage(error, '购物清单生成失败，请重试。'));
     } finally {
-      setCreatingShoppingList(false);
+      if (requestId === shoppingActionRequestId.current && shoppingActionController.current === controller) {
+        shoppingActionController.current = undefined;
+        setCreatingShoppingList(false);
+      }
     }
   };
 

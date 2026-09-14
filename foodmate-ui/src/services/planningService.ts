@@ -91,8 +91,8 @@ export type MealPlanProgress = {
   meal_slots: MealPlanMealSlot[];
 };
 
-export async function loadMealPlans(): Promise<MealPlan[]> {
-  const plans = await apiRequest<MealPlan[]>('/api/meal-plans');
+export async function loadMealPlans(signal?: AbortSignal): Promise<MealPlan[]> {
+  const plans = await apiRequest<MealPlan[]>('/api/meal-plans', { signal });
   return plans.map(normalizeMealPlan);
 }
 
@@ -109,8 +109,8 @@ export function mealPlanDraftToUpdateRequest(draft: MealPlanDraft): MealPlanUpda
   return draftToPlanRequest(draft, planDays(draft.startDate, draft.endDate));
 }
 
-export async function loadMealPlan(mealPlanId: string): Promise<MealPlan> {
-  const plan = await apiRequest<MealPlan>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}`);
+export async function loadMealPlan(mealPlanId: string, signal?: AbortSignal): Promise<MealPlan> {
+  const plan = await apiRequest<MealPlan>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}`, { signal });
   return normalizeMealPlan(plan);
 }
 
@@ -167,18 +167,21 @@ export async function restoreMealPlan(mealPlanId: string, revision: number): Pro
   return normalizeMealPlan(plan);
 }
 
-export async function loadShoppingList(mealPlanId: string): Promise<ShoppingList> {
-  return apiRequest<ShoppingList>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list`);
+export async function loadShoppingList(mealPlanId: string, signal?: AbortSignal): Promise<ShoppingList> {
+  return apiRequest<ShoppingList>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list`, { signal });
 }
 
-export async function createShoppingList(mealPlanId: string): Promise<ShoppingList> {
+export async function createShoppingList(mealPlanId: string, signal?: AbortSignal): Promise<ShoppingList> {
   return apiRequest<ShoppingList>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list`, {
     method: 'POST',
+    signal,
   });
 }
 
-export async function loadMealPlanProgress(mealPlanId: string): Promise<MealPlanProgress> {
-  const progress = await apiRequest<RawMealPlanProgress>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/progress`);
+export async function loadMealPlanProgress(mealPlanId: string, signal?: AbortSignal): Promise<MealPlanProgress> {
+  const progress = await apiRequest<RawMealPlanProgress>(`/api/meal-plans/${encodeURIComponent(mealPlanId)}/progress`, {
+    signal,
+  });
   return normalizeProgress(progress);
 }
 
@@ -186,6 +189,7 @@ export async function updateShoppingItemPurchased(
   mealPlanId: string,
   shoppingListItemId: string,
   purchased: boolean,
+  signal?: AbortSignal,
 ): Promise<ShoppingList> {
   return apiRequest<ShoppingList>(
     `/api/meal-plans/${encodeURIComponent(mealPlanId)}/shopping-list/items/${encodeURIComponent(shoppingListItemId)}`,
@@ -193,6 +197,7 @@ export async function updateShoppingItemPurchased(
       method: 'PATCH',
       headers: { 'Idempotency-Key': idempotencyKey('shopping-item') },
       body: JSON.stringify({ purchased }),
+      signal,
     },
   );
 }
