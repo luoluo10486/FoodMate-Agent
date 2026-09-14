@@ -942,12 +942,12 @@ export function AdminPage() {
           <Badge variant="destructive">AUTH_FORBIDDEN</Badge>
           <h1>无权访问管理后台</h1>
           <p>管理后台仅对 admin/operator 开放，普通用户不会看到入口。</p>
-          <Link to="/">
-            <Button variant="outline">
+          <Button asChild variant="outline">
+            <Link to="/">
               <ArrowLeft aria-hidden="true" />
               返回工作台
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </Card>
       </div>
     );
