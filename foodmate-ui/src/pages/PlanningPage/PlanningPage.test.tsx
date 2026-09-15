@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { PlanningPage } from './PlanningPage';
+import styles from './PlanningPage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -43,8 +44,8 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('计划已保存');
   });
 
-  it('renders the Figma shell with session history', () => {
-    renderPage('/planning?state=v2');
+  it.each(['v2', 'figma-v2'])('renders the Figma shell with session history for state=%s', (state) => {
+    renderPage(`/planning?state=${state}`);
 
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
@@ -52,6 +53,17 @@ describe('PlanningPage', () => {
     expect(document.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(2);
     expect(document.querySelector('img[src="/assets/figma/workspace/planning/meal-planning.svg"]')).toBeInTheDocument();
     expect(screen.getByLabelText('餐食规划')).toHaveAttribute('data-figma-node-id', '640:974');
+  });
+
+  it.each(['v2', 'figma-v2'])('keeps the Figma schedule grid readable for state=%s', (state) => {
+    renderPage(`/planning?state=${state}`);
+
+    const planningMain = screen.getByLabelText('餐食规划');
+    const scheduleSection = screen.getByRole('heading', { name: '每周日程' }).closest('section');
+
+    expect(planningMain).toHaveClass(styles.figmaPlanMain);
+    expect(scheduleSection).toHaveClass(styles.scheduleSection);
+    expect(scheduleSection?.querySelector(`.${styles.scheduleGrid}`)).toBeInTheDocument();
   });
 
   it('keeps the account dock in the Figma planning fixture', () => {

@@ -2,6 +2,19 @@
 
 更新时间：2026-09-16
 
+## 1.1.42 2026-09-16 Meal Planning 窄视口结构复核（非像素验收）
+
+本节记录 Figma 节点 `640:974`、`640:988` 对应的 Meal Planning Fixture 结构复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 作为布局、字体、颜色、圆角和交互意图来源；窄视口下允许通过内部滚动保留餐食卡片的可读宽度。
+
+| Figma 节点 | 浏览器路由 | 视口 / DPR | 结构证据 | 结论 |
+|---|---|---|---|---|
+| `640:974` / `640:988` | `/planning?state=figma-v2&visual-qa=1` | `759×698 / 1.25` | 页面级 `scrollWidth=759`；日程区 `scrollWidth=720`；餐食卡片宽度 `112px`；内部横向滚动可见 | 结构与可读性通过 |
+
+- [x] `state=v2` 和 `state=figma-v2` 均进入同一 Fixture 视觉壳层；真实模式没有复用 Fixture 专用窄视口 class。
+- [x] 定向测试 `PlanningPage.test.tsx`、`AnalysisPage.test.tsx` 共 `24/24` 通过；`lint`、`format:check`、`typecheck`、`build`、`audit:api` 和 `git diff --check` 通过。
+- [ ] 本节不是像素级验收，不改变既有 `DIFF_REVIEW` 结论，不执行 105 个画板全量像素差异或花瓣像素对比。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.41 2026-09-16 Auth、Workspace/Home 与 Chat 代表页面复核（非像素验收）
 
 本节记录 Figma 设计上下文、Motion 上下文和本地浏览器的代表页面复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。页面可以根据真实数据、响应式宽度和可访问性做合理适配。

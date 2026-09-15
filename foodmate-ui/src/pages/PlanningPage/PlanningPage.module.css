@@ -481,6 +481,16 @@
   display: none;
 }
 
+.figmaPlanMain .scheduleSection {
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.figmaPlanMain .scheduleGrid {
+  min-width: 720px;
+}
+
 .planBanner {
   display: flex;
   height: 97px;

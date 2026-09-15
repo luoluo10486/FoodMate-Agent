@@ -49,9 +49,9 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('能量摄入与目标对比')).toBeInTheDocument();
   });
 
-  it('renders the Figma filter controls with session history', async () => {
+  it.each(['v2', 'figma-v2'])('renders the Figma filter controls with session history for state=%s', async (state) => {
     const user = userEvent.setup();
-    renderPage('/analysis?state=v2');
+    renderPage(`/analysis?state=${state}`);
 
     expect(screen.getByLabelText('摄入分析')).toHaveClass(styles.figmaDefault);
     expect(screen.getByRole('tablist')).toHaveClass(styles.filters);

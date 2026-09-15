@@ -413,6 +413,7 @@ function DefaultPlanningView({
   actionError,
   progress,
   progressError,
+  isFigmaFixture = false,
 }: {
   plan?: MealPlan;
   onOpenMeal?: (mealPlanMealId: string, mealType: string) => void;
@@ -423,6 +424,7 @@ function DefaultPlanningView({
   actionError?: string;
   progress?: MealPlanProgress;
   progressError?: string;
+  isFigmaFixture?: boolean;
 }) {
   const schedule = plan ? realSchedule(plan) : { days, rows: mealRows };
   const [activeDay, setActiveDay] = useState<DayKey>(plan ? (schedule.days[0]?.key ?? '0') : '14');
@@ -443,7 +445,11 @@ function DefaultPlanningView({
   const dayButtonColumns = { gridTemplateColumns: `repeat(${dayCount}, minmax(0, 1fr))` };
 
   return (
-    <main className={styles.planMain} aria-label="餐食规划" data-figma-node-id="640:974">
+    <main
+      className={`${styles.planMain} ${isFigmaFixture ? styles.figmaPlanMain : ''}`}
+      aria-label="餐食规划"
+      data-figma-node-id="640:974"
+    >
       <section className={styles.planBanner} aria-labelledby="plan-title" data-figma-node-id="640:975">
         <div className={styles.planSummary}>
           <h1 id="plan-title">{planName}</h1>
@@ -1283,6 +1289,7 @@ export function PlanningPage() {
     ) : (
       <DefaultPlanningView
         plan={selectedPlan}
+        isFigmaFixture={isFigmaFixture}
         onOpenMeal={(mealPlanMealId, mealType) =>
           navigate(
             `/diet-records?mealPlanMealId=${encodeURIComponent(mealPlanMealId)}&mealType=${encodeURIComponent(mealType)}`,
@@ -1312,7 +1319,7 @@ export function PlanningPage() {
     view === 'generating' ? (
     <MealPlanningFlow view={view} onNavigate={navigatePlanningView} />
   ) : (
-    <DefaultPlanningView />
+    <DefaultPlanningView isFigmaFixture={isFigmaFixture} />
   );
 
   return (
