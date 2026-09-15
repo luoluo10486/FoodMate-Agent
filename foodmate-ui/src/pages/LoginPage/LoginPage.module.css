@@ -730,6 +730,13 @@
   min-width: 0;
 }
 
+.authFieldError {
+  color: var(--fm-auth-error-strong);
+  font-family: var(--fm-font);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .authFieldLabel {
   color: var(--fm-auth-text-label);
   font-family: var(--fm-font);

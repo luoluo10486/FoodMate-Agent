@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { AuthBrand, AuthCard, AuthDivider, AuthField, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
-import { isAbortError } from '../../services/apiClient';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { register } from '../../services/authService';
 import styles from '../LoginPage/LoginPage.module.css';
 
@@ -39,20 +39,29 @@ export function RegisterPage() {
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RegisterValues, string>>>({});
 
   useEffect(() => {
     return () => requestControllerRef.current?.abort();
   }, []);
 
-  const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) =>
+  const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) => {
     setValues((current) => ({ ...current, [key]: event.target.value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (values.password !== values.confirmPassword) {
+      setFieldErrors({ confirmPassword: '两次输入的密码不一致。' });
       notify('两次输入的密码不一致。', 'error');
       return;
     }
+    setFieldErrors({});
     setSubmitting(true);
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -63,7 +72,13 @@ export function RegisterPage() {
       navigate('/');
     } catch (error) {
       if (controller.signal.aborted || isAbortError(error)) return;
-      notify(error instanceof Error ? error.message : '注册失败', 'error');
+      const nextErrors = {
+        username: apiFieldError(error, 'username'),
+        email: apiFieldError(error, 'email'),
+        password: apiFieldError(error, 'password'),
+      };
+      if (Object.values(nextErrors).some(Boolean)) setFieldErrors(nextErrors);
+      else notify(error instanceof Error ? error.message : '注册失败', 'error');
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = undefined;
@@ -89,6 +104,7 @@ export function RegisterPage() {
               placeholder="麦克斯"
               leadingIcon="user"
               value={values.username}
+              error={fieldErrors.username}
               onChange={update('username')}
             />
             <AuthField
@@ -99,6 +115,7 @@ export function RegisterPage() {
               placeholder="max@foodmate.com"
               leadingIcon="mail"
               value={values.email}
+              error={fieldErrors.email}
               onChange={update('email')}
             />
             <PasswordField
@@ -108,6 +125,7 @@ export function RegisterPage() {
               placeholder="Foodmate123"
               value={values.password}
               show={showPassword}
+              error={fieldErrors.password}
               onToggle={() => setShowPassword((current) => !current)}
               onChange={update('password')}
             />
@@ -118,6 +136,7 @@ export function RegisterPage() {
               placeholder="Foodmate123"
               value={values.confirmPassword}
               show={showConfirmPassword}
+              error={fieldErrors.confirmPassword}
               onToggle={() => setShowConfirmPassword((current) => !current)}
               onChange={update('confirmPassword')}
             />

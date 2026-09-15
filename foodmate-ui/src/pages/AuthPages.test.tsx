@@ -367,6 +367,38 @@ describe('authentication pages', () => {
     }
   });
 
+  it('renders backend registration field errors on the matching controls', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { email: '邮箱已注册' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/register');
+      await user.type(screen.getByLabelText('用户名'), 'real-user');
+      await user.type(screen.getByLabelText('邮箱地址'), 'real@example.com');
+      await user.type(screen.getByLabelText('密码'), 'StrongPass99!');
+      await user.type(screen.getByLabelText('确认密码'), 'StrongPass99!');
+      await user.click(screen.getByRole('button', { name: '注册' }));
+
+      await waitFor(() => expect(screen.getByText('邮箱已注册')).toBeInTheDocument());
+      expect(document.querySelector('input[name="email"]')).toHaveAttribute('aria-invalid', 'true');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('uses the shared shadcn icon button for password visibility', async () => {
     const user = userEvent.setup();
     renderAuth('/register');
@@ -423,6 +455,37 @@ describe('authentication pages', () => {
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
   });
 
+  it('renders backend forgot-password field errors on the email control', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { email: '邮箱格式不正确' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/forgot-password');
+      await user.type(screen.getByLabelText('邮箱地址'), 'invalid@example.com');
+      await user.click(screen.getByRole('button', { name: '发送重置邮件' }));
+
+      await waitFor(() => expect(screen.getByText('邮箱格式不正确')).toBeInTheDocument());
+      const emailInput = document.querySelector('input[name="email"]');
+      expect(emailInput).toHaveAttribute('aria-invalid', 'true');
+      expect(emailInput).toHaveAttribute('aria-describedby', 'email-error');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('separates the Figma brand and primary tokens on forgot-password', () => {
     renderAuth('/forgot-password');
 
@@ -449,6 +512,36 @@ describe('authentication pages', () => {
     expect(screen.getByText('高安全')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认重置' }));
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
+  });
+
+  it('renders backend reset-password field errors on the password control', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { new_password: '密码强度不足' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/reset-password?token=reset-token');
+      await user.type(screen.getByLabelText('新密码'), 'weak-password');
+      await user.type(screen.getByLabelText('确认新密码'), 'weak-password');
+      await user.click(screen.getByRole('button', { name: '确认重置' }));
+
+      await waitFor(() => expect(screen.getByText('密码强度不足')).toBeInTheDocument());
+      expect(document.querySelector('input[name="password"]')).toHaveAttribute('aria-invalid', 'true');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('separates the Figma brand and primary tokens on reset-password', () => {

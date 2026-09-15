@@ -30,6 +30,22 @@ export function isAbortError(error: unknown): boolean {
   );
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function snakeCase(value: string): string {
+  return value.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`);
+}
+
+export function apiFieldError(error: unknown, field: string): string | undefined {
+  if (!(error instanceof ApiError) || !isRecord(error.details)) return undefined;
+  const value = error.details[field] ?? error.details[snakeCase(field)];
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value.join('、');
+  return undefined;
+}
+
 function csrfToken() {
   return document.cookie
     .split('; ')

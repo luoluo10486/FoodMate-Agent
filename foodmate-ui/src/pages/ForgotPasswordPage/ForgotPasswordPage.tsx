@@ -3,7 +3,7 @@ import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
-import { isAbortError } from '../../services/apiClient';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { requestPasswordReset } from '../../services/authService';
 import { AuthBrand, AuthCard, AuthField, AuthShell, AuthSubmit } from '../Auth/AuthVisual';
 import styles from '../LoginPage/LoginPage.module.css';
@@ -14,6 +14,7 @@ export function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState<string>();
 
   useEffect(() => {
     return () => requestControllerRef.current?.abort();
@@ -21,6 +22,7 @@ export function ForgotPasswordPage() {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setEmailError(undefined);
     setSubmitting(true);
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -31,7 +33,9 @@ export function ForgotPasswordPage() {
       setSent(true);
     } catch (error) {
       if (controller.signal.aborted || isAbortError(error)) return;
-      notify(error instanceof Error ? error.message : '密码重置请求失败', 'error');
+      const fieldError = apiFieldError(error, 'email');
+      if (fieldError) setEmailError(fieldError);
+      else notify(error instanceof Error ? error.message : '密码重置请求失败', 'error');
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = undefined;
@@ -59,7 +63,11 @@ export function ForgotPasswordPage() {
               leadingIcon="mail"
               leadingIconSrc="/assets/figma/auth/foodmate-forgot-mail.svg"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              error={emailError}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setEmailError(undefined);
+              }}
             />
             <div className={styles.authActionStack} data-node-id="680:293">
               <AuthSubmit disabled={submitting}>{submitting ? '发送中...' : '发送重置邮件'}</AuthSubmit>

@@ -116,6 +116,7 @@ type AuthFieldProps = {
   leadingIcon?: 'user' | 'mail';
   leadingIconSrc?: string;
   required?: boolean;
+  error?: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
 
@@ -129,10 +130,12 @@ export function AuthField({
   leadingIcon,
   leadingIconSrc,
   required = true,
+  error,
   onChange,
 }: AuthFieldProps) {
   const iconSource = leadingIconSrc ?? (leadingIcon ? fieldIconSources[leadingIcon] : undefined);
   const icon = iconSource ? <img src={iconSource} alt="" /> : undefined;
+  const errorId = `${name}-error`;
 
   return (
     <label className={styles.authField}>
@@ -146,8 +149,15 @@ export function AuthField({
         leadingIcon={icon}
         value={value}
         required={required}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         onChange={onChange}
       />
+      {error ? (
+        <span id={errorId} className={styles.authFieldError} role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -161,6 +171,7 @@ type PasswordFieldProps = {
   leadingIconSrc?: string;
   visibleIconSrc?: string;
   show: boolean;
+  error?: string;
   onToggle: () => void;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
 };
@@ -174,9 +185,12 @@ export function PasswordField({
   leadingIconSrc = '/assets/figma/auth/foodmate-register-lock.svg',
   visibleIconSrc = '/assets/figma/auth/foodmate-register-eye.svg',
   show,
+  error,
   onToggle,
   onChange,
 }: PasswordFieldProps) {
+  const errorId = `${name}-error`;
+
   return (
     <label className={styles.authField}>
       <span className={styles.authFieldLabel}>{label}</span>
@@ -201,8 +215,15 @@ export function PasswordField({
         }
         value={value}
         required
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? errorId : undefined}
         onChange={onChange}
       />
+      {error ? (
+        <span id={errorId} className={styles.authFieldError} role="alert">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }

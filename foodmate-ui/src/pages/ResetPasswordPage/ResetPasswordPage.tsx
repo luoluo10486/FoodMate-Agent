@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '../../lib/notice';
-import { isAbortError } from '../../services/apiClient';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { confirmPasswordReset } from '../../services/authService';
 import { AuthBrand, AuthCard, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
@@ -23,6 +23,7 @@ export function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
 
   useEffect(() => {
     return () => requestControllerRef.current?.abort();
@@ -35,9 +36,11 @@ export function ResetPasswordPage() {
       return;
     }
     if (values.password !== values.confirmPassword) {
+      setFieldErrors({ confirmPassword: '两次输入的密码不一致。' });
       notify('两次输入的密码不一致。', 'error');
       return;
     }
+    setFieldErrors({});
     setSubmitting(true);
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -49,7 +52,9 @@ export function ResetPasswordPage() {
       navigate('/login', { replace: true });
     } catch (error) {
       if (controller.signal.aborted || isAbortError(error)) return;
-      notify(error instanceof Error ? error.message : '密码重置失败', 'error');
+      const passwordError = apiFieldError(error, 'newPassword') ?? apiFieldError(error, 'password');
+      if (passwordError) setFieldErrors({ password: passwordError });
+      else notify(error instanceof Error ? error.message : '密码重置失败', 'error');
     } finally {
       if (requestControllerRef.current === controller) {
         requestControllerRef.current = undefined;
@@ -73,8 +78,12 @@ export function ResetPasswordPage() {
               visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.password}
               show={showPassword}
+              error={fieldErrors.password}
               onToggle={() => setShowPassword((current) => !current)}
-              onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
+              onChange={(event) => {
+                setValues((current) => ({ ...current, password: event.target.value }));
+                setFieldErrors((current) => ({ ...current, password: undefined }));
+              }}
             />
             <PasswordField
               label="确认新密码"
@@ -85,8 +94,12 @@ export function ResetPasswordPage() {
               visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.confirmPassword}
               show={showConfirmPassword}
+              error={fieldErrors.confirmPassword}
               onToggle={() => setShowConfirmPassword((current) => !current)}
-              onChange={(event) => setValues((current) => ({ ...current, confirmPassword: event.target.value }))}
+              onChange={(event) => {
+                setValues((current) => ({ ...current, confirmPassword: event.target.value }));
+                setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
+              }}
             />
           </div>
           <div className={styles.passwordStrength} data-node-id="680:331">
