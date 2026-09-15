@@ -2302,11 +2302,8 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
         const rawPayload = payload as unknown as Record<string, unknown>;
         const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
         const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
-        const identity =
-          eventId ||
-          normalizedPayload.sse_event_id ||
-          normalizedPayload.event_id ||
-          `${eventType}:${normalizedPayload.checkpoint_version ?? ''}`;
+        // 没有稳定事件 ID 时无法证明两条事件相同，不能用事件类型把合法的多段文本误判为重复。
+        const identity = eventId || normalizedPayload.sse_event_id || normalizedPayload.event_id;
         if (identity && seenEventIdsRef.current.has(identity)) return;
         if (identity) seenEventIdsRef.current.add(identity);
         setAcceptedEventCount((current) => current + 1);

@@ -342,6 +342,18 @@ describe('ChatPage Agent 状态真实动作', () => {
     expect(executeAgentWrite).not.toHaveBeenCalled();
   });
 
+  it('没有事件 ID 时保留连续的多段回答文本', async () => {
+    renderState('sse-reconnecting', 'run_id=42');
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledWith('42', expect.any(Function), expect.anything()));
+
+    await act(async () => {
+      emitStreamEvent?.('run.answer_stream', { event_type: 'run.answer_stream', text: '第一段回答' });
+      emitStreamEvent?.('run.answer_stream', { event_type: 'run.answer_stream', text: '第二段回答' });
+    });
+
+    expect(await screen.findByText('第一段回答第二段回答')).toBeInTheDocument();
+  });
+
   it('checkpoint 事件显示服务端恢复入口，并调用持久化 checkpoint 接口', async () => {
     const user = userEvent.setup();
     renderState('safety-degraded', 'run_id=42');
