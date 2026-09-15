@@ -353,6 +353,9 @@ export function KnowledgeSection({
         }
       },
       onApply: () => {
+        // 真实模式由服务端刷新提供最终文档状态，不能直接改写本地列表。
+        if (isRealMode) return;
+
         if (!mountedRef.current || controller.signal.aborted || requestId !== visibilityRequestIdRef.current) return;
         setDocuments((current) =>
           visibility === 'deleted'

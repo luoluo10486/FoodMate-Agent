@@ -215,6 +215,62 @@ describe('KnowledgeSection real mode', () => {
     expect(await screen.findByLabelText('选择知识库文件')).toBeDisabled();
   });
 
+  it('真实文档状态在服务端刷新后才更新', async () => {
+    let visibility = 'published';
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                resource: 'knowledge',
+                items: [
+                  {
+                    document_id: 42,
+                    title: '服务端公共饮食指南.pdf',
+                    status: 'indexed',
+                    visibility,
+                    chunks: 4,
+                    owner: '管理员',
+                    source: 'nutrition-guides',
+                    index_progress: '100%',
+                    updated_at: '2026-08-22T12:00:00Z',
+                  },
+                ],
+                total: 1,
+                page: 1,
+                size: 20,
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    const view = render(<KnowledgeSection onAction={onAction} canManageAccess refreshNonce={0} />);
+
+    expect(await screen.findByText('服务端公共饮食指南.pdf')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '下线文档' }));
+    const action = onAction.mock.calls[0]?.[0];
+    expect(action).toBeDefined();
+
+    action.onApply?.();
+    expect(screen.getByText('已发布')).toBeInTheDocument();
+
+    visibility = 'disabled';
+    view.rerender(<KnowledgeSection onAction={onAction} canManageAccess refreshNonce={1} />);
+
+    expect(await screen.findByText('已下线')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
   it('reindexes an indexed document with an independent operation state', async () => {
     const user = userEvent.setup();
     let itemStatus = 'indexed';
