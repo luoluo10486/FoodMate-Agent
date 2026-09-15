@@ -149,6 +149,9 @@ function ToolRegistrySection({
         nextRevision = result.revision;
       },
       onApply: () => {
+        // 真实模式由服务端刷新提供最终状态，不能直接改写页面数据。
+        if (isRealMode) return;
+
         setTools((current) =>
           current.map((tool) =>
             tool.key === record.key ? { ...tool, status: nextStatus, revision: nextRevision } : tool,

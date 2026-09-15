@@ -133,4 +133,93 @@ describe('管理端真实工具数据', () => {
 
     expect(capturedSignal?.aborted).toBe(true);
   });
+
+  it('真实写操作成功后由服务端刷新提供最终工具状态', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            tools: [
+              {
+                tool_id: 720005,
+                name: 'food_log_writer',
+                display_name: 'Food log writer',
+                description: 'Write food logs.',
+                category: 'write',
+                risk_level: 'high',
+                availability_scope: 'user',
+                status: 'active',
+                current_version: 'v1',
+                version: 'v1',
+                input_schema: { type: 'object' },
+                output_schema: { type: 'object' },
+                permissions: { approval: 'required' },
+                timeout_ms: 10000,
+                retryable: false,
+                idempotent: true,
+                published_at: null,
+                revision: 7,
+              },
+            ],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            tools: [
+              {
+                tool_id: 720005,
+                name: 'food_log_writer',
+                display_name: 'Food log writer',
+                description: 'Write food logs.',
+                category: 'write',
+                risk_level: 'high',
+                availability_scope: 'user',
+                status: 'disabled',
+                current_version: 'v1',
+                version: 'v1',
+                input_schema: { type: 'object' },
+                output_schema: { type: 'object' },
+                permissions: { approval: 'required' },
+                timeout_ms: 10000,
+                retryable: false,
+                idempotent: true,
+                published_at: null,
+                revision: 8,
+              },
+            ],
+          },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={onAction} operationStatus="confirm" refreshNonce={0} />
+      </MemoryRouter>,
+    );
+
+    const stopButton = await screen.findByRole('button', { name: '停用工具' });
+    await user.click(stopButton);
+    const action = onAction.mock.calls[0]?.[0];
+    expect(action).toBeDefined();
+
+    action.onApply?.();
+    expect(within(screen.getByRole('table')).getByText('已启用')).toBeInTheDocument();
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={onAction} operationStatus="confirm" refreshNonce={1} />
+      </MemoryRouter>,
+    );
+
+    expect(await within(screen.getByRole('table')).findByText('已停用')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });
