@@ -55,6 +55,11 @@ describe('AnalysisPage', () => {
 
     expect(screen.getByLabelText('摄入分析')).toHaveClass(styles.figmaDefault);
     expect(screen.getByRole('tablist')).toHaveClass(styles.filters);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.queryByRole('tab', { name: '今天' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '7 天' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '30 天' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '90 天' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();

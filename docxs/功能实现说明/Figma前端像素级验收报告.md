@@ -2,6 +2,19 @@
 
 更新时间：2026-09-16
 
+## 1.1.43 2026-09-16 Intake Analysis Fixture 范围筛选结构复核（非像素验收）
+
+本节记录 Figma 节点 `640:773` 的范围筛选结构复核。Figma 画板包含 `7 天`、`30 天`、`90 天`、`自定义范围` 和 `全部餐次`；真实模式的 `今天` 属于后端分析能力，不属于该 Fixture 画板。
+
+| Figma 节点 | 浏览器路由 | 结构证据 | 结论 |
+|---|---|---|---|
+| `640:773` | `/analysis?state=figma-v2&visual-qa=1` | Fixture Tab 为 `7 天`、`30 天`、`90 天`；高级筛选按钮独立保留；真实模式仍可请求 `today` | 结构收口通过 |
+
+- [x] `AnalysisPage.test.tsx` 覆盖 `state=v2` 和 `state=figma-v2`，确认 Fixture 不渲染 `今天`。
+- [x] `AnalysisPage.real.test.tsx` 继续覆盖真实模式 `today`、`7d`、`30d` 请求和旧请求取消。
+- [ ] 本节只记录代表页面结构和可读性，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`，不执行花瓣像素对比。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
 ## 1.1.42 2026-09-16 Meal Planning 窄视口结构复核（非像素验收）
 
 本节记录 Figma 节点 `640:974`、`640:988` 对应的 Meal Planning Fixture 结构复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 作为布局、字体、颜色、圆角和交互意图来源；窄视口下允许通过内部滚动保留餐食卡片的可读宽度。

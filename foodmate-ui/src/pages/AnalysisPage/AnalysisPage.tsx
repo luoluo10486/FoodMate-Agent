@@ -25,6 +25,9 @@ const ranges: Array<{ key: RangeKey; label: string }> = [
   { key: '90d', label: '90 天' },
 ];
 
+// Figma 摄入分析画板只展示 7 天、30 天和 90 天，真实模式仍保留后端支持的今天范围。
+const fixtureRanges = ranges.filter((item) => item.key !== 'today');
+
 const figmaSidebarSessions: SessionSummary[] = [
   { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
   { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', active: false },
@@ -272,6 +275,7 @@ export function AnalysisPage() {
   const realState = realLoading ? 'loading' : realError ? 'error' : realHasNoData ? 'empty' : 'default';
   const visibleState = isRealMode ? realState : analysisState;
   const showAdvancedFilters = visibleState === 'default';
+  const visibleRanges = isRealMode ? ranges.filter((item) => item.key !== '90d') : fixtureRanges;
 
   const exportCsv = () => {
     setNotice('分析报告已排队，完成后可下载 CSV。');
@@ -315,7 +319,7 @@ export function AnalysisPage() {
               }}
             >
               <TabsList aria-label="分析范围" className={styles.filters}>
-                {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
+                {visibleRanges.map((item) => (
                   <TabsTrigger
                     className={range === item.key ? styles.rangeActive : ''}
                     key={item.key}
