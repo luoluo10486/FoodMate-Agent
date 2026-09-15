@@ -994,6 +994,17 @@
     padding: 20px 16px 24px;
   }
 
+  .scheduleSection {
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .scheduleGrid {
+    min-width: 720px;
+  }
+
   .planBanner {
     align-items: stretch;
     flex-direction: column;

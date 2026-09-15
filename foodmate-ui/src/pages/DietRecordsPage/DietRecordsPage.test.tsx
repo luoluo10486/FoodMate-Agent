@@ -102,6 +102,16 @@ describe('DietRecordsPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/analysis');
   });
 
+  it('keeps the action bar after meal content in document flow', () => {
+    renderPage('/analysis?view=records&state=v2');
+
+    const mealSection = screen.getByRole('region', { name: '餐次记录' });
+    const actionSection = screen.getByRole('region', { name: '饮食记录操作' });
+
+    expect(mealSection.compareDocumentPosition(actionSection) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(actionSection).toHaveClass('recordsActions');
+  });
+
   it.each([
     ['loading', '饮食记录加载中'],
     ['empty', '今天还没有饮食记录'],

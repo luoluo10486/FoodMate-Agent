@@ -796,11 +796,9 @@
 
 .recordsActions {
   display: flex;
-  position: absolute;
-  top: 572px;
-  left: 32px;
   width: calc(100% - 64px);
   height: 48px;
+  margin: 0 32px 32px;
   gap: 16px;
   align-items: center;
   overflow: hidden;
@@ -1287,7 +1285,8 @@
 
   .recordsActions {
     position: static;
-    width: 100%;
+    width: calc(100% - 32px);
+    margin: 0 16px 24px;
     height: auto;
     flex-wrap: wrap;
     overflow: visible;

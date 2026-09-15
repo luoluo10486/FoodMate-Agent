@@ -12,12 +12,14 @@
 
 .analysisBody {
   display: grid;
+  min-width: 0;
   gap: 24px;
   padding: 32px;
 }
 
 .filterRow {
   display: flex;
+  min-width: 0;
   min-height: 40px;
   align-items: center;
   justify-content: space-between;
@@ -39,10 +41,12 @@
 
 .filters {
   display: flex;
+  box-sizing: border-box;
   width: 384px;
   min-width: 0;
   height: 40px;
   align-items: flex-start;
+  justify-content: flex-start;
   gap: 4px;
   padding: 4px;
   overflow-x: auto;
@@ -129,6 +133,7 @@
 
 .metrics {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   height: 107px;
@@ -167,6 +172,7 @@
 
 .metricCard {
   display: grid;
+  box-sizing: border-box;
   min-width: 0;
   height: 107px;
   gap: 12px;
@@ -259,6 +265,8 @@
 .chartCard,
 .insightCard {
   display: grid;
+  box-sizing: border-box;
+  min-width: 0;
   gap: 16px;
   padding: 24px;
   border: 1px solid var(--fm-border);
@@ -454,6 +462,8 @@
 .emptyChartCard,
 .errorCard {
   display: grid;
+  box-sizing: border-box;
+  min-width: 0;
   gap: 16px;
   width: 100%;
   padding: 24px;
@@ -746,11 +756,20 @@
   }
 
   .filterRow {
+    min-width: 0;
     align-items: stretch;
     flex-direction: column;
   }
 
   .filters {
+    width: 100%;
+  }
+
+  .metrics,
+  .chartCard,
+  .insightCard,
+  .emptyChartCard,
+  .errorCard {
     width: 100%;
   }
 

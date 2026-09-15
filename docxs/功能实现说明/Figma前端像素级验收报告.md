@@ -1,6 +1,22 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-13
+更新时间：2026-09-15
+
+## 1.1.38 2026-09-15 代表页面结构与可读性复核（非像素验收）
+
+本节只记录当前前端代表页面的浏览器复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 继续作为颜色、字体、布局、组件状态和交互意图来源；页面允许为真实数据长度、响应式宽度和可访问性做合理适配。
+
+| 页面 | 浏览器路由 | 本次复核结论 |
+|---|---|---|
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | 操作栏位于餐次记录之后，Lunch 第二条记录不再被覆盖。 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | 指标卡、图表卡和筛选条完整可见，筛选条从左侧开始展示。 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 移动端宽表在自身容器内滚动，页面整体不产生横向溢出。 |
+| Agent Chat | `/chat?state=figma-v2&visual-qa=1` | 用户消息使用深色文字；Workspace 账号与用户消息使用同一登记默认头像，绿色 Agent 方块保留为状态标识。 |
+
+- [x] 受影响页面定向测试 `6` 个文件、`76/76` 通过；全量 Vitest `70` 个文件、`529/529` 通过。
+- [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过。
+- [ ] 本节不把结构和可读性复核扩展为 105 个画板全量像素差异，也不执行花瓣像素对比；现有像素报告中的非零 diff 结论不改写。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
 
 ## 1.1.37 2026-09-13 用户头像实体与 Chat 对比度当前证据
 
