@@ -111,10 +111,29 @@ npm run dev
 ```powershell
 .\mvnw.cmd verify
 .\mvnw.cmd -pl foodmate-bootstrap -am '-Dfoodmate.local-e2e=true' '-Dtest=LocalPostgresE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
-.\mvnw.cmd -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M14RocketMqTransportE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 .\mvnw.cmd -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M14ProposalResultE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 .\mvnw.cmd -pl foodmate-bootstrap -am '-Dfoodmate.local-e2e=true' '-Dtest=M14RuntimeCheckpointRecoveryE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 .\mvnw.cmd -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M15FoodLogWriterHttpE2ETest,M15FoodLogWriterProposalResultE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
+```
+
+M14 RocketMQ 消费端测试必须加入 Compose 的 `foodmate` 网络运行，避免宿主机 JVM 无法解析 Broker 广播的 Docker 服务名：
+
+```powershell
+docker run --rm --network foodmate `
+  --env-file .env `
+  -v "${PWD}:/workspace" `
+  -v "$env:USERPROFILE\.m2:/root/.m2" `
+  -w /workspace `
+  -e SPRING_PROFILES_ACTIVE=local `
+  -e DB_URL=jdbc:postgresql://foodmate-postgres:5432/FoodMate `
+  -e REDIS_URL=redis://:foodmate-redis-change-me@foodmate-redis:6379 `
+  -e MINIO_ENDPOINT=http://foodmate-minio:9000 `
+  -e FOODMATE_AGENT_TRANSPORT=rocketmq `
+  -e FOODMATE_AGENT_ADMISSION_ENABLED=false `
+  -e FOODMATE_ROCKETMQ_NAMESRV_ADDR=foodmate-rocketmq-namesrv:9876 `
+  -e RUNTIME_SERVICE_JWT_ENABLED=false `
+  maven:3.9.11-eclipse-temurin-21 `
+  mvn -pl foodmate-bootstrap -am '-Dfoodmate.local-mq-e2e=true' '-Dtest=M14RocketMqTransportE2ETest' '-Dsurefire.failIfNoSpecifiedTests=false' test
 ```
 
 ## 文档

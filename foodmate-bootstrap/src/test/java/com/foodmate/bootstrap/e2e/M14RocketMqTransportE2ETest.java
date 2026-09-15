@@ -26,11 +26,14 @@ import org.springframework.test.context.ActiveProfiles;
 /**
  * M1-4 阶段 D：Outbox -> RocketMQ -> 消费端的真实闭环。
  *
- * <p>需要本地 Broker 与 PostgreSQL，用独立开关打开： {@code -Dfoodmate.local-mq-e2e=true}。
+ * <p>需要本地 Broker 与 PostgreSQL，用独立开关打开： {@code -Dfoodmate.local-mq-e2e=true}。 默认 Compose Broker 会广播
+ * Docker 服务名，因此测试应在 {@code foodmate} 网络内运行。
  */
 @SpringBootTest(
         properties = {
             "foodmate.runtime.transport=rocketmq",
+            // 该测试只验证 Outbox 与 Broker 消费，不依赖 Agent 准入计数。
+            "foodmate.runtime.admission.enabled=false",
             // Relay 由本测试显式驱动，避免定时任务与断言竞争。
             "foodmate.runtime.dispatch-poll-ms=3600000",
             "foodmate.runtime.dlq-reconcile-ms=3600000"

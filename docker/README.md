@@ -271,6 +271,8 @@ Broker 关闭了 `autoCreateTopicEnable` 与 `autoCreateSubscriptionGroup`，所
 2. **数据目录属主。** 镜像里没有 `/home/rocketmq/{store,logs}`，Docker 建命名卷时用 root 创建目录，而进程以 uid 3000 运行。`rocketmq-prepare` 一次性容器负责 `chown`，namesrv/broker 依赖它成功退出后才启动。
 3. **`brokerIP1` 必须匹配运行模式。** Compose 默认让 Java/Python 容器使用 `foodmate-rocketmq-broker`，不要改成宿主机旧 IP。若 Java/Python 改为宿主机运行，需要在当前 PowerShell 进程中显式设置 `FOODMATE_DOCKER_ROCKETMQ_BROKER_IP1` 为宿主机可达地址后再重建 Broker；不能填容器重启后变化的临时 IP。
 
+M14 RocketMQ 传输测试的消费者也应在 `foodmate` 网络中启动。宿主机 JVM 会读取 NameServer 返回的 `brokerIP1`，默认值 `foodmate-rocketmq-broker` 只能在 Compose 网络内解析；不要用宿主机直接启动的 Maven 命令替代该测试。仓库根目录 `README.md` 提供了可复制的 Docker Maven 命令。
+
 Broker 重启后消息保留（`foodmate-rocketmq-broker-store` 命名卷 + `SYNC_FLUSH`）：
 
 ```powershell
