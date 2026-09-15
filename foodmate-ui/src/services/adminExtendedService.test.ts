@@ -61,10 +61,20 @@ describe('admin extended APIs', () => {
     const fetchMock = vi.fn().mockResolvedValue(ok({ items: [], total: 0, page: 2, size: 20 }));
     vi.stubGlobal('fetch', fetchMock);
 
-    await loadAdminQuery('runs', { page: 2, size: 20 }, controller.signal);
+    await loadAdminQuery(
+      'runs',
+      {
+        page: 2,
+        size: 20,
+        resultType: 'safety_degraded',
+        errorCode: 'RUNTIME_FAILED',
+        degraded: true,
+      },
+      controller.signal,
+    );
 
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/admin/queries/runs?page=2&size=20',
+      '/api/admin/queries/runs?page=2&size=20&result_type=safety_degraded&error_code=RUNTIME_FAILED&degraded=true',
       expect.objectContaining({ method: 'GET', signal: controller.signal }),
     );
   });

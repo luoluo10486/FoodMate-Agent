@@ -45,6 +45,56 @@ class AdminOperationalQueryServiceImplTest {
     }
 
     @Test
+    void forwardsRunResultFiltersAndMapsDegradedState() {
+        when(store.runs(any()))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.RunRow(
+                                        42L,
+                                        7L,
+                                        "planning",
+                                        "completed",
+                                        "trace-42",
+                                        new BigDecimal("12.5"),
+                                        "user-42",
+                                        "safety_degraded",
+                                        "KNOWLEDGE_TIMEOUT")));
+        when(store.countRuns(any())).thenReturn(1L);
+
+        var result =
+                service.query(
+                        "runs",
+                        new AdminOperationalQueryService.Request(
+                                1,
+                                20,
+                                null,
+                                "completed",
+                                null,
+                                null,
+                                "desc",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                "safety_degraded",
+                                "TIMEOUT",
+                                true));
+
+        ArgumentCaptor<AdminOperationalQueryRepository.Query> query =
+                ArgumentCaptor.forClass(AdminOperationalQueryRepository.Query.class);
+        verify(store).runs(query.capture());
+        assertEquals("safety_degraded", query.getValue().resultType());
+        assertEquals("TIMEOUT", query.getValue().errorCode());
+        assertEquals(Boolean.TRUE, query.getValue().degraded());
+
+        var row = (AdminOperationalQueryService.Run) result.items().getFirst();
+        assertEquals("safety_degraded", row.resultType());
+        assertEquals("KNOWLEDGE_TIMEOUT", row.errorCode());
+        assertEquals(true, row.degraded());
+    }
+
+    @Test
     void forwardsUserRoleFilterWithoutExpandingUserQueryScope() {
         when(store.users(any())).thenReturn(List.of());
         when(store.countUsers(any())).thenReturn(0L);

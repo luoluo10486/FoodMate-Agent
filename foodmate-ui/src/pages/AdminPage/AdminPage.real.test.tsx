@@ -111,22 +111,27 @@ describe('AdminPage real mode fixture isolation', () => {
     expect(fetchCalls.some((input) => input.includes('/api/admin/queries/runs'))).toBe(true);
   });
 
-  it('passes the overview time filter to the existing runs query and disables unsupported degradation filtering', async () => {
+  it('passes the overview time and degradation filters to the runs query', async () => {
     const user = userEvent.setup();
     renderAdmin('/admin');
 
     expect(await screen.findByText('真实运行总量')).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: '降级筛选' })).toBeDisabled();
-    expect(screen.getByRole('combobox', { name: '降级筛选' })).toHaveAttribute('title', '真实运行查询未返回降级字段');
+    expect(screen.getByRole('combobox', { name: '降级筛选' })).not.toBeDisabled();
+
+    await user.click(screen.getByRole('combobox', { name: '降级筛选' }));
+    await user.click(screen.getByRole('option', { name: '是' }));
 
     await user.click(screen.getByRole('combobox', { name: '时间范围' }));
     await user.click(screen.getByRole('option', { name: '近 7 天' }));
 
     await waitFor(() => {
       const fetchCalls = (fetch as ReturnType<typeof vi.fn>).mock.calls.map(([input]) => String(input));
-      expect(fetchCalls.some((input) => input.includes('/api/admin/queries/runs') && input.includes('from='))).toBe(
-        true,
-      );
+      expect(
+        fetchCalls.some(
+          (input) =>
+            input.includes('/api/admin/queries/runs') && input.includes('from=') && input.includes('degraded=true'),
+        ),
+      ).toBe(true);
     });
   });
 

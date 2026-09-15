@@ -135,6 +135,9 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 request.from(),
                 request.action(),
                 request.targetType(),
+                request.resultType(),
+                request.errorCode(),
+                request.degraded(),
                 request.size(),
                 (request.page() - 1) * request.size());
     }
@@ -179,7 +182,10 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 row.status(),
                 row.traceId(),
                 row.durationMs(),
-                row.actorRef());
+                row.actorRef(),
+                row.resultType(),
+                row.errorCode(),
+                "safety_degraded".equals(row.resultType()));
     }
 
     private User user(AdminOperationalQueryRepository.UserRow row) {

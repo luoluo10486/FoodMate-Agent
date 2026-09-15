@@ -30,11 +30,15 @@ type OverviewRow = {
   toolCount: string;
   result: string;
   errorCode: string;
+  degraded: boolean;
   createdAt?: string;
 };
 
 const overviewMetrics: OverviewMetric[] = adminOverviewMetrics;
-const overviewRows: OverviewRow[] = adminOverviewRows;
+const overviewRows: OverviewRow[] = adminOverviewRows.map((row) => ({
+  ...row,
+  degraded: row.errorCode !== '-',
+}));
 // Figma 概览页展示的是系统总量，mock 行只负责还原首屏可见记录。
 const overviewFixtureTotal = 12480;
 
@@ -48,8 +52,9 @@ function queryRowsToOverviewRows(rows: AdminQueryRun[]): OverviewRow[] {
     duration: row.duration_ms == null ? '-' : `${(Number(row.duration_ms) / 1000).toFixed(1)}s`,
     cost: '-',
     toolCount: '-',
-    result: row.status || '-',
-    errorCode: '-',
+    result: row.result_type || row.status || '-',
+    errorCode: row.error_code || '-',
+    degraded: row.degraded === true,
   }));
 }
 
@@ -171,6 +176,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
               : new Date(
                   Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
                 ).toISOString(),
+          degraded: degradedFilter === 'all' ? undefined : degradedFilter === 'yes',
         },
         controller.signal,
       ),
@@ -195,15 +201,14 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
       requestIdRef.current += 1;
       controller.abort();
     };
-  }, [isRealMode, page, query, refreshNonce, resultFilter, retryNonce, timeFilter]);
+  }, [degradedFilter, isRealMode, page, query, refreshNonce, resultFilter, retryNonce, timeFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
       const matchesTime = matchesFixtureTimeFilter(row.createdAt, timeFilter);
       const matchesResult = resultFilter === 'all' || row.result === resultFilter;
-      const matchesDegraded =
-        degradedFilter === 'all' || (degradedFilter === 'yes' ? row.errorCode !== '-' : row.errorCode === '-');
+      const matchesDegraded = degradedFilter === 'all' || row.degraded === (degradedFilter === 'yes');
       const matchesQuery = !normalizedQuery || `${row.runId} ${row.user}`.toLowerCase().includes(normalizedQuery);
       return matchesTime && matchesResult && matchesDegraded && matchesQuery;
     });
@@ -259,8 +264,6 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
               setPage(1);
             }}
             ariaLabel="降级筛选"
-            disabled={isRealMode}
-            disabledReason="真实运行查询未返回降级字段"
           />
         </div>
         <label className={styles.overviewSearch}>

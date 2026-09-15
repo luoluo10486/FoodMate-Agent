@@ -58,6 +58,7 @@ type AdminRunResponse = {
   username: string;
   result_type?: string;
   error_code?: string;
+  degraded?: boolean;
   stage?: string;
   model?: string;
   created_at?: string;
@@ -201,6 +202,7 @@ export type AdminRunRow = {
   sessionId?: string;
   resultType?: string;
   errorCode?: string;
+  degraded?: boolean;
   stage?: string;
   model?: string;
   createdAt?: string;
@@ -363,6 +365,7 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       sessionId: row.session_id == null ? undefined : String(row.session_id),
       resultType: row.result_type || '-',
       errorCode: row.error_code || '-',
+      degraded: row.degraded === true,
       stage: row.stage || '-',
       model: row.model || '-',
       createdAt: row.created_at || '-',
@@ -525,6 +528,9 @@ export type AdminQueryRun = {
   trace_id: string;
   duration_ms: number | string | null;
   actor_ref: string;
+  result_type?: string | null;
+  error_code?: string | null;
+  degraded?: boolean;
 };
 
 export type AdminQueryTrace = {
@@ -605,6 +611,9 @@ export type AdminQueryParams = {
   from?: string;
   action?: string;
   targetType?: string;
+  resultType?: string;
+  errorCode?: string;
+  degraded?: boolean;
   sort?: string;
   direction?: 'asc' | 'desc';
 };
@@ -629,6 +638,9 @@ export async function loadAdminQuery<T>(resource: string, params: AdminQueryPara
   if (params.from) search.set('from', params.from);
   if (params.action && params.action !== 'all') search.set('action', params.action);
   if (params.targetType && params.targetType !== 'all') search.set('target_type', params.targetType);
+  if (params.resultType && params.resultType !== 'all') search.set('result_type', params.resultType);
+  if (params.errorCode) search.set('error_code', params.errorCode);
+  if (params.degraded !== undefined) search.set('degraded', String(params.degraded));
   if (params.sort) search.set('sort', params.sort);
   if (params.direction) search.set('direction', params.direction);
   return apiRequest<AdminOperationalQueryResponse<T>>(

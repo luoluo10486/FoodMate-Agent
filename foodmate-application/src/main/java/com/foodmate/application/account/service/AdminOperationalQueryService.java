@@ -30,7 +30,41 @@ public interface AdminOperationalQueryService {
             String resourceType,
             String from,
             String action,
-            String targetType) {
+            String targetType,
+            String resultType,
+            String errorCode,
+            Boolean degraded) {
+        public Request(
+                int page,
+                int size,
+                String query,
+                String status,
+                String visibility,
+                String sort,
+                String direction,
+                String role,
+                String resourceType,
+                String from,
+                String action,
+                String targetType) {
+            this(
+                    page,
+                    size,
+                    query,
+                    status,
+                    visibility,
+                    sort,
+                    direction,
+                    role,
+                    resourceType,
+                    from,
+                    action,
+                    targetType,
+                    null,
+                    null,
+                    null);
+        }
+
         public Request(
                 int page,
                 int size,
@@ -51,6 +85,9 @@ public interface AdminOperationalQueryService {
                     null,
                     null,
                     null,
+                    null,
+                    null,
+                    null,
                     null);
         }
 
@@ -65,6 +102,8 @@ public interface AdminOperationalQueryService {
             String safeFrom = normalize(from, 40);
             String safeAction = normalize(action, 64);
             String safeTargetType = normalize(targetType, 64);
+            String safeResultType = normalize(resultType, 64);
+            String safeErrorCode = normalize(errorCode, 128);
             String safeSort = normalize(sort, 32);
             if (safeSort != null) safeSort = safeSort.toLowerCase(Locale.ROOT);
             String safeDirection = normalize(direction, 4);
@@ -85,7 +124,10 @@ public interface AdminOperationalQueryService {
                     safeResourceType,
                     safeFrom,
                     safeAction,
-                    safeTargetType);
+                    safeTargetType,
+                    safeResultType,
+                    safeErrorCode,
+                    degraded);
         }
 
         private static String normalize(String value, int maxLength) {
@@ -108,7 +150,10 @@ public interface AdminOperationalQueryService {
             String status,
             String traceId,
             BigDecimal durationMs,
-            String actorRef) {}
+            String actorRef,
+            String resultType,
+            String errorCode,
+            boolean degraded) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record Trace(

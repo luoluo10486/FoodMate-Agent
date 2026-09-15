@@ -122,7 +122,7 @@ describe('RunsSection real DLQ view', () => {
     expect(capturedSignal?.aborted).toBe(true);
   });
 
-  it('does not expose unsupported result type and error code filters in real mode', async () => {
+  it('uses the server-provided result type and error code in real mode', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValue(
@@ -140,6 +140,9 @@ describe('RunsSection real DLQ view', () => {
                   trace_id: 'trace-42',
                   duration_ms: 120,
                   actor_ref: 'user-42',
+                  result_type: 'safety_degraded',
+                  error_code: 'RUNTIME_FAILED',
+                  degraded: true,
                 },
               ],
               total: 1,
@@ -159,7 +162,9 @@ describe('RunsSection real DLQ view', () => {
     );
 
     expect(await screen.findByText('trace-42')).toBeInTheDocument();
-    expect(screen.getByRole('combobox', { name: '结果类型筛选' })).toBeDisabled();
-    expect(screen.getByLabelText('错误码')).toBeDisabled();
+    expect(screen.getByText('safety_degraded')).toBeInTheDocument();
+    expect(screen.getByText('RUNTIME_FAILED')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '结果类型筛选' })).not.toBeDisabled();
+    expect(screen.getByLabelText('错误码')).not.toBeDisabled();
   });
 });

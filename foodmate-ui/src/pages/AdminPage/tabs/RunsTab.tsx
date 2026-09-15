@@ -32,6 +32,7 @@ import {
 import {
   loadAdminTraceDetail,
   loadAdminQuery,
+  type AdminQueryParams,
   replayAdminDlq,
   type AdminRunRow,
   type AdminQueryRun,
@@ -146,9 +147,9 @@ function queryRunRow(row: AdminQueryRun, index: number): AdminRunRow {
     durationMs: Number(row.duration_ms ?? 0),
     traceId: row.trace_id || '-',
     sessionId: row.session_id == null ? undefined : String(row.session_id),
-    // 真实查询契约未返回结果类型，不能用运行状态替代该字段。
-    resultType: '-',
-    errorCode: '-',
+    resultType: row.result_type || '-',
+    errorCode: row.error_code || '-',
+    degraded: row.degraded === true,
     stage: row.intent || '-',
     model: '-',
   };
@@ -603,12 +604,16 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
     setLoadError('');
     // 运行治理只加载当前页签，避免把五类运营明细一次性拉入浏览器。
     const status = isRealMode ? statusFilter : resultFilter === 'error' ? 'failed' : statusFilter;
-    const params = {
+    const params: AdminQueryParams = {
       page,
       size: governancePageSize,
       query: query.trim() || undefined,
       status,
     };
+    if (activeTab === 'agent-runs') {
+      params.resultType = resultFilter === 'all' ? undefined : resultFilter;
+      params.errorCode = errorFilter.trim() || undefined;
+    }
     setLoading(true);
     const request =
       activeTab === 'agent-runs'
@@ -646,7 +651,7 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
       governanceRequestIdRef.current += 1;
       controller.abort();
     };
-  }, [activeTab, page, query, refreshNonce, resultFilter, retryNonce, statusFilter]);
+  }, [activeTab, errorFilter, page, query, refreshNonce, resultFilter, retryNonce, statusFilter]);
 
   useEffect(() => {
     const requestId = ++traceDetailRequestIdRef.current;
@@ -791,6 +796,15 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
     activeTab === 'dlq'
       ? ['pending', 'needs_attention', 'resolved_duplicate', 'resolved_terminal', 'resolved_replayed']
       : ['completed', 'failed', 'running', 'waiting_user', 'cancelled'];
+  const resultOptions = isRealMode
+    ? [
+        { value: 'normal', label: 'normal' },
+        { value: 'safety_degraded', label: 'safety_degraded' },
+      ]
+    : [
+        { value: 'answer', label: 'answer' },
+        { value: 'error', label: 'error' },
+      ];
 
   const runColumns: TableColumnProps<AdminRunRow>[] = [
     { title: 'Run ID', dataIndex: 'runId' },
@@ -971,18 +985,16 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
               setPage(1);
             }}
           >
-            <SelectTrigger
-              className={styles.runFilterControl}
-              aria-label="结果类型筛选"
-              disabled={isRealMode}
-              title={isRealMode ? '真实接口暂未提供结果类型筛选' : undefined}
-            >
+            <SelectTrigger className={styles.runFilterControl} aria-label="结果类型筛选">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部结果</SelectItem>
-              <SelectItem value="answer">answer</SelectItem>
-              <SelectItem value="error">error</SelectItem>
+              {resultOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </label>
@@ -992,8 +1004,6 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
             id="run-governance-error"
             value={errorFilter}
             placeholder="例如 SQL_POLICY"
-            disabled={isRealMode}
-            title={isRealMode ? '真实接口暂未提供错误码筛选' : undefined}
             onChange={(event) => {
               setErrorFilter(event.target.value);
               setPage(1);

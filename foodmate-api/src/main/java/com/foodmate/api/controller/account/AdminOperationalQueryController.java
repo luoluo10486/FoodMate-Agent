@@ -41,7 +41,10 @@ public class AdminOperationalQueryController extends AuthenticatedControllerSupp
             @RequestParam(name = "resource_type", required = false) String resourceType,
             @RequestParam(required = false) String from,
             @RequestParam(required = false) String action,
-            @RequestParam(name = "target_type", required = false) String targetType) {
+            @RequestParam(name = "target_type", required = false) String targetType,
+            @RequestParam(name = "result_type", required = false) String resultType,
+            @RequestParam(name = "error_code", required = false) String errorCode,
+            @RequestParam(required = false) Boolean degraded) {
         requireAnyRole(request, UserRole.ADMIN, UserRole.OPERATOR, UserRole.SUPERADMIN);
         var result =
                 queries.query(
@@ -58,7 +61,10 @@ public class AdminOperationalQueryController extends AuthenticatedControllerSupp
                                 resourceType,
                                 from,
                                 action,
-                                targetType));
+                                targetType,
+                                resultType,
+                                errorCode,
+                                degraded));
         return ApiResponse.success(
                 AdminOperationalQueryResponse.from(resource, result),
                 TraceContextHolder.currentOrNew());
