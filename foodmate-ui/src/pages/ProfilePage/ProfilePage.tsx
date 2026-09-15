@@ -653,11 +653,13 @@ function IconAction({
   children,
   onClick,
   danger = false,
+  disabled = false,
 }: {
   label: string;
   children: React.ReactNode;
   onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <Tooltip>
@@ -669,6 +671,7 @@ function IconAction({
           type="button"
           aria-label={label}
           onClick={onClick}
+          disabled={disabled}
         >
           {children}
         </Button>
@@ -1474,6 +1477,7 @@ function MemoriesTab({
 function MemoryRow({
   memory,
   figmaFixture = false,
+  disabled = false,
   onConfirm,
   onEdit,
   onDelete,
@@ -1481,6 +1485,7 @@ function MemoryRow({
 }: {
   memory: Memory;
   figmaFixture?: boolean;
+  disabled?: boolean;
   onConfirm: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -1504,25 +1509,25 @@ function MemoryRow({
       <span className={styles.memoryTime}>{memory.relativeTime}</span>
       <div className={styles.memoryActions}>
         {needsAction ? (
-          <Button className={styles.confirmButton} type="button" size="sm" onClick={onConfirm}>
-            {isConflict ? '确认并替换' : '确认记忆'}
+          <Button className={styles.confirmButton} type="button" size="sm" onClick={onConfirm} disabled={disabled}>
+            {disabled ? '处理中...' : isConflict ? '确认并替换' : '确认记忆'}
           </Button>
         ) : null}
-        <IconAction label="查看来源会话" onClick={onSource}>
+        <IconAction label="查看来源会话" onClick={onSource} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryView" className={styles.figmaMemoryIcon} />
           ) : (
             <Eye aria-hidden="true" />
           )}
         </IconAction>
-        <IconAction label="编辑记忆" onClick={onEdit}>
+        <IconAction label="编辑记忆" onClick={onEdit} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryEdit" className={styles.figmaMemoryIcon} />
           ) : (
             <Edit3 aria-hidden="true" />
           )}
         </IconAction>
-        <IconAction label="删除记忆" danger onClick={onDelete}>
+        <IconAction label="删除记忆" danger onClick={onDelete} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryDelete" className={styles.figmaMemoryIcon} />
           ) : (
@@ -2388,9 +2393,11 @@ function RealMemoriesTab() {
   const [deleting, setDeleting] = useState<Memory>();
   const [editing, setEditing] = useState<Memory>();
   const [editValue, setEditValue] = useState('');
+  const [activeMutationKey, setActiveMutationKey] = useState<string>();
   const requestSeqRef = useRef(0);
   const loadControllerRef = useRef<AbortController>();
   const mutationControllersRef = useRef(new Set<AbortController>());
+  const activeMutationRef = useRef<string>();
   const mountedRef = useRef(true);
 
   const attentionCount = memories.filter((memory) => memory.status !== 'confirmed').length;
@@ -2445,7 +2452,11 @@ function RealMemoriesTab() {
     };
   }, [refresh]);
 
-  const runMutation = async (action: (signal: AbortSignal) => Promise<unknown>, success: string) => {
+  const runMutation = async (key: string, action: (signal: AbortSignal) => Promise<unknown>, success: string) => {
+    if (activeMutationRef.current) return;
+    // 记忆写操作统一串行执行，避免快速重复点击造成多个服务端写请求。
+    activeMutationRef.current = key;
+    setActiveMutationKey(key);
     const controller = new AbortController();
     mutationControllersRef.current.add(controller);
     try {
@@ -2459,6 +2470,10 @@ function RealMemoriesTab() {
       notice(error instanceof Error ? error.message : 'Memory operation failed.', 'error');
     } finally {
       mutationControllersRef.current.delete(controller);
+      if (activeMutationRef.current === key) {
+        activeMutationRef.current = undefined;
+        if (mountedRef.current) setActiveMutationKey(undefined);
+      }
     }
   };
 
@@ -2493,7 +2508,13 @@ function RealMemoriesTab() {
           </TabsList>
           {conflictCount > 0 ? <span className={styles.memoryConflictCount}>含 {conflictCount} 条冲突</span> : null}
         </Tabs>
-        <Button variant="outline" size="sm" type="button" onClick={() => void refresh()} disabled={loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading || Boolean(activeMutationKey)}
+        >
           <RefreshCw aria-hidden="true" /> 刷新
         </Button>
       </div>
@@ -2515,7 +2536,10 @@ function RealMemoriesTab() {
             <MemoryRow
               key={memory.id}
               memory={memory}
-              onConfirm={() => void runMutation((signal) => confirmMemory(memory.id, signal), '记忆已确认。')}
+              disabled={Boolean(activeMutationKey)}
+              onConfirm={() =>
+                void runMutation(`confirm:${memory.id}`, (signal) => confirmMemory(memory.id, signal), '记忆已确认。')
+              }
               onEdit={() => {
                 setEditing(memory);
                 setEditValue(memory.content);
@@ -2558,7 +2582,11 @@ function RealMemoriesTab() {
               type="button"
               onClick={() => {
                 if (!deleting) return;
-                void runMutation((signal) => deleteMemory(deleting.id, signal), '记忆已删除。');
+                void runMutation(
+                  `delete:${deleting.id}`,
+                  (signal) => deleteMemory(deleting.id, signal),
+                  '记忆已删除。',
+                );
                 setDeleting(undefined);
               }}
             >
@@ -2587,6 +2615,7 @@ function RealMemoriesTab() {
               onClick={() => {
                 if (!editing || !editValue.trim()) return;
                 void runMutation(
+                  `edit:${editing.id}`,
                   (signal) => updateMemory(editing.id, editValue.trim(), editing.scope, signal),
                   '记忆已更新。',
                 );

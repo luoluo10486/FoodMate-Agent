@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
-import { confirmMemory, loadMemories, updateMemory } from '../../services/memoryService';
+import { confirmMemory, loadMemories, updateMemory, type MemoryRecord } from '../../services/memoryService';
 
 vi.mock('../../services/memoryService', () => ({
   confirmMemory: vi.fn(),
@@ -84,6 +84,33 @@ describe('ProfilePage real memory status', () => {
 
     await waitFor(() => expect(confirmMemory).toHaveBeenCalledWith(12, expect.any(AbortSignal)));
     expect(loadMemories).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks repeated confirmation while the server mutation is pending', async () => {
+    const user = userEvent.setup();
+    let resolveConfirm: ((value: MemoryRecord) => void) | undefined;
+    vi.mocked(confirmMemory).mockImplementation(
+      () =>
+        new Promise<MemoryRecord>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+
+    renderPage();
+    const confirmButton = await screen.findByRole('button', { name: '确认并替换' });
+    await user.click(confirmButton);
+    await waitFor(() => expect(confirmButton).toBeDisabled());
+
+    await user.click(confirmButton);
+    expect(confirmMemory).toHaveBeenCalledTimes(1);
+
+    resolveConfirm?.({
+      memory_id: 12,
+      memory_type: 'constraint',
+      memory_value: JSON.stringify('避免花生'),
+      confirmation_status: 'confirmed',
+    });
+    await waitFor(() => expect(loadMemories).toHaveBeenCalledTimes(2));
   });
 
   it('clears stale memories and exposes a retry when the real read fails', async () => {
