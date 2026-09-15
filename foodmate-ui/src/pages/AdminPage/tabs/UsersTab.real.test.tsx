@@ -38,25 +38,21 @@ describe('Admin 用户管理真实模式', () => {
   it('真实模式禁用没有后端接口的凭证重置，并保持操作回调不写入 Fixture', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input), 'http://foodmate.local').pathname;
-      if (path === '/api/admin/queries/users') {
+      if (path === '/api/admin/users') {
         return Promise.resolve(
           jsonResponse({
             success: true,
-            data: {
-              items: [
-                {
-                  user_id: 7,
-                  username: 'real-user',
-                  role: 'user',
-                  status: 'active',
-                  email_ref: 'real@example.com',
-                  revision: 3,
-                },
-              ],
-              total: 1,
-              page: 1,
-              size: 20,
-            },
+            data: [
+              {
+                user_id: 7,
+                username: 'real-user',
+                email: 'real@example.com',
+                nickname: '真实用户',
+                role: 'user',
+                status: 'active',
+                revision: 3,
+              },
+            ],
           }),
         );
       }
@@ -92,6 +88,6 @@ describe('Admin 用户管理真实模式', () => {
     const action = onAction.mock.calls[0][0];
     action.onApply?.();
     expect(within(row).getByText('活跃')).toBeInTheDocument();
-    expect(fetchMock.mock.calls.some(([input]) => String(input).includes('/api/admin/queries/users'))).toBe(true);
+    expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/admin/users')).toBe(true);
   });
 });

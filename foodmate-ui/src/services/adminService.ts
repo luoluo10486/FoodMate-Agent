@@ -1105,13 +1105,32 @@ export async function loadAdminUsersPage(
     const items = adminUserRows as AdminUserRow[];
     return { items, total: items.length, page: 1, size: items.length };
   }
+  const page = params.page ?? 1;
+  const size = params.size ?? 20;
+  const hasQueryFilter = [
+    params.query,
+    params.status,
+    params.visibility,
+    params.role,
+    params.resourceType,
+    params.from,
+    params.action,
+    params.targetType,
+    params.sort,
+    params.direction,
+  ].some((value) => Boolean(value && value !== 'all'));
+  if (page === 1 && !hasQueryFilter) {
+    // 默认用户页使用专用列表接口；发生筛选或翻页时再切换到分页查询接口。
+    const items = await loadAdminUsers(signal);
+    return { items: items.slice(0, size), total: items.length, page: 1, size };
+  }
   const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params }, signal);
   return { ...data, items: data.items.map(normalizeAdminUser) };
 }
 
-export async function loadAdminUsers(): Promise<AdminUserRow[]> {
+export async function loadAdminUsers(signal?: AbortSignal): Promise<AdminUserRow[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return adminUserRows;
-  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users');
+  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users', readRequestInit(signal));
   return data.map(normalizeAdminUser);
 }
 

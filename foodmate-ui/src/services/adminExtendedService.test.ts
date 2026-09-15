@@ -10,6 +10,7 @@ import {
   loadAdminQuery,
   loadAdminExportStatus,
   loadAdminOperationAuditsPage,
+  loadAdminUsersPage,
   loadAdminUsagePage,
   loadKnowledgeBatch,
   loadModelGovernance,
@@ -65,6 +66,44 @@ describe('admin extended APIs', () => {
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/queries/runs?page=2&size=20',
       expect.objectContaining({ method: 'GET', signal: controller.signal }),
+    );
+  });
+
+  it('uses the dedicated user list endpoint for the default page', async () => {
+    const controller = new AbortController();
+    const fetchMock = vi.fn().mockResolvedValue(
+      ok([
+        {
+          user_id: 7,
+          username: 'real-user',
+          email: 'real@example.com',
+          nickname: '真实用户',
+          role: 'user',
+          status: 'active',
+          revision: 3,
+        },
+      ]),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await loadAdminUsersPage({ page: 1, size: 20 }, controller.signal);
+
+    expect(result.items[0]).toMatchObject({ userId: '7', displayName: '真实用户' });
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/users',
+      expect.objectContaining({ method: 'GET', signal: controller.signal }),
+    );
+  });
+
+  it('uses the paginated admin query endpoint when the user page is filtered', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(ok({ items: [], total: 0, page: 1, size: 20 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await loadAdminUsersPage({ page: 1, size: 20, role: 'operator' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/queries/users?page=1&size=20&role=operator',
+      expect.objectContaining({ method: 'GET' }),
     );
   });
 
