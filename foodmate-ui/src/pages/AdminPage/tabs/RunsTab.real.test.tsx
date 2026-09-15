@@ -121,4 +121,45 @@ describe('RunsSection real DLQ view', () => {
 
     expect(capturedSignal?.aborted).toBe(true);
   });
+
+  it('does not expose unsupported result type and error code filters in real mode', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              resource: 'runs',
+              items: [
+                {
+                  agent_run_id: 42,
+                  session_id: 7,
+                  intent: 'planning',
+                  status: 'failed',
+                  trace_id: 'trace-42',
+                  duration_ms: 120,
+                  actor_ref: 'user-42',
+                },
+              ],
+              total: 1,
+              page: 1,
+              size: 20,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/admin/runs']}>
+        <RunsSection />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('trace-42')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: '结果类型筛选' })).toBeDisabled();
+    expect(screen.getByLabelText('错误码')).toBeDisabled();
+  });
 });

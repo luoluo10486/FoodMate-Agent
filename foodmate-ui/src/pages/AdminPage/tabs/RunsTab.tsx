@@ -146,7 +146,8 @@ function queryRunRow(row: AdminQueryRun, index: number): AdminRunRow {
     durationMs: Number(row.duration_ms ?? 0),
     traceId: row.trace_id || '-',
     sessionId: row.session_id == null ? undefined : String(row.session_id),
-    resultType: row.status || '-',
+    // 真实查询契约未返回结果类型，不能用运行状态替代该字段。
+    resultType: '-',
     errorCode: '-',
     stage: row.intent || '-',
     model: '-',
@@ -601,7 +602,7 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
     // 运行治理只加载当前页签，避免把五类运营明细一次性拉入浏览器。
-    const status = resultFilter === 'error' ? 'failed' : statusFilter;
+    const status = isRealMode ? statusFilter : resultFilter === 'error' ? 'failed' : statusFilter;
     const params = {
       page,
       size: governancePageSize,
@@ -645,7 +646,7 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
       governanceRequestIdRef.current += 1;
       controller.abort();
     };
-  }, [activeTab, errorFilter, page, query, refreshNonce, resultFilter, retryNonce, statusFilter]);
+  }, [activeTab, page, query, refreshNonce, resultFilter, retryNonce, statusFilter]);
 
   useEffect(() => {
     const requestId = ++traceDetailRequestIdRef.current;
@@ -970,7 +971,12 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
               setPage(1);
             }}
           >
-            <SelectTrigger className={styles.runFilterControl} aria-label="结果类型筛选">
+            <SelectTrigger
+              className={styles.runFilterControl}
+              aria-label="结果类型筛选"
+              disabled={isRealMode}
+              title={isRealMode ? '真实接口暂未提供结果类型筛选' : undefined}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -986,6 +992,8 @@ export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }
             id="run-governance-error"
             value={errorFilter}
             placeholder="例如 SQL_POLICY"
+            disabled={isRealMode}
+            title={isRealMode ? '真实接口暂未提供错误码筛选' : undefined}
             onChange={(event) => {
               setErrorFilter(event.target.value);
               setPage(1);
