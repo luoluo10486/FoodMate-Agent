@@ -307,7 +307,14 @@ export function LoginPage() {
               <div>
                 <strong>账号已禁用</strong>
                 <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>
-                <Button className={styles.loginAlertAction} variant="ghost" type="button" onClick={() => undefined}>
+                <Button
+                  className={styles.loginAlertAction}
+                  variant="ghost"
+                  type="button"
+                  disabled
+                  aria-label="联系客服（入口暂未配置）"
+                  title="客服入口暂未配置"
+                >
                   联系客服
                 </Button>
               </div>

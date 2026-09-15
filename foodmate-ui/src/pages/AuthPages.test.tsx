@@ -152,7 +152,7 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '登录已禁用' })).toHaveProperty('disabled', true);
   });
 
-  it('uses the Figma account-disabled error banner, support action and example values', () => {
+  it('uses the Figma account-disabled error banner and marks the unavailable support action', () => {
     renderAuth('/login?state=account-disabled');
 
     expect(
@@ -177,7 +177,10 @@ describe('authentication pages', () => {
     expect(screen.getByLabelText('密码')).toHaveValue('password');
     expect(screen.getByRole('alert')).toHaveTextContent('账号已禁用');
     expect(screen.getByRole('alert')).toHaveTextContent('你的账号已被管理员禁用');
-    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('loginAlertAction');
+    const supportAction = screen.getByRole('button', { name: '联系客服（入口暂未配置）' });
+    expect(supportAction).toHaveClass('loginAlertAction');
+    expect(supportAction).toBeDisabled();
+    expect(supportAction).toHaveAttribute('title', '客服入口暂未配置');
     expect(screen.queryByRole('button', { name: '登录' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '账号不可用' })).toHaveProperty('disabled', true);
   });
@@ -472,9 +475,10 @@ describe('authentication pages', () => {
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).toBeInTheDocument();
   });
 
-  it('keeps account support and service recovery actions available as shadcn buttons', () => {
+  it('keeps support and service recovery actions as shadcn buttons with accurate availability', () => {
     renderAuth('/login?state=account-disabled');
-    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('inline-flex');
+    expect(screen.getByRole('button', { name: '联系客服（入口暂未配置）' })).toHaveClass('inline-flex');
+    expect(screen.getByRole('button', { name: '联系客服（入口暂未配置）' })).toBeDisabled();
 
     renderAuth('/login?state=service-unavailable');
     expect(screen.getByRole('button', { name: '刷新页面' })).toHaveClass('inline-flex');

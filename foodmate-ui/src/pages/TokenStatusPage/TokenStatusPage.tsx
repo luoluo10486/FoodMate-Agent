@@ -60,7 +60,14 @@ export function TokenStatusPage() {
             {copy.action}
           </Button>
           {state === 'used' ? (
-            <Button className={styles.tokenSupport} variant="outline" type="button" onClick={() => undefined}>
+            <Button
+              className={styles.tokenSupport}
+              variant="outline"
+              type="button"
+              disabled
+              aria-label="联系客服（入口暂未配置）"
+              title="客服入口暂未配置"
+            >
               联系客服
             </Button>
           ) : null}
