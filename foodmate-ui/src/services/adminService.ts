@@ -1258,6 +1258,7 @@ const knowledgeBatchEventTypes = [
   'knowledge.index.indexed',
   'knowledge.index.index_failed',
   'knowledge.index.retry',
+  'knowledge.index.reindex',
   'knowledge.batch.progress',
 ] as const;
 

@@ -122,6 +122,22 @@ describe('admin knowledge batch SSE', () => {
     stream.close();
   });
 
+  it('consumes the backend reindex event before the progress event', () => {
+    const events: KnowledgeBatchEvent[] = [];
+    const stream = streamKnowledgeBatch('9001', (event) => events.push(event));
+    const source = FakeEventSource.instances[0];
+
+    source.emit('knowledge.index.reindex', { item_id: 42, status: 'pending' }, 'reindex-1');
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      event_id: 'reindex-1',
+      event_type: 'knowledge.index.reindex',
+      payload: { item_id: 42, status: 'pending' },
+    });
+    stream.close();
+  });
+
   it('closes the stream and prevents reconnect after cancellation', async () => {
     const controller = new AbortController();
     const stream = streamKnowledgeBatch('9001', () => undefined, {
