@@ -7,9 +7,12 @@ import com.foodmate.application.account.port.out.AdminManagementRepository;
 import com.foodmate.application.account.port.out.AdminManagementRepository.ResourceSnapshot;
 import com.foodmate.application.account.port.out.AdminManagementRepository.ToolSnapshot;
 import com.foodmate.application.account.port.out.AdminManagementRepository.UserSnapshot;
+import com.foodmate.application.account.port.out.PasswordResetNotifier;
 import com.foodmate.application.account.service.AdminManagementService;
 import com.foodmate.application.account.service.AdminManagementService.AdminWriteCommand;
 import com.foodmate.application.account.service.AdminManagementService.ManagementResult;
+import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.account.service.UserAccountService.AdminPasswordReset;
 import com.foodmate.application.common.port.out.OperationAuditPort.IdempotencyRecord;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.account.enums.UserRole;
@@ -24,6 +27,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Map;
 import java.util.Objects;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -37,12 +42,35 @@ public class AdminManagementServiceImpl implements AdminManagementService {
     private final AdminManagementRepository store;
     private final OperationAuditService audit;
     private final ObjectMapper mapper;
+    private final UserAccountService accounts;
+    private final PasswordResetNotifier passwordResetNotifier;
 
     public AdminManagementServiceImpl(
             AdminManagementRepository store, OperationAuditService audit, ObjectMapper mapper) {
+        this(store, audit, mapper, null, (PasswordResetNotifier) null);
+    }
+
+    public AdminManagementServiceImpl(
+            AdminManagementRepository store,
+            OperationAuditService audit,
+            ObjectMapper mapper,
+            UserAccountService accounts,
+            PasswordResetNotifier passwordResetNotifier) {
         this.store = Objects.requireNonNull(store);
         this.audit = Objects.requireNonNull(audit);
         this.mapper = mapper.copy().findAndRegisterModules();
+        this.accounts = accounts;
+        this.passwordResetNotifier = passwordResetNotifier;
+    }
+
+    @Autowired
+    public AdminManagementServiceImpl(
+            AdminManagementRepository store,
+            OperationAuditService audit,
+            ObjectMapper mapper,
+            UserAccountService accounts,
+            ObjectProvider<PasswordResetNotifier> notifierProvider) {
+        this(store, audit, mapper, accounts, notifierProvider.getIfAvailable());
     }
 
     @Override
@@ -131,6 +159,69 @@ public class AdminManagementServiceImpl implements AdminManagementService {
 
             ManagementResult result =
                     new ManagementResult(true, null, revoked.revoked(), revoked.revision());
+            audit.complete(command.operatorId(), command.idempotencyKey(), json(result));
+            return result;
+        } catch (RuntimeException exception) {
+            recordFailureIfNeeded(reserved, command, "user", targetId, action, digest, exception);
+            throw exception;
+        }
+    }
+
+    @Override
+    @Transactional
+    public ManagementResult resetUserCredentials(long userId, AdminWriteCommand command) {
+        String action = "admin.user.credentials.reset";
+        String targetId = Long.toString(userId);
+        String digest = digest(action, targetId, null, command);
+        boolean reserved = false;
+        try {
+            validateCommand(command);
+            requireAdmin(command);
+            if (userId <= 0) throw invalid("invalid user id");
+            requireConfirmation(
+                    command, confirmationDigest(action, targetId, "", command.revision()));
+
+            IdempotencyRecord previous = existing(command, digest);
+            if (previous != null) return replay(previous, digest);
+            if (audit.reserve(
+                            command.operatorId(),
+                            "user",
+                            targetId,
+                            action,
+                            digest,
+                            command.idempotencyKey(),
+                            Map.of(
+                                    "revision",
+                                    command.revision(),
+                                    "delivery",
+                                    "password_reset_email"))
+                    != 1) {
+                previous = audit.findIdempotency(command.operatorId(), command.idempotencyKey());
+                if (previous != null) return replay(previous, digest);
+                throw conflict("幂等请求无法占用");
+            }
+            reserved = true;
+
+            UserSnapshot current = requireUser(userId);
+            if ("superadmin".equalsIgnoreCase(current.role())
+                    && command.operatorRole() != UserRole.SUPERADMIN) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "不能由 admin 重置 superadmin 凭证");
+            }
+            requireRevision(current.revision(), command.revision(), "用户账户版本已变化");
+            if (accounts == null
+                    || passwordResetNotifier == null
+                    || !passwordResetNotifier.isAvailable())
+                throw new BusinessException(ErrorCode.COORDINATION_UNAVAILABLE, "密码重置通知服务暂不可用");
+
+            AdminPasswordReset reset = accounts.createAdminPasswordReset(userId);
+            if (reset == null || reset.recipient() == null || reset.recipient().isBlank())
+                throw new BusinessException(ErrorCode.COORDINATION_UNAVAILABLE, "用户密码重置通知信息不可用");
+            if (store.bumpUserRevision(userId, command.operatorId(), command.revision()) != 1)
+                throw conflict("用户账户状态已变化");
+            passwordResetNotifier.send(reset.recipient(), reset.token());
+
+            ManagementResult result =
+                    new ManagementResult(true, "requested", 0, command.revision() + 1);
             audit.complete(command.operatorId(), command.idempotencyKey(), json(result));
             return result;
         } catch (RuntimeException exception) {

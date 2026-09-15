@@ -45,6 +45,7 @@ import type { AdminActionPayload } from './types';
 import {
   loadAdminUserDetail,
   loadAdminUsersPage,
+  resetAdminUserCredentials,
   revokeAdminUserSessions,
   type AdminUserDetail,
   updateAdminUserStatus,
@@ -360,6 +361,18 @@ export function UsersSection({
     });
   };
 
+  const resetCredentials = (record: AdminUserView) => {
+    onAction({
+      action: '重置凭证',
+      targetLabel: record.userId,
+      targetType: 'user_credentials',
+      targetId: record.userId,
+      execute: async (signal) => {
+        await resetAdminUserCredentials(record.userId, record.revision ?? 1, signal);
+      },
+    });
+  };
+
   return (
     <section className={`${styles.usersLayout} ${isMockMode ? styles.usersLayoutFigma : ''}`}>
       <div className={styles.usersListColumn}>
@@ -533,6 +546,7 @@ export function UsersSection({
             figmaFixture={isFigmaFixture}
             onRetryDetail={() => setDetailRetryNonce((value) => value + 1)}
             onRevoke={() => revokeSessions(selectedUser)}
+            onResetCredentials={() => resetCredentials(selectedUser)}
           />
         ) : (
           <Card className={styles.userDetailCard}>
@@ -671,6 +685,7 @@ function UserDetailCard({
   figmaFixture,
   onRetryDetail,
   onRevoke,
+  onResetCredentials,
 }: {
   user: AdminUserView;
   detail?: AdminUserDetail;
@@ -679,6 +694,7 @@ function UserDetailCard({
   figmaFixture: boolean;
   onRetryDetail: () => void;
   onRevoke: () => void;
+  onResetCredentials: () => void;
 }) {
   const profile = detail?.profile;
   const sessions = isMockMode
@@ -717,7 +733,7 @@ function UserDetailCard({
   const avatarSource = resolveAvatarUrl(user.avatarUrl, profile?.gender || user.gender);
   // Figma 用户详情使用登记的默认头像；真实用户详情仍允许展示后端上传头像。
   const isFixtureUser = isMockMode || user.key.startsWith('figma-');
-  const canPreviewCredentialReset = isMockMode;
+  const canResetCredentials = isMockMode || canManage;
 
   return (
     <Card className={styles.userDetailCard}>
@@ -847,25 +863,23 @@ function UserDetailCard({
           variant="outline"
           className={styles.userCredentialButton}
           type="button"
-          disabled={!canPreviewCredentialReset}
-          aria-describedby={!canPreviewCredentialReset ? 'user-credential-reset-hint' : undefined}
-          title={!canPreviewCredentialReset ? '后端当前未提供凭证重置接口' : undefined}
+          disabled={!canResetCredentials}
+          aria-describedby={!canResetCredentials ? 'user-credential-reset-hint' : undefined}
+          title={!canResetCredentials ? '当前账号没有凭证重置权限' : undefined}
           onClick={
-            canPreviewCredentialReset
+            isMockMode
               ? () =>
                   window.dispatchEvent(
-                    new CustomEvent('foodmate:admin-notice', {
-                      detail: { message: 'Fixture 仅展示凭证重置入口，真实接口尚未提供。' },
-                    }),
+                    new CustomEvent('foodmate:admin-notice', { detail: { message: 'Fixture 仅展示凭证重置入口。' } }),
                   )
-              : undefined
+              : onResetCredentials
           }
         >
           重置凭证
         </Button>
-        {!canPreviewCredentialReset ? (
+        {!canResetCredentials ? (
           <span id="user-credential-reset-hint" className={styles.userCredentialHint}>
-            后端当前未提供凭证重置接口
+            当前账号没有凭证重置权限
           </span>
         ) : null}
         <Button variant="outline" className={styles.userRevokeButton} disabled={!canManage} onClick={onRevoke}>

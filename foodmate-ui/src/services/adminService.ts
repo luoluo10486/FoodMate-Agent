@@ -1187,6 +1187,17 @@ export async function revokeAdminUserSessions(id: string, revision = 1, signal?:
     signal,
   );
 }
+
+export async function resetAdminUserCredentials(id: string, revision = 1, signal?: AbortSignal) {
+  const digest = await confirmationDigest('admin.user.credentials.reset', id, '', revision);
+  return adminWrite(
+    `/api/admin/users/${encodeURIComponent(id)}/credentials/reset`,
+    'POST',
+    { revision, confirmed: true, confirmationDigest: digest },
+    'admin-user-credentials-reset',
+    signal,
+  );
+}
 export async function updateAdminToolStatus(name: string, status: string, revision = 1, signal?: AbortSignal) {
   const action = 'admin.tool.status.update';
   const digest = await confirmationDigest(action, name, status, revision);

@@ -15,6 +15,8 @@ public interface AdminManagementRepository {
 
     RevokeResult revokeSessions(long userId, long operatorId, long revision);
 
+    int bumpUserRevision(long userId, long operatorId, long revision);
+
     int updateToolStatus(String name, ToolStatus status, long operatorId, long revision);
 
     int restore(

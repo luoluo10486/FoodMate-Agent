@@ -4,6 +4,7 @@ import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -75,6 +76,30 @@ class AdminManagementControllerTest {
                         anyLong(),
                         Mockito.any(UserStatus.class),
                         Mockito.any(AdminWriteCommand.class));
+    }
+
+    @Test
+    void adminCanRequestCredentialResetWithoutReturningToken() throws Exception {
+        when(accounts.requireSessionUser("admin-session")).thenReturn(user("admin"));
+        when(management.resetUserCredentials(anyLong(), Mockito.any(AdminWriteCommand.class)))
+                .thenReturn(new AdminManagementService.ManagementResult(true, "requested", 0, 2));
+
+        mvc.perform(
+                        post("/api/admin/users/9/credentials/reset")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "admin-session"))
+                                .contentType("application/json")
+                                .header("Idempotency-Key", "admin-credential-reset-1")
+                                .content(
+                                        "{\"revision\":1,\"confirmed\":true,\"confirmationDigest\":\"digest\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.requested", is(true)))
+                .andExpect(jsonPath("$.data.revision", is(2)))
+                .andExpect(jsonPath("$.data.token").doesNotExist());
+
+        Mockito.verify(management)
+                .resetUserCredentials(anyLong(), Mockito.any(AdminWriteCommand.class));
     }
 
     private UserAccountService.UserRecord user(String role) {

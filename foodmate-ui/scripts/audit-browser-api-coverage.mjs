@@ -205,10 +205,10 @@ export function main() {
   );
 
   if (
-    result.controllerMappings.length !== 126 ||
-    result.browserMappings.length !== 119 ||
+    result.controllerMappings.length !== 127 ||
+    result.browserMappings.length !== 120 ||
     result.internalMappings.length !== 7 ||
-    result.coverageRows.length !== 119 ||
+    result.coverageRows.length !== 120 ||
     result.missingDocumentation.length > 0 ||
     result.staleDocumentation.length > 0 ||
     result.missingConsumers.length > 0

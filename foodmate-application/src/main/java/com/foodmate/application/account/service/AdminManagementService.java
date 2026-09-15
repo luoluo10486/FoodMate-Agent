@@ -11,6 +11,8 @@ public interface AdminManagementService {
 
     ManagementResult revokeSessions(long userId, AdminWriteCommand command);
 
+    ManagementResult resetUserCredentials(long userId, AdminWriteCommand command);
+
     ManagementResult updateToolStatus(String name, ToolStatus status, AdminWriteCommand command);
 
     ManagementResult restore(RestorableResourceType type, long id, AdminWriteCommand command);

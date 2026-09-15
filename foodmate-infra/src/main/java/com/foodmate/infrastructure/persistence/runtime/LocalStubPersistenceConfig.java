@@ -352,6 +352,10 @@ public class LocalStubPersistenceConfig {
                 return null;
             }
 
+            public int bumpUserRevision(long userId, long operatorId, long revision) {
+                return 0;
+            }
+
             public int updateToolStatus(
                     String name,
                     com.foodmate.shared.runtime.enums.ToolStatus status,

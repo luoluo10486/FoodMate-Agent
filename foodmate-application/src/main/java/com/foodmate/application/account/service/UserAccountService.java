@@ -42,6 +42,8 @@ public interface UserAccountService {
 
     String createPasswordResetToken(String email);
 
+    AdminPasswordReset createAdminPasswordReset(long userId);
+
     void resetPassword(String token, String newPassword);
 
     UserRecord requireSessionUser(String sessionToken);
@@ -146,6 +148,9 @@ public interface UserAccountService {
             String nickname,
             String role,
             String status) {}
+
+    /** 管理员发起密码重置时交给通知端口的最小敏感数据。 */
+    record AdminPasswordReset(long userId, String recipient, String token) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record ProfileRecord(

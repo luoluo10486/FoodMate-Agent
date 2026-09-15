@@ -3,6 +3,7 @@ package com.foodmate.api.controller.account;
 import com.foodmate.api.request.account.AdminMutationRequest;
 import com.foodmate.api.request.account.ToolStatusRequest;
 import com.foodmate.api.request.account.UserStatusRequest;
+import com.foodmate.api.response.account.CredentialResetResponse;
 import com.foodmate.api.response.account.RestoreResponse;
 import com.foodmate.api.response.account.RevokedSessionsResponse;
 import com.foodmate.api.response.account.StatusUpdateResponse;
@@ -72,6 +73,25 @@ public class AdminManagementController extends AuthenticatedControllerSupport {
                                 body.confirmed(),
                                 body.confirmationDigest()));
         return ok(new RevokedSessionsResponse(result.affected(), result.revision()));
+    }
+
+    @PostMapping("/users/{id}/credentials/reset")
+    public ApiResponse<CredentialResetResponse> resetCredentials(
+            @PathVariable long id,
+            @Valid @RequestBody AdminMutationRequest body,
+            @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
+            HttpServletRequest request) {
+        var operator = requireAnyRole(request, UserRole.ADMIN, UserRole.SUPERADMIN);
+        var result =
+                management.resetUserCredentials(
+                        id,
+                        command(
+                                operator,
+                                idempotencyKey,
+                                body.revision(),
+                                body.confirmed(),
+                                body.confirmationDigest()));
+        return ok(new CredentialResetResponse(result.changed(), result.revision()));
     }
 
     @PatchMapping("/tools/{name}/status")

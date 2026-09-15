@@ -27,6 +27,7 @@ import {
   updateAdminToolStatus,
   updateAdminUserStatus,
   revokeAdminUserSessions,
+  resetAdminUserCredentials,
 } from './adminService';
 
 function ok(data: unknown) {
@@ -190,6 +191,7 @@ describe('admin extended APIs', () => {
 
     await updateAdminUserStatus('7', 'locked', 3, controller.signal);
     await revokeAdminUserSessions('7', 3, controller.signal);
+    await resetAdminUserCredentials('7', 3, controller.signal);
     await updateAdminToolStatus('food_log_writer', 'disabled', 7, controller.signal);
     await restoreAdminResource('user', '7', 4, controller.signal);
     await replayAdminDlq(11, controller.signal);
@@ -228,16 +230,18 @@ describe('admin extended APIs', () => {
       controller.signal,
     );
 
-    expect(fetchMock).toHaveBeenCalledTimes(13);
+    expect(fetchMock).toHaveBeenCalledTimes(14);
     const userStatusBody = JSON.parse(String(fetchMock.mock.calls[0][1].body));
     const revokeSessionsBody = JSON.parse(String(fetchMock.mock.calls[1][1].body));
-    const toolStatusBody = JSON.parse(String(fetchMock.mock.calls[2][1].body));
-    const restoreBody = JSON.parse(String(fetchMock.mock.calls[3][1].body));
+    const credentialResetBody = JSON.parse(String(fetchMock.mock.calls[2][1].body));
+    const toolStatusBody = JSON.parse(String(fetchMock.mock.calls[3][1].body));
+    const restoreBody = JSON.parse(String(fetchMock.mock.calls[4][1].body));
     expect(userStatusBody).toMatchObject({ status: 'locked', revision: 3, confirmed: true });
     expect(revokeSessionsBody).toMatchObject({ revision: 3, confirmed: true });
+    expect(credentialResetBody).toMatchObject({ revision: 3, confirmed: true });
     expect(toolStatusBody).toMatchObject({ status: 'disabled', revision: 7, confirmed: true });
     expect(restoreBody).toMatchObject({ revision: 4, confirmed: true });
-    for (const body of [userStatusBody, revokeSessionsBody, toolStatusBody, restoreBody])
+    for (const body of [userStatusBody, revokeSessionsBody, credentialResetBody, toolStatusBody, restoreBody])
       expect(body.confirmationDigest).toMatch(/^[0-9a-f]{64}$/);
     for (const [, init] of fetchMock.mock.calls) {
       expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));

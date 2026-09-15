@@ -35,7 +35,7 @@ describe('Admin 用户管理真实模式', () => {
     vi.clearAllMocks();
   });
 
-  it('真实模式禁用没有后端接口的凭证重置，并保持操作回调不写入 Fixture', async () => {
+  it('真实模式通过正式接口请求凭证重置并保持令牌不进入前端', async () => {
     const fetchMock = vi.fn((input: RequestInfo | URL) => {
       const path = new URL(String(input), 'http://foodmate.local').pathname;
       if (path === '/api/admin/users') {
@@ -69,6 +69,9 @@ describe('Admin 用户管理真实模式', () => {
           }),
         );
       }
+      if (path === '/api/admin/users/7/credentials/reset') {
+        return Promise.resolve(jsonResponse({ success: true, data: { requested: true, revision: 4 } }));
+      }
       return Promise.resolve(jsonResponse({ success: true, data: {} }));
     });
     vi.stubGlobal('fetch', fetchMock);
@@ -78,14 +81,26 @@ describe('Admin 用户管理真实模式', () => {
     render(<UsersSection onAction={onAction} />);
 
     const row = await screen.findByRole('row', { name: /7 real-user/ });
-    expect(screen.getByRole('button', { name: '重置凭证' })).toBeDisabled();
-    expect(screen.getByText('后端当前未提供凭证重置接口')).toBeInTheDocument();
+    const resetButton = screen.getByRole('button', { name: '重置凭证' });
+    expect(resetButton).toBeEnabled();
+
+    await user.click(resetButton);
+    expect(onAction).toHaveBeenCalledTimes(1);
+    const resetAction = onAction.mock.calls[0][0];
+    await resetAction.execute?.();
+    const resetCall = fetchMock.mock.calls.find(
+      ([input]) => String(input) === '/api/admin/users/7/credentials/reset',
+    ) as [RequestInfo | URL, RequestInit] | undefined;
+    expect(resetCall).toBeDefined();
+    const resetBody = JSON.parse(String(resetCall?.[1]?.body));
+    expect(resetBody).toMatchObject({ revision: 3, confirmed: true });
+    expect(resetBody).not.toHaveProperty('token');
 
     await user.click(within(row).getByRole('button', { name: '7 操作' }));
     await user.click(screen.getByRole('menuitem', { name: '锁定用户' }));
 
-    expect(onAction).toHaveBeenCalledTimes(1);
-    const action = onAction.mock.calls[0][0];
+    expect(onAction).toHaveBeenCalledTimes(2);
+    const action = onAction.mock.calls[1][0];
     action.onApply?.();
     expect(within(row).getByText('活跃')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/admin/users')).toBe(true);
