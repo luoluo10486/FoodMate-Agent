@@ -80,8 +80,9 @@ class M15FoodLogWriterHttpE2ETest extends M15FoodLogWriterE2ETestSupport {
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                        Long.parseLong(foodLogId)));
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=?",
+                        Long.parseLong(foodLogId),
+                        TEST_NUTRITION_FOOD_ID));
     }
 
     @Test

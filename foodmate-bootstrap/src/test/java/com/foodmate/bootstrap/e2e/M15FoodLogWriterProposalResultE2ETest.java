@@ -61,8 +61,9 @@ class M15FoodLogWriterProposalResultE2ETest extends M15FoodLogWriterE2ETestSuppo
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                        Long.parseLong(foodLogId)));
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=?",
+                        Long.parseLong(foodLogId),
+                        TEST_NUTRITION_FOOD_ID));
         assertEquals(
                 1,
                 count(

@@ -9,7 +9,9 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.food.service.ApprovalService;
 import com.foodmate.application.food.service.FoodLogService;
 import com.foodmate.application.runtime.service.AgentRunCommandService;
+import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.food.enums.MealType;
+import com.foodmate.shared.runtime.V1RunEvent;
 import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,11 +24,15 @@ import org.springframework.jdbc.core.JdbcTemplate;
 
 /** Shared fixtures and assertions for the two real M1-5 writer transports. */
 abstract class M15FoodLogWriterE2ETestSupport {
+    protected static final long TEST_NUTRITION_FOOD_ID = 168880L;
+    protected static final long TEST_CUP_CONVERSION_ID = 600083930L;
+
     protected final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     @Autowired protected UserAccountService accounts;
     @Autowired protected AgentRunCommandService runs;
     @Autowired protected ApprovalService approvals;
+    @Autowired protected V1RuntimeEventService runtimeEvents;
     @Autowired protected FoodLogService foods;
     @Autowired protected JdbcTemplate jdbc;
 
@@ -57,7 +63,10 @@ abstract class M15FoodLogWriterE2ETestSupport {
                         "agent",
                         List.of(
                                 new FoodLogService.ItemCommand(
-                                        "rice", new BigDecimal("100"), "g"))));
+                                        "rice",
+                                        new BigDecimal("100"),
+                                        "g",
+                                        TEST_NUTRITION_FOOD_ID))));
     }
 
     protected ApprovalService.ProposalView propose(
@@ -79,8 +88,52 @@ abstract class M15FoodLogWriterE2ETestSupport {
                                 input,
                                 key,
                                 300));
+        markRunWaitingForApproval(fixture, proposal);
         if (confirm) approvals.confirm(fixture.userId(), proposal.approvalRequestId(), input);
         return proposal;
+    }
+
+    private void markRunWaitingForApproval(Fixture fixture, ApprovalService.ProposalView proposal) {
+        String status =
+                jdbc.queryForObject(
+                        "SELECT status FROM agent_runs WHERE agent_run_id=?",
+                        String.class,
+                        fixture.runId());
+        if ("waiting_user".equals(status)) return;
+        DispatchState dispatch =
+                jdbc.queryForObject(
+                        """
+                        SELECT d.dispatch_id,d.attempt,d.last_event_seq
+                        FROM agent_runs r
+                        JOIN agent_run_dispatches d ON d.agent_run_dispatch_id=r.active_dispatch_id
+                        WHERE r.agent_run_id=? AND d.dispatch_arbitration_state='active'
+                        """,
+                        (resultSet, rowNum) ->
+                                new DispatchState(
+                                        resultSet.getString("dispatch_id"),
+                                        resultSet.getInt("attempt"),
+                                        resultSet.getLong("last_event_seq")),
+                        fixture.runId());
+        ObjectNode payload = mapper.createObjectNode();
+        payload.put("status", "waiting_user");
+        payload.put("tool_name", "food_log_writer");
+        payload.put("approval_request_id", Long.toString(proposal.approvalRequestId()));
+        payload.put("operation", proposal.operation());
+        payload.put("resource_type", proposal.resourceType());
+        runtimeEvents.accept(
+                new V1RunEvent(
+                        "v1",
+                        Long.toString(fixture.runId()),
+                        dispatch.dispatchId(),
+                        dispatch.attempt(),
+                        "m15-clarification-" + fixture.suffix(),
+                        dispatch.lastEventSeq() + 1,
+                        "m15-request-" + fixture.suffix(),
+                        "trace-m15-" + fixture.suffix(),
+                        "sha256:m15-clarification-" + fixture.suffix(),
+                        Instant.now(),
+                        "run.clarification_requested",
+                        payload));
     }
 
     protected WriterRequest writerRequest(
@@ -104,7 +157,12 @@ abstract class M15FoodLogWriterE2ETestSupport {
         input.put("meal_time", Instant.now().minusSeconds(30).toString());
         input.put("meal_type", "lunch");
         input.put("notes", notes);
-        input.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        input.putArray("items")
+                .addObject()
+                .put("name", "rice")
+                .put("amount", 100)
+                .put("unit", "g")
+                .put("nutrition_food_id", TEST_NUTRITION_FOOD_ID);
         return input;
     }
 
@@ -324,9 +382,11 @@ abstract class M15FoodLogWriterE2ETestSupport {
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001 AND normalized_amount=? AND normalized_unit='g' AND conversion_id=520001",
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=? AND normalized_amount=? AND normalized_unit='g' AND conversion_id=?",
                         foodLogId,
-                        new BigDecimal("186.000")));
+                        TEST_NUTRITION_FOOD_ID,
+                        new BigDecimal("186.000"),
+                        TEST_CUP_CONVERSION_ID));
         assertEquals(
                 new BigDecimal("241.8000"),
                 jdbc.queryForObject(
@@ -412,9 +472,10 @@ abstract class M15FoodLogWriterE2ETestSupport {
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND is_deleted=FALSE AND raw_name='rice' AND amount=? AND nutrition_status='matched' AND nutrition_food_id=510001",
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND is_deleted=FALSE AND raw_name='rice' AND amount=? AND nutrition_status='matched' AND nutrition_food_id=?",
                         foodLogId,
-                        new BigDecimal(amount)));
+                        new BigDecimal(amount),
+                        TEST_NUTRITION_FOOD_ID));
     }
 
     protected void assertAudit(long userId, long approvalId, String action, int expected) {
@@ -466,6 +527,8 @@ abstract class M15FoodLogWriterE2ETestSupport {
     }
 
     protected record Fixture(long userId, long sessionId, long runId, String suffix) {}
+
+    private record DispatchState(String dispatchId, int attempt, long lastEventSeq) {}
 
     protected record WriterRequest(
             String proposalId,
