@@ -18,6 +18,7 @@ import { Input } from '../../components/ui/input';
 import { FigmaWorkspaceAsset } from '../../components/workspace/FigmaWorkspaceAsset';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { isAbortError } from '../../services/apiClient';
 import { getAuthUser } from '../../services/authService';
 import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
@@ -268,7 +269,7 @@ export function HomePage() {
   const homeState = getHomeState(searchParams.get('state'));
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   // Home 的四个状态画板都来自 Figma，不能只有默认态使用设计稿壳层。
-  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'figma-v2' || homeState !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || homeState !== 'default');
   const isHomeStateFixture = !isRealMode && homeState !== 'default';
   const fixtureHomeState = isHomeStateFixture ? homeState : 'default';
   const [prompt, setPrompt] = useState('');

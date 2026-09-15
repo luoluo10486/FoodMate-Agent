@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { isAbortError } from '../../services/apiClient';
 import {
@@ -222,7 +223,7 @@ export function AnalysisPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisState = getAnalysisState(searchParams.get('state'));
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || analysisState !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || analysisState !== 'default');
   const [range, setRange] = useState<RangeKey>('7d');
   const [notice, setNotice] = useState('');
   const [realData, setRealData] = useState<NutritionAnalysis>();

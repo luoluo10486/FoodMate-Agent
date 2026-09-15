@@ -47,6 +47,18 @@
   padding-top: 24px;
 }
 
+/* Figma fixture 的会话清单是固定画板内容，短视口下不能被 flex 压缩到导航区域内。 */
+.figmaFixture .sidebar {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+/* 内容超出视口时由侧栏滚动，保证会话、饮食导航和账户区保持文档流顺序。 */
+.figmaFixture .sessionTools {
+  flex: 0 0 auto;
+  overflow: visible;
+}
+
 /* 窗口控制点是 Figma 画板装饰，不参与导航和键盘交互。 */
 .windowControls {
   width: 52px;

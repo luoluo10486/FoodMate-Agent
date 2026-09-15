@@ -23,6 +23,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { ApiError, isAbortError } from '../../services/apiClient';
 import {
@@ -414,7 +415,7 @@ export function DietRecordsPage() {
   const linkedMealPlanMealId = searchParams.get('mealPlanMealId') ?? undefined;
   const linkedMealType = searchParams.get('mealType');
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || recordsState !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || recordsState !== 'default');
   const [selectedDate, setSelectedDate] = useState(() => (isRealMode ? new Date() : initialDate));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -605,7 +606,22 @@ export function DietRecordsPage() {
       setSelectedCompositeDishId(undefined);
       setCompositeDishServings('1');
     },
-    [selectedDate],
+    [
+      selectedDate,
+      setNotice,
+      setDialogMode,
+      setEditingLogId,
+      setDialogMealId,
+      setDialogDate,
+      setFoodName,
+      setFoodAmount,
+      setFoodUnit,
+      setNutritionFoodId,
+      setNutritionCandidates,
+      setNutritionCandidatesError,
+      setSelectedCompositeDishId,
+      setCompositeDishServings,
+    ],
   );
 
   const openEditDialog = (logId: string) => {

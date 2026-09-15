@@ -102,6 +102,15 @@ describe('DietRecordsPage', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/analysis');
   });
 
+  it('uses the Figma shell for the current figma-v2 query parameter', () => {
+    renderPage('/analysis?view=records&state=figma-v2');
+
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getAllByText('已确认').length).toBeGreaterThan(0);
+    expect(document.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
+  });
+
   it('keeps the action bar after meal content in document flow', () => {
     renderPage('/analysis?view=records&state=v2');
 

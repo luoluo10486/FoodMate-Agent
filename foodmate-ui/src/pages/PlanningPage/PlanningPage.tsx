@@ -6,6 +6,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import type { SessionSummary } from '../../types/session';
 import { ApiError, isAbortError } from '../../services/apiClient';
 import {
@@ -994,7 +995,7 @@ export function PlanningPage() {
     };
   }, [activePlanId, selectedPlan?.deleted, selectedPlan?.status]);
 
-  const isFigmaFixture = !isRealMode && (requestedView === 'v2' || view !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(requestedView) || view !== 'default');
   // 所有 Figma fixture 状态页都复用完整工作区侧栏，保证状态切换不改变壳层结构。
 
   const navigatePlanningView = (nextView: MealPlanningFlowView | 'default') => {

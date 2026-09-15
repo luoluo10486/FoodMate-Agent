@@ -50,6 +50,7 @@ import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
 import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl } from '../../lib/avatar';
 import { flattenAgentEventPayload, resolveAgentEventType } from '../../lib/agentEvent';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
 import { useRealAgentReplay } from '../../services/realAgentService';
@@ -4050,7 +4051,7 @@ function MockChatPage() {
   const params = useParams();
   const sessionId = params.session_id;
   const [searchParams] = useSearchParams();
-  const isFigmaFixture = searchParams.get('state') === 'figma-v2';
+  const isFigmaFixture = isFigmaFixtureState(searchParams.get('state'));
   const agent = useAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
 
