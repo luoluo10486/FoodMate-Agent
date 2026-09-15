@@ -5,13 +5,18 @@ export class ApiError extends Error {
     public readonly code: ApiErrorCode,
     message: string,
     public readonly status?: number,
+    public readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
   }
 }
 
-type ApiEnvelope<T> = { success: boolean; data: T; error?: { code: string; message: string } };
+type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  error?: { code: string; message: string; details?: unknown };
+};
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let refreshInFlight: Promise<void> | undefined;
@@ -72,6 +77,7 @@ async function refreshAuthSession(): Promise<void> {
           body?.error?.code ?? 'AUTH_REFRESH_TOKEN_INVALID',
           body?.error?.message ?? '登录已失效，请重新登录',
           response.status,
+          body?.error?.details,
         );
     })().finally(() => {
       refreshInFlight = undefined;
@@ -106,12 +112,18 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     throw new ApiError('AUTH_REQUIRED', '登录已失效，请重新登录', 401);
   }
   if (response.status === 403)
-    throw new ApiError(body?.error?.code ?? 'FORBIDDEN', body?.error?.message ?? '当前账号无权执行此操作', 403);
+    throw new ApiError(
+      body?.error?.code ?? 'FORBIDDEN',
+      body?.error?.message ?? '当前账号无权执行此操作',
+      403,
+      body?.error?.details,
+    );
   if (!response.ok || !body?.success)
     throw new ApiError(
       body?.error?.code ?? 'SERVER_ERROR',
       body?.error?.message ?? `请求失败（${response.status}）`,
       response.status,
+      body?.error?.details,
     );
   return body.data;
 }

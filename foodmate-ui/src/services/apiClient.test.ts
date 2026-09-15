@@ -74,6 +74,28 @@ describe('apiClient authentication recovery', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 
+  it('preserves structured backend error details for field-level feedback', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: {
+            code: 'INVALID_ARGUMENT',
+            message: '请求参数无效',
+            details: { new_password: '密码长度不足' },
+          },
+        }),
+        { status: 400 },
+      ),
+    );
+
+    await expect(apiRequest('/api/auth/password-reset/confirm', { method: 'POST', body: '{}' })).rejects.toMatchObject({
+      code: 'INVALID_ARGUMENT',
+      status: 400,
+      details: { new_password: '密码长度不足' },
+    });
+  });
+
   it('preserves account lock and disable codes from forbidden responses', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(

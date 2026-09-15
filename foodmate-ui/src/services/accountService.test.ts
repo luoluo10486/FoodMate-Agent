@@ -93,4 +93,20 @@ describe('accountService export response mapping', () => {
     expect(vi.mocked(fetch).mock.calls).toHaveLength(10);
     expect(vi.mocked(fetch).mock.calls.every(([, init]) => init?.signal === controller.signal)).toBe(true);
   });
+
+  it('uses the backend snake_case fields for password and deletion requests', async () => {
+    vi.mocked(fetch)
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: null }), { status: 200 }));
+
+    await changePassword('current-password', 'StrongPass99!');
+    await requestAccountDeletion('DELETE_MY_ACCOUNT', 'current-password');
+
+    expect(vi.mocked(fetch).mock.calls[0][1]?.body).toBe(
+      JSON.stringify({ current_password: 'current-password', new_password: 'StrongPass99!' }),
+    );
+    expect(vi.mocked(fetch).mock.calls[1][1]?.body).toBe(
+      JSON.stringify({ confirmation: 'DELETE_MY_ACCOUNT', current_password: 'current-password' }),
+    );
+  });
 });
