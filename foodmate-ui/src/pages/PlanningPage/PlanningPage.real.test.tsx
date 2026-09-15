@@ -410,6 +410,26 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 
+  it('reloads the authoritative plan list after deleting a plan', async () => {
+    const deletedPlan = { ...plan, deleted: true, revision: 4 };
+    vi.mocked(loadMealPlans).mockResolvedValueOnce([plan]).mockResolvedValueOnce([deletedPlan]);
+    const user = userEvent.setup();
+    renderPage('/planning?state=list');
+
+    await user.click(await screen.findByRole('button', { name: '服务端增肌计划更多操作' }));
+    await user.click(screen.getByRole('menuitem', { name: '删除计划' }));
+    await user.click(screen.getByRole('button', { name: '确认删除' }));
+
+    await waitFor(() => expect(deleteMealPlan).toHaveBeenCalledWith('701', 3, expect.any(AbortSignal)));
+    await waitFor(() => expect(loadMealPlans).toHaveBeenCalledTimes(2));
+    await user.click(screen.getByRole('tab', { name: '已删除' }));
+
+    const deletedCard = await screen.findByRole('heading', { name: '服务端增肌计划' });
+    expect(
+      within(deletedCard.closest('article') as HTMLElement).getByText('已删除', { selector: 'span' }),
+    ).toBeInTheDocument();
+  });
+
   it('cancels a pending plan mutation when the page unmounts', async () => {
     const pending = deferred<void>();
     vi.mocked(deleteMealPlan).mockImplementation((_mealPlanId, _revision, signal) => {

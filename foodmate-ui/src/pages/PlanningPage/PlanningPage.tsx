@@ -1126,7 +1126,7 @@ export function PlanningPage() {
       '餐食计划删除失败，请重试。',
     );
     if (!mountedRef.current || result.requestId !== planActionRequestId.current) return;
-    setRealPlans((current) => current.filter((item) => item.meal_plan_id !== plan.meal_plan_id));
+    // 删除接口只返回空响应，删除后的计划状态必须以服务端列表回读为准。
     setPlanReloadNonce((value) => value + 1);
     if (selectedPlanId === plan.meal_plan_id) navigate('/planning?state=list');
   };
