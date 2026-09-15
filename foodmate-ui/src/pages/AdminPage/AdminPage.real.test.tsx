@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -158,6 +158,75 @@ describe('AdminPage real mode fixture isolation', () => {
     expect(await screen.findByText('管理查询暂不可用')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重试' }));
     expect(await screen.findByText('重试后运行总量')).toBeInTheDocument();
+  });
+
+  it('同一确认周期内重复确认只发起一个真实工具状态请求', async () => {
+    let resolveMutation: ((response: Response) => void) | undefined;
+    const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = new URL(String(input), 'http://foodmate.local').pathname;
+      if (path === '/api/admin/tools/registry') {
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              tools: [
+                {
+                  tool_id: 720005,
+                  name: 'nutrition_lookup',
+                  display_name: 'Nutrition lookup',
+                  description: 'Look up nutrition data.',
+                  category: 'read',
+                  risk_level: 'medium',
+                  availability_scope: 'read-only',
+                  status: 'active',
+                  current_version: 'v1',
+                  version: 'v1',
+                  input_schema: { type: 'object' },
+                  output_schema: { type: 'object' },
+                  permissions: { approval: 'not_required' },
+                  timeout_ms: 10000,
+                  retryable: true,
+                  idempotent: true,
+                  published_at: null,
+                  revision: 7,
+                },
+              ],
+            },
+          }),
+        );
+      }
+      if (path === '/api/admin/tools/nutrition_lookup/status') {
+        return new Promise<Response>((resolve) => {
+          resolveMutation = resolve;
+          init?.signal?.addEventListener('abort', () => resolve(jsonResponse({ success: false })), {
+            once: true,
+          });
+        });
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: {} }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderAdmin('/admin/tools?tab=registry');
+    expect(await screen.findByText('nutrition_lookup')).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: '配置详情' }));
+    await user.click(screen.getByRole('button', { name: '停用工具' }));
+
+    const confirmButton = screen.getByRole('button', { name: '确认停用' });
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      const mutationCalls = fetchMock.mock.calls.filter(([input]) =>
+        String(input).includes('/api/admin/tools/nutrition_lookup/status'),
+      );
+      expect(mutationCalls).toHaveLength(1);
+    });
+
+    await waitFor(() => expect(resolveMutation).toBeDefined());
+    resolveMutation?.(jsonResponse({ success: true, data: { revision: 8 } }));
+    expect(await screen.findByText('操作成功：工具 nutrition_lookup 已成功停用')).toBeInTheDocument();
   });
 
   it('卸载管理页面时中止中心操作且不进入失败态', async () => {

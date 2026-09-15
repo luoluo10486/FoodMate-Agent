@@ -863,6 +863,7 @@ export function AdminPage() {
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [knowledgeUploadRequest, setKnowledgeUploadRequest] = useState(0);
   const actionControllerRef = useRef<AbortController>();
+  const actionExecutionRef = useRef<{ requestId: number; controller: AbortController }>();
   const actionRequestIdRef = useRef(0);
   const mountedRef = useRef(true);
   const isAuditFigmaFixture = isAuditFigmaRoute;
@@ -903,6 +904,7 @@ export function AdminPage() {
     return () => {
       mountedRef.current = false;
       actionControllerRef.current?.abort();
+      actionExecutionRef.current = undefined;
       actionRequestIdRef.current += 1;
     };
   }, []);
@@ -910,6 +912,7 @@ export function AdminPage() {
   const requestAdminAction = (payload: AdminActionPayload) => {
     actionControllerRef.current?.abort();
     actionControllerRef.current = undefined;
+    actionExecutionRef.current = undefined;
     actionRequestIdRef.current += 1;
     setOperationError(undefined);
     setNotice('');
@@ -922,12 +925,14 @@ export function AdminPage() {
   };
 
   const executePendingAction = async () => {
-    if (!pendingAction) return;
+    // 先用同步引用抢占执行权，避免状态更新完成前的重复确认创建多个请求。
+    if (!pendingAction || actionExecutionRef.current) return;
     const actionPayload = pendingAction;
     const { action, targetType, targetId, onApply, execute } = actionPayload;
     actionControllerRef.current?.abort();
     const controller = new AbortController();
     const requestId = ++actionRequestIdRef.current;
+    actionExecutionRef.current = { requestId, controller };
     actionControllerRef.current = controller;
     setOperationStatus('submitting');
     try {
@@ -982,6 +987,7 @@ export function AdminPage() {
       }
       setOperationStatus('failed');
     } finally {
+      if (actionExecutionRef.current?.requestId === requestId) actionExecutionRef.current = undefined;
       if (actionControllerRef.current === controller) actionControllerRef.current = undefined;
     }
   };
@@ -989,6 +995,7 @@ export function AdminPage() {
   const dismissOperation = () => {
     actionControllerRef.current?.abort();
     actionControllerRef.current = undefined;
+    actionExecutionRef.current = undefined;
     actionRequestIdRef.current += 1;
     setPendingAction(undefined);
     setOperationError(undefined);
