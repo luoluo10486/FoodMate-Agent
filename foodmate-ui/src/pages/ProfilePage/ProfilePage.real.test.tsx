@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
-import { confirmMemory, loadMemories } from '../../services/memoryService';
+import { confirmMemory, loadMemories, updateMemory } from '../../services/memoryService';
 
 vi.mock('../../services/memoryService', () => ({
   confirmMemory: vi.fn(),
@@ -134,5 +134,46 @@ describe('ProfilePage real memory status', () => {
     view.unmount();
 
     expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('updates a memory and reloads the server value after editing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateMemory).mockResolvedValue({
+      memory_id: 11,
+      memory_type: 'preference',
+      memory_value: JSON.stringify({ value: '偏好黑麦' }),
+      confirmation_status: 'confirmed',
+      updated_at: '2026-09-06T08:03:00Z',
+    });
+    vi.mocked(loadMemories)
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify({ value: '偏好燕麦' }),
+          confirmation_status: 'confirmed',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify({ value: '偏好黑麦' }),
+          confirmation_status: 'confirmed',
+        },
+      ]);
+
+    renderPage();
+    expect(await screen.findByText(/偏好燕麦/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '编辑记忆' }));
+
+    const editor = screen.getByRole('textbox');
+    await user.clear(editor);
+    await user.type(editor, '偏好黑麦');
+    await user.click(screen.getByRole('button', { name: '保存记忆' }));
+
+    await waitFor(() => expect(updateMemory).toHaveBeenCalledWith(11, '偏好黑麦', undefined, expect.any(AbortSignal)));
+    expect(await screen.findByText(/偏好黑麦/)).toBeInTheDocument();
+    expect(loadMemories).toHaveBeenCalledTimes(2);
   });
 });

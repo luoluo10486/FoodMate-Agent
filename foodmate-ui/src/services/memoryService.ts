@@ -39,7 +39,7 @@ export function updateMemory(
 ): Promise<MemoryRecord> {
   return apiRequest<MemoryRecord>(`/api/memories/${memoryId}`, {
     method: 'PATCH',
-    body: JSON.stringify({ memoryValue: JSON.stringify(memoryValue), scope }),
+    body: JSON.stringify({ memoryValue: serializeMemoryValue(memoryValue), scope }),
     ...(signal ? { signal } : {}),
   });
 }
@@ -49,4 +49,21 @@ export function deleteMemory(memoryId: number, signal?: AbortSignal): Promise<vo
     method: 'DELETE',
     ...(signal ? { signal } : {}),
   });
+}
+
+function serializeMemoryValue(memoryValue: string): string {
+  const normalized = memoryValue.trim();
+  if (!normalized) return '{}';
+
+  try {
+    const parsed = JSON.parse(normalized) as unknown;
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return JSON.stringify(parsed);
+    }
+  } catch {
+    // 页面文本编辑通常是普通文字，需要继续按统一对象结构提交。
+  }
+
+  // 后端将 memory_value 作为 JSON 对象校验和保存，纯文本统一放入 value 字段。
+  return JSON.stringify({ value: normalized });
 }
