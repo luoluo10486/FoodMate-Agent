@@ -2,7 +2,7 @@
 
 更新时间：2026-09-15
 
-## 1.1.38 2026-09-15 代表页面结构与可读性复核（非像素验收）
+## 1.1.40 2026-09-15 代表页面结构与可读性复核（非像素验收）
 
 本节只记录当前前端代表页面的浏览器复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 继续作为颜色、字体、布局、组件状态和交互意图来源；页面允许为真实数据长度、响应式宽度和可访问性做合理适配。
 
@@ -16,6 +16,20 @@
 - [x] 受影响页面定向测试 `6` 个文件、`76/76` 通过；全量 Vitest `70` 个文件、`529/529` 通过。
 - [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过。
 - [ ] 本节不把结构和可读性复核扩展为 105 个画板全量像素差异，也不执行花瓣像素对比；现有像素报告中的非零 diff 结论不改写。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.39 2026-09-15 Knowledge、Profile、Admin 代表页面复核（非像素验收）
+
+本节只记录三个业务域的浏览器结构、控件和可读性复核，不新增 PNG、diff JSON 或像素级 `PASS`。页面实现继续以 Figma 的视觉和交互意图为依据，并保留真实数据、权限和响应式适配边界。
+
+| 页面 | 浏览器路由 | 本次复核结论 |
+|---|---|---|
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | 搜索、主题筛选、结果列表、引用详情和推荐主题均可见。 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | 头像、资料表单、个人中心导航和保存状态入口均可见，默认头像使用登记资源。 |
+| Admin | `/admin?state=figma-v2&visual-qa=1` | 筛选器、指标、运行表格和侧栏可用；宽表仅在内部容器滚动。 |
+
+- [x] `src/architecture/shadcnBoundary.test.ts` 定向验证 `1/1` 通过；没有发现新增页面级 Radix 或 `AdminPrimitives` 依赖。
+- [x] 本节不修改当前像素报告的 `DIFF_REVIEW` 结论，不执行 105 个画板全量像素差异或花瓣像素对比。
 - [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
 
 ## 1.1.37 2026-09-13 用户头像实体与 Chat 对比度当前证据
