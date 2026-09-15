@@ -397,6 +397,21 @@ describe('DietRecordsPage real mode', () => {
     expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
   });
 
+  it('uses the server-reloaded food log after a successful delete', async () => {
+    const serverReload = { ...log, items: [{ ...log.items[0], raw_name: '服务端回读燕麦' }] };
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([log]).mockResolvedValueOnce([serverReload]);
+    vi.mocked(deleteFoodLog).mockResolvedValue();
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '删除服务端燕麦所在记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '删除服务端燕麦所在记录' }));
+    await user.click(screen.getByRole('button', { name: '确认移除' }));
+
+    await waitFor(() => expect(loadFoodLogs).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('服务端回读燕麦')).toBeInTheDocument();
+  });
+
   it('updates only the removed item when a food log contains multiple items', async () => {
     const updated = { ...multiItemLog, revision: 3, items: [multiItemLog.items[1]] };
     vi.mocked(loadFoodLogs).mockResolvedValueOnce([multiItemLog]).mockResolvedValue([updated]);
@@ -507,7 +522,7 @@ describe('DietRecordsPage real mode', () => {
 
   it('loads and restores deleted records from the real endpoint', async () => {
     vi.mocked(loadFoodLogs).mockResolvedValue([]);
-    vi.mocked(loadDeletedFoodLogs).mockResolvedValue([log]);
+    vi.mocked(loadDeletedFoodLogs).mockResolvedValueOnce([log]).mockResolvedValueOnce([]);
     vi.mocked(restoreFoodLog).mockResolvedValue({ ...log, deleted: false, revision: 3 });
     const user = userEvent.setup();
     renderPage();
@@ -518,6 +533,7 @@ describe('DietRecordsPage real mode', () => {
     await user.click(screen.getByRole('button', { name: '恢复服务端燕麦' }));
 
     await waitFor(() => expect(restoreFoodLog).toHaveBeenCalledWith('11', 2, expect.any(AbortSignal)));
+    await waitFor(() => expect(loadDeletedFoodLogs).toHaveBeenCalledTimes(2));
     expect(screen.queryByRole('button', { name: '恢复服务端燕麦' })).not.toBeInTheDocument();
   });
 

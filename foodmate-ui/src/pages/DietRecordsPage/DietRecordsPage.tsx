@@ -823,12 +823,9 @@ export function DietRecordsPage() {
     void operation
       .then((saved) => {
         if (!isCurrentDishMutation(mutation)) return;
-        setCompositeDishes((current) => [
-          saved,
-          ...current.filter((dish) => dish.composite_dish_id !== saved.composite_dish_id),
-        ]);
         setNotice(`${saved.dish_name} 已保存。`);
         closeDishEditor(false);
+        // 保存响应只用于提示，列表字段和删除状态统一以服务端回读为准。
         setCompositeReloadNonce((current) => current + 1);
       })
       .catch((cause) => {
@@ -856,10 +853,10 @@ export function DietRecordsPage() {
     void deleteCompositeDish(dish.composite_dish_id, dish.revision, mutation.controller.signal)
       .then(() => {
         if (!isCurrentDishMutation(mutation)) return;
-        setCompositeDishes((current) => current.filter((item) => item.composite_dish_id !== dish.composite_dish_id));
         if (selectedCompositeDishId === dish.composite_dish_id) setSelectedCompositeDishId(undefined);
         setNotice(`${dish.dish_name} 已删除，历史饮食记录不受影响。`);
         setPendingCompositeDishDeletion(undefined);
+        // 删除接口只返回空响应，复合菜列表必须重新读取服务端事实。
         setCompositeReloadNonce((current) => current + 1);
       })
       .catch((cause) => {
@@ -924,10 +921,7 @@ export function DietRecordsPage() {
         )
           .then((updated) => {
             if (!isCurrentFoodMutation(mutation)) return;
-            const nextLogs = realLogs.map((log) => (log.food_log_id === updated.food_log_id ? updated : log));
-            setRealLogs(nextLogs);
-            setMeals(mapFoodLogs(nextLogs));
-            setNotice(`${name} 已更新。`);
+            setNotice(`${updated.items[0]?.raw_name ?? name} 已更新。`);
             setRealReloadNonce((current) => current + 1);
             closeFoodDialog(false);
           })
@@ -968,9 +962,8 @@ export function DietRecordsPage() {
       )
         .then((created) => {
           if (!isCurrentFoodMutation(mutation)) return;
-          setRealLogs((current) => [...current, created]);
-          setMeals(mapFoodLogs([...realLogs, created]));
-          setNotice(`${name} 已提交，营养值由服务端权威计算。`);
+          setNotice(`${created.items[0]?.raw_name ?? name} 已提交，营养值由服务端权威计算。`);
+          // 创建响应可能还会被服务端补充或规范化，页面只使用后续回读结果。
           setRealReloadNonce((current) => current + 1);
           closeFoodDialog(false);
         })
@@ -1052,13 +1045,8 @@ export function DietRecordsPage() {
         if (remainingItems.length > 0 && !updated) {
           throw new Error('服务端未返回更新后的饮食记录');
         }
-        const nextLogs =
-          remainingItems.length === 0
-            ? realLogs.filter((log) => log.food_log_id !== logId)
-            : realLogs.map((log) => (log.food_log_id === logId ? (updated as FoodLog) : log));
-        setRealLogs(nextLogs);
-        setMeals(mapFoodLogs(nextLogs));
         setPendingFoodDeletion(undefined);
+        // 删除或拆分记录后统一回读，避免本地数组掩盖 revision 和营养快照变化。
         setRealReloadNonce((current) => current + 1);
         setNotice(`${itemName} 已从当前记录移除。`);
       })
@@ -1120,8 +1108,9 @@ export function DietRecordsPage() {
     void restoreFoodLog(log.food_log_id, log.revision, mutation.controller.signal)
       .then(() => {
         if (!isCurrentFoodMutation(mutation)) return;
-        setDeletedLogs((current) => current.filter((item) => item.food_log_id !== log.food_log_id));
         setRealReloadNonce((current) => current + 1);
+        // 恢复同时影响活动列表和回收站，两个列表都必须重新读取服务端结果。
+        if (showDeleted) loadDeletedRecords();
         setNotice(`${log.items[0]?.raw_name ?? '饮食记录'} 已恢复。`);
       })
       .catch((cause) => {
