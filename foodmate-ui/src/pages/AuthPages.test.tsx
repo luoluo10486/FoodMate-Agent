@@ -256,6 +256,46 @@ describe('authentication pages', () => {
     }
   });
 
+  it('renders backend login field errors on the matching controls', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: {
+              code: 'INVALID_ARGUMENT',
+              message: '请求参数无效',
+              details: { username_or_email: '请输入有效的邮箱或用户名', password: '密码不能为空' },
+            },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/login?visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'not-an-email');
+      await user.type(screen.getByLabelText('密码'), 'bad-password');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByText('请输入有效的邮箱或用户名')).toBeInTheDocument());
+      expect(screen.getByText('密码不能为空')).toBeInTheDocument();
+      expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('aria-describedby', 'login-username-error');
+      expect(screen.getByLabelText('密码')).toHaveAttribute('aria-invalid', 'true');
+
+      await user.type(screen.getByLabelText('邮箱地址'), '2');
+      expect(screen.queryByText('请输入有效的邮箱或用户名')).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('returns to a safe internal redirect after real login', async () => {
     const user = userEvent.setup();
     vi.stubEnv('VITE_AGENT_MODE', 'real');

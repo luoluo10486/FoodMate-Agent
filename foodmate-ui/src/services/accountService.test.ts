@@ -50,6 +50,28 @@ describe('accountService export response mapping', () => {
     });
   });
 
+  it('preserves the backend export consumption timestamp', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: true,
+          data: {
+            exportJobId: 43,
+            status: 'COMPLETED',
+            downloadConsumedAt: '2026-09-15T10:00:00Z',
+          },
+        }),
+        { status: 200 },
+      ),
+    );
+
+    await expect(getDataExport(43)).resolves.toMatchObject({
+      export_job_id: 43,
+      status: 'COMPLETED',
+      download_consumed_at: '2026-09-15T10:00:00Z',
+    });
+  });
+
   it('passes a cancellation signal to the auth session request', async () => {
     const controller = new AbortController();
     vi.mocked(fetch).mockResolvedValueOnce(new Response(JSON.stringify({ success: true, data: [] }), { status: 200 }));

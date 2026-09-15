@@ -63,7 +63,7 @@ import styles from './ProfilePage.module.css';
 
 type ProfileTab = 'basic' | 'memories' | 'security' | 'privacy';
 type AsyncState = 'idle' | 'submitting' | 'success' | 'failed';
-type ExportStatus = 'queued' | 'running' | 'completed' | 'failed' | 'expired';
+type ExportStatus = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'download_consumed';
 
 type ProfileForm = {
   displayName: string;
@@ -597,7 +597,14 @@ function statusLabel(status: AuthUser['status']) {
 }
 
 function exportStatusLabel(status: ExportStatus) {
-  return { queued: '排队中', running: '生成中', completed: '已完成', failed: '失败', expired: '已过期' }[status];
+  return {
+    queued: '排队中',
+    running: '生成中',
+    completed: '已完成',
+    failed: '失败',
+    expired: '已过期',
+    download_consumed: '已下载',
+  }[status];
 }
 
 function normalizeExportStatus(value?: string): ExportStatus {
@@ -606,7 +613,8 @@ function normalizeExportStatus(value?: string): ExportStatus {
     normalized === 'running' ||
     normalized === 'completed' ||
     normalized === 'failed' ||
-    normalized === 'expired'
+    normalized === 'expired' ||
+    normalized === 'download_consumed'
     ? normalized
     : 'failed';
 }
@@ -2071,7 +2079,7 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             exportPollRef.current !== pollController
           )
             return;
-          const status = normalizeExportStatus(job.status);
+          const status = job.download_consumed_at ? 'download_consumed' : normalizeExportStatus(job.status);
           setExportStatus(status);
           setExportRows((rows) =>
             rows.map((row) =>
@@ -2128,7 +2136,12 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       const result = await downloadDataExport(row.jobId ?? exportJobId!, controller.signal);
       if (!mountedRef.current || controller.signal.aborted) return;
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
-      notice('导出归档已开始下载。', 'success');
+      const jobId = row.jobId ?? exportJobId!;
+      setExportStatus('download_consumed');
+      setExportRows((rows) =>
+        rows.map((item) => (item.jobId === jobId ? { ...item, status: 'download_consumed' } : item)),
+      );
+      notice('下载链接已生成，下载资格已消费一次。', 'success');
     } catch (error) {
       if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       setExportError(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。');
@@ -2225,9 +2238,11 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
                   tone={
                     row.status === 'completed'
                       ? 'green'
-                      : row.status === 'failed' || row.status === 'expired'
-                        ? 'red'
-                        : 'orange'
+                      : row.status === 'download_consumed'
+                        ? 'blue'
+                        : row.status === 'failed' || row.status === 'expired'
+                          ? 'red'
+                          : 'orange'
                   }
                 >
                   {exportStatusLabel(row.status)}
@@ -2265,6 +2280,8 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
                     {!figmaFixture ? <RefreshCw aria-hidden="true" /> : null}
                     重新创建
                   </Button>
+                ) : row.status === 'download_consumed' ? (
+                  <span className={styles.mutedText}>下载资格已消费</span>
                 ) : (
                   <span className={styles.mutedText}>处理中</span>
                 )}

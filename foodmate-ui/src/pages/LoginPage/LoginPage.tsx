@@ -8,7 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
 import { isVisualQaEnabled } from '../../lib/visualQa';
-import { ApiError, isAbortError } from '../../services/apiClient';
+import { apiFieldError, ApiError, isAbortError } from '../../services/apiClient';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
 
@@ -152,6 +152,7 @@ export function LoginPage() {
   const [runtimeState, setRuntimeState] = useState<LoginState>('default');
   const state = fixtureState !== 'default' ? fixtureState : runtimeState;
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(() => {
     if (fixtureState === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
@@ -223,6 +224,7 @@ export function LoginPage() {
     )
       return;
     setRuntimeState('default');
+    setFieldErrors({});
     setSubmitting(true);
     requestControllerRef.current?.abort();
     const controller = new AbortController();
@@ -233,6 +235,13 @@ export function LoginPage() {
       navigate(redirectTarget, { replace: true });
     } catch (error) {
       if (controller.signal.aborted || isAbortError(error)) return;
+      const usernameError = apiFieldError(error, 'usernameOrEmail') ?? apiFieldError(error, 'username');
+      const passwordError = apiFieldError(error, 'password');
+      if (usernameError || passwordError) {
+        setFieldErrors({ username: usernameError, password: passwordError });
+        setRuntimeState('field-error');
+        return;
+      }
       const mappedState = mapLoginErrorState(error);
       if (mappedState) setRuntimeState(mappedState);
       else notify(error instanceof Error ? error.message : '登录失败', 'error');
@@ -324,7 +333,7 @@ export function LoginPage() {
           <div className={styles.loginFields} data-login-motion="fields">
             <Field label="">
               <Input
-                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
+                className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.username ? styles.figmaInputError : ''}`}
                 name="username"
                 autoComplete="username"
                 placeholder={
@@ -342,16 +351,25 @@ export function LoginPage() {
                 leadingIcon={<img src={loginAsset(visualState, 'user')} alt="" />}
                 value={loginValues.username}
                 required
+                aria-invalid={fieldErrors.username ? true : undefined}
+                aria-describedby={fieldErrors.username ? 'login-username-error' : undefined}
                 onChange={(event) => {
                   setLoginValues((current) => ({ ...current, username: event.target.value }));
+                  setFieldErrors((current) => ({ ...current, username: undefined }));
                   if (isRealMode) setRuntimeState('default');
                 }}
               />
-              {state === 'field-error' ? <span className={styles.loginFieldError}>请输入有效的邮箱地址</span> : null}
+              {fieldErrors.username ? (
+                <span id="login-username-error" className={styles.loginFieldError} role="alert">
+                  {fieldErrors.username}
+                </span>
+              ) : state === 'field-error' ? (
+                <span className={styles.loginFieldError}>请输入有效的邮箱地址</span>
+              ) : null}
             </Field>
             <Field label="">
               <Input
-                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
+                className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.password ? styles.figmaInputError : ''}`}
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
@@ -378,12 +396,21 @@ export function LoginPage() {
                 }
                 value={loginValues.password}
                 required
+                aria-invalid={fieldErrors.password ? true : undefined}
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
                 onChange={(event) => {
                   setLoginValues((current) => ({ ...current, password: event.target.value }));
+                  setFieldErrors((current) => ({ ...current, password: undefined }));
                   if (isRealMode) setRuntimeState('default');
                 }}
               />
-              {state === 'field-error' ? <span className={styles.loginFieldError}>密码不能为空</span> : null}
+              {fieldErrors.password ? (
+                <span id="login-password-error" className={styles.loginFieldError} role="alert">
+                  {fieldErrors.password}
+                </span>
+              ) : state === 'field-error' ? (
+                <span className={styles.loginFieldError}>密码不能为空</span>
+              ) : null}
             </Field>
             <div className={styles.options}>
               <Button

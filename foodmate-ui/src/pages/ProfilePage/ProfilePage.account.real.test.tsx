@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
 import {
   changePassword,
+  downloadDataExport,
   getAuthSessions,
   getDataExport,
   getProfile,
@@ -413,6 +414,35 @@ describe('ProfilePage real account states', () => {
       expect(screen.queryByText('142 MB')).not.toBeInTheDocument();
     } finally {
       intervalSpy.mockRestore();
+    }
+  });
+
+  it('marks a personal export as consumed after the one-time download succeeds', async () => {
+    vi.mocked(requestDataExport).mockResolvedValue({ export_job_id: 42 });
+    vi.mocked(getDataExport).mockResolvedValue({ export_job_id: 42, status: 'COMPLETED' });
+    vi.mocked(downloadDataExport).mockResolvedValue({ download_url: 'https://example.com/export.zip' });
+    const intervalSpy = vi.spyOn(window, 'setInterval').mockImplementation((handler) => {
+      queueMicrotask(() => {
+        if (typeof handler === 'function') handler();
+      });
+      return 1 as unknown as ReturnType<typeof window.setInterval>;
+    });
+    const openSpy = vi.spyOn(window, 'open').mockReturnValue(null);
+
+    try {
+      renderPage('/profile/data');
+      fireEvent.click(await screen.findByRole('button', { name: '创建数据导出' }));
+
+      const downloadButton = await screen.findByRole('button', { name: /下载归档/ });
+      await userEvent.setup().click(downloadButton);
+
+      await waitFor(() => expect(downloadDataExport).toHaveBeenCalledWith(42, expect.any(AbortSignal)));
+      expect(openSpy).toHaveBeenCalledWith('https://example.com/export.zip', '_blank', 'noopener,noreferrer');
+      expect(await screen.findByText('下载资格已消费')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /下载归档/ })).not.toBeInTheDocument();
+    } finally {
+      intervalSpy.mockRestore();
+      openSpy.mockRestore();
     }
   });
 });
