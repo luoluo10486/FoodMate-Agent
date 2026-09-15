@@ -416,7 +416,10 @@ export function WorkspaceLayout({
     try {
       await restoreSession(sessionId, controller.signal);
       if (controller.signal.aborted) return;
-      setDeletedSessions((items) => items.filter((item) => item.session_id !== sessionId));
+      // 恢复后重新读取回收站，避免本地移除结果掩盖服务端实际状态。
+      const deleted = await loadDeletedSessions({}, controller.signal);
+      if (controller.signal.aborted) return;
+      setDeletedSessions(deleted);
       await refreshSessions();
       if (controller.signal.aborted) return;
       announce('会话已恢复。');

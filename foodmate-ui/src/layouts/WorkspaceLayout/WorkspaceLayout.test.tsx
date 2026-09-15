@@ -8,7 +8,9 @@ import { mockAuthUser } from '../../mock/auth';
 import {
   archiveSession,
   createSession,
+  loadDeletedSessions,
   loadSessionSummariesPage,
+  restoreSession,
   searchSessions,
   type RealSession,
 } from '../../services/sessionService';
@@ -27,7 +29,9 @@ vi.mock('../../services/sessionService', async () => {
     ...actual,
     archiveSession: vi.fn(),
     createSession: vi.fn(),
+    loadDeletedSessions: vi.fn(),
     loadSessionSummariesPage: vi.fn(),
+    restoreSession: vi.fn(),
     searchSessions: vi.fn(),
   };
 });
@@ -159,6 +163,41 @@ describe('WorkspaceLayout shell controls', () => {
     await waitFor(() =>
       expect(loadSessionSummariesPage).toHaveBeenLastCalledWith({ page: 1, size: 50 }, expect.any(AbortSignal)),
     );
+  });
+
+  it('reloads the deleted session list from the backend after restoring a session', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+    vi.mocked(loadDeletedSessions)
+      .mockResolvedValueOnce([
+        {
+          session_id: 'deleted-1',
+          title: '待恢复会话',
+          mode: 'chat',
+          status: 'deleted',
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    vi.mocked(restoreSession).mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '查看已删除会话' }));
+    await user.click(await screen.findByRole('button', { name: '恢复' }));
+
+    await waitFor(() => expect(loadDeletedSessions).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText('暂无可恢复的会话。')).toBeInTheDocument());
+    expect(restoreSession).toHaveBeenCalledWith('deleted-1', expect.any(AbortSignal));
+    expect(loadSessionSummariesPage).toHaveBeenCalledTimes(2);
   });
 
   it('does not keep stale sessions after a real list request fails', async () => {
