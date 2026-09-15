@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { DietRecordsPage } from './DietRecordsPage';
 
@@ -8,7 +8,17 @@ function renderPage(entry = '/analysis?view=records') {
   return render(
     <MemoryRouter initialEntries={[entry]}>
       <DietRecordsPage />
+      <LocationProbe />
     </MemoryRouter>,
+  );
+}
+
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location" role="presentation">
+      {location.pathname + location.search}
+    </output>
   );
 }
 
@@ -63,7 +73,7 @@ describe('DietRecordsPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('已复制到明天的记录草稿。');
   });
 
-  it('renders the Figma session history and record detail without the extra action bar', async () => {
+  it('renders the Figma session history, detail, and default action bar', async () => {
     const user = userEvent.setup();
     renderPage('/analysis?view=records&state=v2');
 
@@ -81,12 +91,15 @@ describe('DietRecordsPage', () => {
       document.querySelector('img[src="/assets/figma/workspace/diet-records/intake-analysis.svg"]'),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('饮食记录')).toHaveAttribute('data-figma-node-id', '640:660');
-    expect(screen.queryByRole('button', { name: '记录一餐' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: '分析这一天' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '记录一餐' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '分析这一天' })).toBeInTheDocument();
     await user.click(screen.getAllByRole('button', { name: '+ 添加食物' })[0]);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText('添加到 Breakfast，营养值将在确认后估算。')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '取消' }));
+    await user.click(screen.getByRole('button', { name: '分析这一天' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/analysis');
   });
 
   it.each([

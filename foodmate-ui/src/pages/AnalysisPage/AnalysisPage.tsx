@@ -300,7 +300,7 @@ export function AnalysisPage() {
         <section
           className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''} ${isFigmaFixture && visibleState === 'default' ? styles.figmaDefault : ''}`}
           aria-label="摄入分析"
-          data-figma-node-id="640:974"
+          data-figma-node-id="640:773"
         >
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}

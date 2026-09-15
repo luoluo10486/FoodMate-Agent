@@ -1416,7 +1416,7 @@ export function DietRecordsPage() {
           )}
         </section>
 
-        {(visibleState === 'default' || visibleState === 'empty') && !isFigmaFixture ? (
+        {visibleState === 'default' || (visibleState === 'empty' && isRealMode) ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
             {visibleState === 'default' ? (
               <>

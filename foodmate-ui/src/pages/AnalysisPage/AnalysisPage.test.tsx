@@ -64,7 +64,7 @@ describe('AnalysisPage', () => {
     expect(
       document.querySelector('img[src="/assets/figma/workspace/analysis/intake-analysis.svg"]'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('摄入分析')).toHaveAttribute('data-figma-node-id', '640:974');
+    expect(screen.getByLabelText('摄入分析')).toHaveAttribute('data-figma-node-id', '640:773');
 
     await user.click(screen.getByRole('button', { name: '全部餐次' }));
     expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();
