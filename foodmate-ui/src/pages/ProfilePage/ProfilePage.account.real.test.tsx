@@ -267,6 +267,43 @@ describe('ProfilePage real account states', () => {
     expect(screen.getAllByRole('button', { name: '退出登录' })).toHaveLength(1);
   });
 
+  it('reloads sessions from the backend after revoking an individual device', async () => {
+    const user = userEvent.setup();
+    vi.mocked(getAuthSessions)
+      .mockResolvedValueOnce([
+        {
+          auth_session_id: 1,
+          current: true,
+          user_agent: '当前浏览器',
+          expires_at: '2026-10-01',
+        },
+        {
+          auth_session_id: 2,
+          current: false,
+          user_agent: '其它浏览器',
+          expires_at: '2026-10-01',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          auth_session_id: 1,
+          current: true,
+          user_agent: '当前浏览器',
+          expires_at: '2026-10-01',
+        },
+      ]);
+    vi.mocked(revokeAuthSession).mockResolvedValue(undefined);
+
+    renderPage('/profile/security');
+
+    await user.click(await screen.findByRole('button', { name: '退出登录' }));
+    await user.click(screen.getByRole('button', { name: '确认退出' }));
+
+    await waitFor(() => expect(getAuthSessions).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.queryByText('其它浏览器')).not.toBeInTheDocument());
+    expect(revokeAuthSession).toHaveBeenCalledWith(2, expect.any(AbortSignal));
+  });
+
   it('aborts export creation when the privacy tab unmounts', async () => {
     const user = userEvent.setup();
     let capturedSignal: AbortSignal | undefined;

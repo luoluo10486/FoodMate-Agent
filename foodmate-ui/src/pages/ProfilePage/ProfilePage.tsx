@@ -1707,10 +1707,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             logoutMutationRef.current !== controller
           )
             return;
+          // 个人会话撤销后重新读取服务端列表，避免本地删除掩盖后端状态。
+          setSessionReloadKey((value) => value + 1);
+          notice('设备会话已退出，正在刷新设备列表。', 'success');
+        } else {
+          setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
+          notice('设备会话已退出。', 'success');
         }
         if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
-        setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
-        notice('设备会话已退出。', 'success');
       }
       setLogoutState('success');
     } catch (error) {
