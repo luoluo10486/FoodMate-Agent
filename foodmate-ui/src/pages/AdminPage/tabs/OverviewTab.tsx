@@ -30,6 +30,7 @@ type OverviewRow = {
   toolCount: string;
   result: string;
   errorCode: string;
+  createdAt?: string;
 };
 
 const overviewMetrics: OverviewMetric[] = adminOverviewMetrics;
@@ -124,6 +125,14 @@ function formatResultCount(value: number) {
   return value.toLocaleString('en-US');
 }
 
+function matchesFixtureTimeFilter(createdAt: string | undefined, timeFilter: string) {
+  if (timeFilter === 'all' || !createdAt) return true;
+  const createdAtMs = Date.parse(createdAt);
+  if (Number.isNaN(createdAtMs)) return true;
+  const hours = timeFilter === '24h' ? 24 : timeFilter === '7d' ? 24 * 7 : 24 * 30;
+  return Date.now() - createdAtMs <= hours * 60 * 60 * 1000;
+}
+
 export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refreshNonce?: number }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [metrics, setMetrics] = useState<OverviewMetric[]>(isRealMode ? [] : overviewMetrics);
@@ -191,13 +200,14 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
+      const matchesTime = matchesFixtureTimeFilter(row.createdAt, timeFilter);
       const matchesResult = resultFilter === 'all' || row.result === resultFilter;
       const matchesDegraded =
         degradedFilter === 'all' || (degradedFilter === 'yes' ? row.errorCode !== '-' : row.errorCode === '-');
       const matchesQuery = !normalizedQuery || `${row.runId} ${row.user}`.toLowerCase().includes(normalizedQuery);
-      return matchesResult && matchesDegraded && matchesQuery;
+      return matchesTime && matchesResult && matchesDegraded && matchesQuery;
     });
-  }, [degradedFilter, query, resultFilter, rows]);
+  }, [degradedFilter, query, resultFilter, rows, timeFilter]);
 
   const pageSize = 6;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));

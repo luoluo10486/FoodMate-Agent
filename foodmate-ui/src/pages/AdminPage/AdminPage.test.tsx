@@ -160,6 +160,21 @@ describe('AdminPage overview', () => {
     expect(screen.getByRole('combobox', { name: '时间范围' })).toHaveTextContent('近 7 天');
   });
 
+  it('filters fixture overview rows by the selected time window', async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+
+    expect(screen.getByText('run_908d1')).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: '时间范围' }));
+    await user.click(screen.getByRole('option', { name: '近 24h' }));
+
+    expect(screen.getByText('run_98218a')).toBeInTheDocument();
+    expect(screen.getByText('run_889a4')).toBeInTheDocument();
+    expect(screen.queryByText('run_552b1')).not.toBeInTheDocument();
+    expect(screen.queryByText('run_908d1')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '查看详情' })).toHaveLength(3);
+  });
+
   it('highlights only the exact query route in the admin navigation', () => {
     const { unmount } = renderAdmin();
 

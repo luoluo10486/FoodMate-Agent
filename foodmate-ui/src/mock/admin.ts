@@ -4,6 +4,9 @@ export const adminOverviewMetrics = [
   { label: '今日成本', value: '$128.45', hint: '', tone: 'green' },
 ];
 
+// Fixture 只用相对时间支持筛选演示，避免把静态日期误当成真实运行时间。
+const fixtureOverviewTime = (hoursAgo: number) => new Date(Date.now() - hoursAgo * 60 * 60 * 1000).toISOString();
+
 export const adminOverviewRows = [
   {
     key: 'overview-run-98218a',
@@ -16,6 +19,7 @@ export const adminOverviewRows = [
     toolCount: '12',
     result: 'failed',
     errorCode: 'KB_TIMEOUT',
+    createdAt: fixtureOverviewTime(2),
   },
   {
     key: 'overview-run-774x2',
@@ -28,6 +32,7 @@ export const adminOverviewRows = [
     toolCount: '8',
     result: 'completed',
     errorCode: 'MODEL_LIMIT',
+    createdAt: fixtureOverviewTime(5),
   },
   {
     key: 'overview-run-889a4',
@@ -40,6 +45,7 @@ export const adminOverviewRows = [
     toolCount: '5',
     result: 'running',
     errorCode: '-',
+    createdAt: fixtureOverviewTime(18),
   },
   {
     key: 'overview-run-552b1',
@@ -52,6 +58,7 @@ export const adminOverviewRows = [
     toolCount: '3',
     result: 'completed',
     errorCode: '-',
+    createdAt: fixtureOverviewTime(36),
   },
   {
     key: 'overview-run-133c9',
@@ -64,6 +71,7 @@ export const adminOverviewRows = [
     toolCount: '2',
     result: 'failed',
     errorCode: 'SQL_POLICY',
+    createdAt: fixtureOverviewTime(24 * 8),
   },
   {
     key: 'overview-run-908d1',
@@ -76,6 +84,7 @@ export const adminOverviewRows = [
     toolCount: '1',
     result: 'completed',
     errorCode: '-',
+    createdAt: fixtureOverviewTime(24 * 40),
   },
 ];
 
