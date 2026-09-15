@@ -1,9 +1,10 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AgentRunEvent, AgentStreamOptions } from '../../services/agentRunService';
 import type { AgentStreamConnection, AgentStreamHandle } from '../../types/agent';
+import { Button } from '../../components/ui/button';
 import { ChatPage } from './ChatPage';
 
 const {
@@ -89,6 +90,18 @@ function renderState(state: string, query = '') {
         <Route path="/chat/:session_id?" element={<ChatPage />} />
       </Routes>
     </MemoryRouter>,
+  );
+}
+
+function StateRouteHarness() {
+  const navigate = useNavigate();
+  return (
+    <>
+      <Button type="button" onClick={() => navigate('/chat?state=safety-degraded')}>
+        切换 Run
+      </Button>
+      <ChatPage />
+    </>
   );
 }
 
@@ -246,6 +259,46 @@ describe('ChatPage Agent 状态真实动作', () => {
       ),
     );
     expect(await screen.findByText(/提案已创建：9/)).toBeInTheDocument();
+  });
+
+  it('切换真实状态页时取消旧 Approval 操作，避免旧响应写入新 Run', async () => {
+    const user = userEvent.setup();
+    let resolveConfirm: ((value: ReturnType<typeof pendingApproval>) => void) | undefined;
+    let confirmSignal: AbortSignal | undefined;
+    confirmAgentWrite.mockImplementation(
+      (_approvalId: string, _parameters: Record<string, unknown>, signal?: AbortSignal) =>
+        new Promise((resolve) => {
+          confirmSignal = signal;
+          resolveConfirm = resolve as (value: ReturnType<typeof pendingApproval>) => void;
+        }),
+    );
+    const query = new URLSearchParams({
+      approval_id: '8',
+      operation: 'food_log.create',
+      resource_type: 'food_log',
+      parameters: JSON.stringify(proposalParameters),
+    }).toString();
+
+    render(
+      <MemoryRouter initialEntries={[`/chat?state=write-confirmation&${query}`]}>
+        <Routes>
+          <Route path="/chat/:session_id?" element={<StateRouteHarness />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '确认并执行' }));
+    await waitFor(() => expect(confirmAgentWrite).toHaveBeenCalled());
+    await user.click(screen.getByRole('button', { name: '切换 Run' }));
+    expect(await screen.findByText('真实状态页缺少运行标识')).toBeInTheDocument();
+    expect(confirmSignal?.aborted).toBe(true);
+
+    await act(async () => {
+      resolveConfirm?.(pendingApproval('confirmed'));
+    });
+
+    expect(executeAgentWrite).not.toHaveBeenCalled();
+    expect(screen.queryByText(/后端已返回执行状态/)).not.toBeInTheDocument();
   });
 
   it('预算事件返回真实额度后追加预算，并可结束当前 Run', async () => {

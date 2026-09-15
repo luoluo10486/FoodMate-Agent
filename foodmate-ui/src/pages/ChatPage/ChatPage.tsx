@@ -2206,6 +2206,10 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     loadControllerRef.current?.abort();
     approvalLoadControllerRef.current?.abort();
     approvalLoadControllerRef.current = undefined;
+    // Run 切换时抢占旧操作，避免旧 Approval/预算请求完成后写回新的状态页。
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    proposalKeyRef.current = undefined;
     const loadController = new AbortController();
     loadControllerRef.current = loadController;
     streamRef.current?.close();
