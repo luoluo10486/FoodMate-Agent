@@ -126,6 +126,18 @@ for group in \
     "${GROUP_JAVA_KNOWLEDGE_PURGE_RESULT:-foodmate-java-knowledge-purge-result-v1}" \
     "${GROUP_SELFTEST:-foodmate-selftest-v1}"; do
     echo "[foodmate] 创建 consumer group ${group}"
+    # 已存在的 consumer group 不重复调用 updateSubGroup。
+    # RocketMQ 5.x 在重复更新已有 group 时可能长时间等待，导致 Compose
+    # 一直卡在 service_completed_successfully；只读查询已经存在的配置即可。
+    group_config=$(mktemp)
+    if timeout 10 "$MQADMIN" getConsumerConfig -n "$NAMESRV" -g "$group" >"$group_config" 2>/dev/null \
+        && grep -F "groupName" "$group_config" | grep -F "$group" >/dev/null; then
+        rm -f "$group_config"
+        echo "[foodmate] Consumer group ${group} 已存在，跳过重复更新"
+        continue
+    fi
+    rm -f "$group_config"
+
     # RocketMQ 5.x 只有在消费者真正订阅后才建 %RETRY% Topic，因此不能用 topicList 回读；
     # updateSubGroup 成功时会打印 "success"，把它作为校验信号。
     broadcast="false"

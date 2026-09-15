@@ -222,6 +222,59 @@ function Assert-UniqueSseIds([object[]]$Events) {
     return $ids
 }
 
+function Get-ContainerState([string]$ContainerName) {
+    $state = & docker inspect --format '{{.State.Status}}' $ContainerName 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return (($state | Out-String).Trim())
+}
+
+function Get-ContainerExitCode([string]$ContainerName) {
+    $exitCode = & docker inspect --format '{{.State.ExitCode}}' $ContainerName 2>$null
+    if ($LASTEXITCODE -ne 0) { return $null }
+    return [int](($exitCode | Out-String).Trim())
+}
+
+function Wait-RocketMqInit([int]$TimeoutSeconds = 240) {
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+    do {
+        $state = Get-ContainerState "foodmate-rocketmq-init"
+        if ($state -eq "exited") {
+            $exitCode = Get-ContainerExitCode "foodmate-rocketmq-init"
+            if ($exitCode -ne 0) { throw "RocketMQ topic initialization failed with exit code $exitCode" }
+            return
+        }
+        if ($null -eq $state) { throw "RocketMQ topic initialization container is missing" }
+        Start-Sleep -Seconds 1
+    } while ((Get-Date).ToUniversalTime() -lt $deadline)
+    throw "RocketMQ topic initialization did not finish within $TimeoutSeconds seconds"
+}
+
+function Ensure-AgentRuntimeStarted([int]$TimeoutSeconds = 30) {
+    $state = Get-ContainerState "foodmate-agent-runtime"
+    if ($null -eq $state) { throw "Agent Runtime container is missing" }
+    if ($state -eq "created" -or $state -eq "exited") {
+        & docker start foodmate-agent-runtime | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Agent Runtime container failed to start" }
+    }
+
+    $deadline = (Get-Date).ToUniversalTime().AddSeconds($TimeoutSeconds)
+    do {
+        $state = Get-ContainerState "foodmate-agent-runtime"
+        if ($state -eq "running" -or $state -eq "restarting") { return }
+        Start-Sleep -Milliseconds 500
+    } while ((Get-Date).ToUniversalTime() -lt $deadline)
+    throw "Agent Runtime container did not enter running state within $TimeoutSeconds seconds"
+}
+
+function Start-AgentRuntime {
+    & docker compose @composeArgs up -d --force-recreate agent-runtime | Out-Null
+    if ($LASTEXITCODE -ne 0) { throw "Agent Runtime recreation failed" }
+    # Compose 可能先创建目标容器，再异步等待一次性 RocketMQ 初始化容器；
+    # 这里显式等待依赖终态，再启动并确认目标容器，避免把 created 当成可用服务。
+    Wait-RocketMqInit
+    Ensure-AgentRuntimeStarted
+}
+
 function Set-DeterministicRuntime {
     foreach ($name in $runtimeEnvironmentNames) {
         $previousRuntimeEnvironment[$name] = [Environment]::GetEnvironmentVariable($name, "Process")
@@ -238,8 +291,7 @@ function Set-DeterministicRuntime {
     foreach ($entry in $values.GetEnumerator()) {
         [Environment]::SetEnvironmentVariable($entry.Key, $entry.Value, "Process")
     }
-    & docker compose @composeArgs up -d --force-recreate agent-runtime | Out-Null
-    if ($LASTEXITCODE -ne 0) { throw "deterministic agent-runtime recreation failed" }
+    Start-AgentRuntime
     $script:runtimeEnvironmentChanged = $true
 }
 
@@ -249,8 +301,7 @@ function Restore-RuntimeEnvironment {
         [Environment]::SetEnvironmentVariable($name, $previousRuntimeEnvironment[$name], "Process")
     }
     try {
-        & docker compose @composeArgs up -d --force-recreate agent-runtime | Out-Null
-        if ($LASTEXITCODE -ne 0) { Add-CleanupError "runtime configuration restore failed" }
+        Start-AgentRuntime
     } catch { Add-CleanupError "runtime configuration restore failed" }
 }
 
