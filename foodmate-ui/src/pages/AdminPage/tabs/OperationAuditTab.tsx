@@ -80,6 +80,13 @@ function exportDisplayState(job: AdminExportStatus): ExportDisplayState {
   return 'unknown';
 }
 
+function exportStatusMessage(job: AdminExportStatus) {
+  const state = exportDisplayState(job);
+  return job.failure_code
+    ? `导出任务 #${job.export_job_id} 当前状态：${state} · 错误码：${job.failure_code}`
+    : `导出任务 #${job.export_job_id} 当前状态：${state}`;
+}
+
 const pageSize = 8;
 
 const figmaAuditRows: AuditRecord[] = [
@@ -795,7 +802,7 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
           if (controller.signal.aborted || version !== exportRequestVersion.current) return;
           setExportJob(status);
           const state = exportDisplayState(status);
-          setExportMessage(`导出任务 #${status.export_job_id} 当前状态：${state}`);
+          setExportMessage(exportStatusMessage(status));
           if (state === 'queued' || state === 'running') {
             exportTimer.current = window.setTimeout(() => void poll(), 1000);
             return;
