@@ -5405,7 +5405,7 @@
   line-height: 16px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .usageFilters {
     height: auto;
     flex-wrap: wrap;
