@@ -2412,6 +2412,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     return next;
   };
 
+  // 控制器引用在状态更新前立即可见，同时作为运行操作的同步执行锁。
   const startAction = () => {
     actionControllerRef.current?.abort();
     const controller = new AbortController();
@@ -2441,7 +2442,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const executeProposal = async (mode: 'confirm' | 'reject') => {
-    if (!approvalId || actionState === 'loading') return;
+    if (!approvalId || actionState === 'loading' || actionControllerRef.current) return;
     const parameters = approvalDetails
       ? approvalParameters(approvalDetails, approval?.resource_type)
       : (proposalParameters ?? proposalDraft?.parameters);
@@ -2487,7 +2488,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const createProposal = async () => {
-    if (!proposalDraft || actionState === 'loading') return;
+    if (!proposalDraft || actionState === 'loading' || actionControllerRef.current) return;
     setActionState('loading');
     setActionMessage('正在创建写入提案，等待后端返回提案状态。');
     const controller = startAction();
@@ -2522,7 +2523,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const cancelRun = async () => {
-    if (!runId || actionState === 'loading') return;
+    if (!runId || actionState === 'loading' || actionControllerRef.current) return;
     // 取消请求期间先关闭旧连接，避免取消前后的事件被两个订阅重复消费。
     closeRunStream();
     setActionState('loading');
@@ -2545,7 +2546,13 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const extendBudget = async () => {
-    if (!runId || actionState === 'loading' || budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny)
+    if (
+      !runId ||
+      actionState === 'loading' ||
+      actionControllerRef.current ||
+      budgetFacts.additionalTokens == null ||
+      !budgetFacts.additionalCostCny
+    )
       return;
     closeRunStream();
     setActionState('loading');
@@ -2578,7 +2585,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const retryRun = async () => {
-    if (!runId || !retryable || actionState === 'loading') return;
+    if (!runId || !retryable || actionState === 'loading' || actionControllerRef.current) return;
     closeRunStream();
     setActionState('loading');
     setActionMessage('重试请求已提交，等待后端运行事件。');
@@ -2602,7 +2609,7 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
   };
 
   const recoverRun = async () => {
-    if (!runId || !checkpointAvailable || actionState === 'loading') return;
+    if (!runId || !checkpointAvailable || actionState === 'loading' || actionControllerRef.current) return;
     closeRunStream();
     setActionState('loading');
     setActionMessage(

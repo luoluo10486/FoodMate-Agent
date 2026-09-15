@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -211,6 +211,31 @@ describe('ChatPage Agent 状态真实动作', () => {
     );
     expect(executeAgentWrite).toHaveBeenCalledWith('8', proposalParameters, expect.any(AbortSignal));
     expect(await screen.findByText(/后端已返回执行状态：executed/)).toBeInTheDocument();
+  });
+
+  it('确认动作在状态刷新前重复触发时只发送一个真实请求', async () => {
+    let resolveConfirm: ((value: ReturnType<typeof pendingApproval>) => void) | undefined;
+    confirmAgentWrite.mockImplementation(
+      (_approvalId: string, _parameters: Record<string, unknown>, _signal?: AbortSignal) =>
+        new Promise((resolve) => {
+          resolveConfirm = resolve as (value: ReturnType<typeof pendingApproval>) => void;
+        }),
+    );
+    const query = new URLSearchParams({
+      approval_id: '8',
+      operation: 'food_log.create',
+      resource_type: 'food_log',
+      parameters: JSON.stringify(proposalParameters),
+    }).toString();
+    renderState('write-confirmation', query);
+
+    const confirmButton = await screen.findByRole('button', { name: '确认并执行' });
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(confirmAgentWrite).toHaveBeenCalledTimes(1));
+    resolveConfirm?.(pendingApproval('confirmed'));
+    await waitFor(() => expect(executeAgentWrite).toHaveBeenCalledTimes(1));
   });
 
   it('拒绝写入只调用拒绝接口，并展示后端返回状态', async () => {
