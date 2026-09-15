@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockAuthUser } from '../../mock/auth';
 import {
+  archiveSession,
   createSession,
   loadSessionSummariesPage,
   searchSessions,
@@ -24,6 +25,7 @@ vi.mock('../../services/sessionService', async () => {
   const actual = await vi.importActual<typeof import('../../services/sessionService')>('../../services/sessionService');
   return {
     ...actual,
+    archiveSession: vi.fn(),
     createSession: vi.fn(),
     loadSessionSummariesPage: vi.fn(),
     searchSessions: vi.fn(),
@@ -37,6 +39,45 @@ afterEach(() => {
 });
 
 describe('WorkspaceLayout shell controls', () => {
+  it('aborts an in-flight session mutation when the workspace unmounts', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({
+      items: [{ id: 'session-1', title: '早餐记录', subtitle: '今天', active: true }],
+      total: 1,
+      page: 1,
+      size: 50,
+    });
+
+    let requestSignal: AbortSignal | undefined;
+    let releaseArchive: () => void = () => undefined;
+    vi.mocked(archiveSession).mockImplementation((_sessionId, signal) => {
+      requestSignal = signal;
+      return new Promise<void>((resolve) => {
+        releaseArchive = resolve;
+      });
+    });
+
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '管理早餐记录' }));
+    await user.click(await screen.findByRole('menuitem', { name: '归档' }));
+    await waitFor(() => expect(requestSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(requestSignal?.aborted).toBe(true);
+    releaseArchive();
+  });
+
   it('prevents duplicate real session creation while the first request is pending', async () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
     localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));

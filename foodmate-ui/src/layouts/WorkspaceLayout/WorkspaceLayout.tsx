@@ -147,6 +147,7 @@ export function WorkspaceLayout({
   const [sessionError, setSessionError] = useState('');
   const sessionRequestRef = useRef(0);
   const sessionAbortControllerRef = useRef<AbortController>();
+  const sessionOperationAbortControllerRef = useRef<AbortController>();
   const pendingSessionOperationRef = useRef<string>();
   const [pendingSessionOperation, setPendingSessionOperation] = useState<string>();
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string }>();
@@ -220,6 +221,8 @@ export function WorkspaceLayout({
       sessionRequestRef.current += 1;
       sessionAbortControllerRef.current?.abort();
       sessionAbortControllerRef.current = undefined;
+      sessionOperationAbortControllerRef.current?.abort();
+      sessionOperationAbortControllerRef.current = undefined;
     },
     [],
   );
@@ -279,15 +282,18 @@ export function WorkspaceLayout({
   const refreshSessions = () => loadSessionList(sessionQuery, sessionPage);
   const announce = (message: string) => setNotice(message);
   // 使用 ref 抢占操作锁，避免连续点击在同一轮渲染内发出重复写请求。
-  const beginSessionOperation = (key: string) => {
-    if (pendingSessionOperationRef.current) return false;
+  const beginSessionOperation = (key: string): AbortController | undefined => {
+    if (pendingSessionOperationRef.current) return undefined;
+    const controller = new AbortController();
     pendingSessionOperationRef.current = key;
+    sessionOperationAbortControllerRef.current = controller;
     setPendingSessionOperation(key);
-    return true;
+    return controller;
   };
-  const endSessionOperation = (key: string) => {
-    if (pendingSessionOperationRef.current !== key) return;
+  const endSessionOperation = (key: string, controller: AbortController) => {
+    if (pendingSessionOperationRef.current !== key || sessionOperationAbortControllerRef.current !== controller) return;
     pendingSessionOperationRef.current = undefined;
+    sessionOperationAbortControllerRef.current = undefined;
     setPendingSessionOperation(undefined);
   };
   const handleSessionAction = async (action: SessionAction, session: { id: string; title: string }) => {
@@ -300,66 +306,84 @@ export function WorkspaceLayout({
       return;
     }
     const operationKey = `${action}:${session.id}`;
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      await (action === 'archive' ? archiveSession(session.id) : unarchiveSession(session.id));
+      await (action === 'archive'
+        ? archiveSession(session.id, controller.signal)
+        : unarchiveSession(session.id, controller.signal));
+      if (controller.signal.aborted) return;
       await refreshSessions();
+      if (controller.signal.aborted) return;
       announce(action === 'archive' ? '会话已归档。' : '会话已取消归档。');
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '会话状态更新失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const openDeletedSessions = async () => {
     const operationKey = 'deleted:list';
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      setDeletedSessions(await loadDeletedSessions());
+      const deleted = await loadDeletedSessions({}, controller.signal);
+      if (controller.signal.aborted) return;
+      setDeletedSessions(deleted);
       setDeletedOpen(true);
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '回收站加载失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const saveRename = async () => {
     if (!renameTarget?.title.trim()) return;
     const operationKey = `rename:${renameTarget.id}`;
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      await renameSession(renameTarget.id, renameTarget.title.trim());
+      await renameSession(renameTarget.id, renameTarget.title.trim(), controller.signal);
+      if (controller.signal.aborted) return;
       setRenameTarget(undefined);
       await refreshSessions();
+      if (controller.signal.aborted) return;
       announce('会话名称已更新。');
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '会话重命名失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
     const operationKey = `delete:${deleteTarget.id}`;
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      await deleteSession(deleteTarget.id);
+      await deleteSession(deleteTarget.id, controller.signal);
+      if (controller.signal.aborted) return;
       setDeleteTarget(undefined);
       await refreshSessions();
+      if (controller.signal.aborted) return;
       if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
       announce('会话已移入回收站，可在 30 天内恢复。');
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '会话删除失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const createNewSession = async () => {
@@ -368,33 +392,41 @@ export function WorkspaceLayout({
       return;
     }
     const operationKey = 'session:create';
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      const session = await createSession();
+      const session = await createSession(undefined, controller.signal);
+      if (controller.signal.aborted) return;
       await refreshSessions();
+      if (controller.signal.aborted) return;
       navigate(buildChatPath(session.session_id));
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '新建会话失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const restoreDeletedSession = async (sessionId: string) => {
     const operationKey = `restore:${sessionId}`;
-    if (!beginSessionOperation(operationKey)) return;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
     try {
-      await restoreSession(sessionId);
+      await restoreSession(sessionId, controller.signal);
+      if (controller.signal.aborted) return;
       setDeletedSessions((items) => items.filter((item) => item.session_id !== sessionId));
       await refreshSessions();
+      if (controller.signal.aborted) return;
       announce('会话已恢复。');
     } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
       const message = error instanceof Error ? error.message : '会话恢复失败，请重试。';
       setSessionError(message);
       announce(message);
     } finally {
-      endSessionOperation(operationKey);
+      endSessionOperation(operationKey, controller);
     }
   };
   const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
