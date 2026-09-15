@@ -79,16 +79,24 @@ function OverviewFilterSelect({
   options,
   onChange,
   ariaLabel,
+  disabled = false,
+  disabledReason,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
   ariaLabel: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={styles.overviewFilter} aria-label={ariaLabel}>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger
+        className={styles.overviewFilter}
+        aria-label={ariaLabel}
+        title={disabled ? disabledReason : undefined}
+      >
         <span className={styles.overviewFilterLabel}>{label}:</span>
         <SelectValue />
         <span
@@ -122,6 +130,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
   const [rows, setRows] = useState<OverviewRow[]>(isRealMode ? [] : overviewRows);
   const [resultFilter, setResultFilter] = useState('all');
   const [degradedFilter, setDegradedFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(isRealMode ? 0 : overviewFixtureTotal);
@@ -147,6 +156,12 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           size: 6,
           query: query.trim() || undefined,
           status: resultFilter === 'all' ? undefined : resultFilter,
+          from:
+            timeFilter === 'all'
+              ? undefined
+              : new Date(
+                  Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
+                ).toISOString(),
         },
         controller.signal,
       ),
@@ -171,7 +186,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
       requestIdRef.current += 1;
       controller.abort();
     };
-  }, [isRealMode, page, query, refreshNonce, resultFilter, retryNonce]);
+  }, [isRealMode, page, query, refreshNonce, resultFilter, retryNonce, timeFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -193,14 +208,17 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         <div className={styles.overviewFilterGroup}>
           <OverviewFilterSelect
             label="时间"
-            value="all"
+            value={timeFilter}
             options={[
               { value: 'all', label: '全部' },
               { value: '24h', label: '近 24h' },
               { value: '7d', label: '近 7 天' },
               { value: '30d', label: '近 30 天' },
             ]}
-            onChange={() => undefined}
+            onChange={(value) => {
+              setTimeFilter(value);
+              setPage(1);
+            }}
             ariaLabel="时间范围"
           />
           <OverviewFilterSelect
@@ -231,6 +249,8 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
               setPage(1);
             }}
             ariaLabel="降级筛选"
+            disabled={isRealMode}
+            disabledReason="真实运行查询未返回降级字段"
           />
         </div>
         <label className={styles.overviewSearch}>

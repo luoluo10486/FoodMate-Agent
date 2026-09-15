@@ -150,6 +150,16 @@ describe('AdminPage overview', () => {
     expect(screen.queryByText('run_552b1')).not.toBeInTheDocument();
   });
 
+  it('changes the fixture overview time filter without using an empty handler', async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+
+    await user.click(screen.getByRole('combobox', { name: '时间范围' }));
+    await user.click(screen.getByRole('option', { name: '近 7 天' }));
+
+    expect(screen.getByRole('combobox', { name: '时间范围' })).toHaveTextContent('近 7 天');
+  });
+
   it('highlights only the exact query route in the admin navigation', () => {
     const { unmount } = renderAdmin();
 
