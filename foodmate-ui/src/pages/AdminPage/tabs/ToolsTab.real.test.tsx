@@ -222,4 +222,51 @@ describe('管理端真实工具数据', () => {
     expect(await within(screen.getByRole('table')).findByText('已停用')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('服务端刷新后同步更新当前选中工具详情', async () => {
+    const tool = (status: 'active' | 'disabled', revision: number) => ({
+      tool_id: 720005,
+      name: 'food_log_writer',
+      display_name: 'Food log writer',
+      description: 'Write food logs.',
+      category: 'write',
+      risk_level: 'high',
+      availability_scope: 'user',
+      status,
+      current_version: 'v1',
+      version: 'v1',
+      input_schema: { type: 'object' },
+      output_schema: { type: 'object' },
+      permissions: { approval: 'required' },
+      timeout_ms: 10000,
+      retryable: false,
+      idempotent: true,
+      published_at: null,
+      revision,
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, data: { tools: [tool('active', 7)] } }))
+      .mockResolvedValueOnce(jsonResponse({ success: true, data: { tools: [tool('disabled', 8)] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} refreshNonce={0} />
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '配置详情' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('已启用');
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} refreshNonce={1} />
+      </MemoryRouter>,
+    );
+
+    expect(await within(screen.getByRole('dialog')).findByText('已停用')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

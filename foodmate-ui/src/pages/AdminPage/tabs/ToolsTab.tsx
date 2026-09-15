@@ -173,6 +173,8 @@ function ToolRegistrySection({
       .then((items) => {
         if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         setTools(items);
+        // 服务端刷新后只重新绑定已有选中工具，首次加载不能自动打开详情面板。
+        setSelectedTool((current) => (current ? items.find((item) => item.key === current.key) : undefined));
       })
       .catch((error) => {
         if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
@@ -797,6 +799,8 @@ function ToolCallsSection({
                   );
                 },
                 onApply: () => {
+                  // 真实模式以 refreshNonce 触发的服务端回读为准，不能直接修改行对象。
+                  if (import.meta.env.VITE_AGENT_MODE === 'real') return;
                   record.status = record.status === 'active' ? 'disabled' : 'active';
                 },
               })

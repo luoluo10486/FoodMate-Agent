@@ -90,4 +90,57 @@ describe('Admin 用户管理真实模式', () => {
     expect(within(row).getByText('活跃')).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([input]) => String(input) === '/api/admin/users')).toBe(true);
   });
+
+  it('管理操作触发列表刷新时同步重新读取当前用户详情', async () => {
+    let detailRequestCount = 0;
+    const fetchMock = vi.fn((input: RequestInfo | URL) => {
+      const path = new URL(String(input), 'http://foodmate.local').pathname;
+      if (path === '/api/admin/users') {
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: [
+              {
+                user_id: 7,
+                username: 'real-user',
+                email: 'real@example.com',
+                nickname: '真实用户',
+                role: 'user',
+                status: 'active',
+                revision: 4,
+              },
+            ],
+          }),
+        );
+      }
+      if (path === '/api/admin/users/7/detail') {
+        detailRequestCount += 1;
+        return Promise.resolve(
+          jsonResponse({
+            success: true,
+            data: {
+              profile: {
+                user_id: 7,
+                display_name: detailRequestCount === 1 ? '首次详情' : '服务端刷新详情',
+                gender: '男',
+              },
+              login_sessions: [],
+              business_sessions: { items: [], total: 0, page: 1, size: 50 },
+              operation_history: { items: [], total: 0, page: 1, size: 50 },
+            },
+          }),
+        );
+      }
+      return Promise.resolve(jsonResponse({ success: true, data: {} }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const view = render(<UsersSection onAction={vi.fn()} refreshNonce={0} />);
+    expect(await screen.findByText('首次详情')).toBeInTheDocument();
+
+    view.rerender(<UsersSection onAction={vi.fn()} refreshNonce={1} />);
+
+    expect(await screen.findByText('服务端刷新详情')).toBeInTheDocument();
+    expect(detailRequestCount).toBe(2);
+  });
 });

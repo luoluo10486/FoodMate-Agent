@@ -294,7 +294,7 @@ export function UsersSection({
       detailRequestIdRef.current += 1;
       controller.abort();
     };
-  }, [detailRetryNonce, selectedUserId]);
+  }, [detailRetryNonce, refreshNonce, selectedUserId]);
 
   const visibleUsers = useMemo(() => {
     if (!isMockMode) return users;
