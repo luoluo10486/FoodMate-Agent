@@ -216,12 +216,13 @@ public class AdminManagementServiceImpl implements AdminManagementService {
             AdminPasswordReset reset = accounts.createAdminPasswordReset(userId);
             if (reset == null || reset.recipient() == null || reset.recipient().isBlank())
                 throw new BusinessException(ErrorCode.COORDINATION_UNAVAILABLE, "用户密码重置通知信息不可用");
-            if (store.bumpUserRevision(userId, command.operatorId(), command.revision()) != 1)
-                throw conflict("用户账户状态已变化");
+            AdminManagementRepository.RevokeResult revoked =
+                    store.revokeSessions(userId, command.operatorId(), command.revision());
+            if (revoked == null) throw conflict("用户账户状态已变化");
             passwordResetNotifier.send(reset.recipient(), reset.token());
 
             ManagementResult result =
-                    new ManagementResult(true, "requested", 0, command.revision() + 1);
+                    new ManagementResult(true, "requested", revoked.revoked(), revoked.revision());
             audit.complete(command.operatorId(), command.idempotencyKey(), json(result));
             return result;
         } catch (RuntimeException exception) {

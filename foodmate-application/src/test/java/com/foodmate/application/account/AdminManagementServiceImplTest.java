@@ -195,7 +195,7 @@ class AdminManagementServiceImplTest {
     }
 
     @Test
-    void adminResetCredentialsSendsOneTimeNotificationAndBumpsRevision() {
+    void adminResetCredentialsSendsOneTimeNotificationAndRevokesSessions() {
         when(store.findUser(9))
                 .thenReturn(new AdminManagementRepository.UserSnapshot(9, "user", "active", 1));
         when(passwordResetNotifier.isAvailable()).thenReturn(true);
@@ -203,7 +203,8 @@ class AdminManagementServiceImplTest {
                 .thenReturn(
                         new UserAccountService.AdminPasswordReset(
                                 9, "user@example.com", "raw-token"));
-        when(store.bumpUserRevision(9, 2, 1)).thenReturn(1);
+        when(store.revokeSessions(9, 2, 1))
+                .thenReturn(new AdminManagementRepository.RevokeResult(3, 2));
 
         AdminManagementService.ManagementResult result =
                 service.resetUserCredentials(
@@ -220,9 +221,10 @@ class AdminManagementServiceImplTest {
 
         assertEquals("requested", result.status());
         assertEquals(2, result.revision());
+        assertEquals(3, result.affected());
         verify(accounts).createAdminPasswordReset(9);
         verify(passwordResetNotifier).send("user@example.com", "raw-token");
-        verify(store).bumpUserRevision(9, 2, 1);
+        verify(store).revokeSessions(9, 2, 1);
     }
 
     @Test
@@ -252,7 +254,36 @@ class AdminManagementServiceImplTest {
 
         assertEquals(ErrorCode.COORDINATION_UNAVAILABLE, exception.errorCode());
         verify(accounts, never()).createAdminPasswordReset(9);
-        verify(store, never()).bumpUserRevision(any(Long.class), any(Long.class), any(Long.class));
+        verify(store, never()).revokeSessions(any(Long.class), any(Long.class), any(Long.class));
+    }
+
+    @Test
+    void adminResetCredentialsDoesNotNotifyWhenSessionRevocationConflicts() {
+        when(store.findUser(9))
+                .thenReturn(new AdminManagementRepository.UserSnapshot(9, "user", "active", 1));
+        when(passwordResetNotifier.isAvailable()).thenReturn(true);
+        when(accounts.createAdminPasswordReset(9))
+                .thenReturn(
+                        new UserAccountService.AdminPasswordReset(
+                                9, "user@example.com", "raw-token"));
+        when(store.revokeSessions(9, 2, 1)).thenReturn(null);
+
+        assertThrows(
+                BusinessException.class,
+                () ->
+                        service.resetUserCredentials(
+                                9,
+                                new AdminWriteCommand(
+                                        2,
+                                        UserRole.ADMIN,
+                                        "trace-1",
+                                        "credential-reset-conflict-1",
+                                        1,
+                                        true,
+                                        AdminManagementServiceImpl.confirmationDigest(
+                                                "admin.user.credentials.reset", "9", "", 1))));
+
+        verify(passwordResetNotifier, never()).send(any(String.class), any(String.class));
     }
 
     private AdminWriteCommand command(UserRole role, long revision, String key) {

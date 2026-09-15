@@ -5,12 +5,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.foodmate.application.account.port.out.PasswordResetNotifier;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.HexFormat;
 import java.util.UUID;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +29,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("local")
@@ -46,6 +49,12 @@ class M11AdminManagementE2ETest {
     @Autowired JdbcTemplate jdbc;
     @Autowired MinioClient minio;
     @Autowired Environment environment;
+    @MockitoBean PasswordResetNotifier passwordResetNotifier;
+
+    @BeforeEach
+    void enablePasswordResetNotificationForE2e() {
+        org.mockito.Mockito.when(passwordResetNotifier.isAvailable()).thenReturn(true);
+    }
 
     @Test
     void adminWriteAndUserForbidden() throws Exception {
@@ -213,6 +222,67 @@ class M11AdminManagementE2ETest {
                                 withIdempotencyKey(userHeaders, "e2e-forbidden-user-status-1")),
                         String.class);
         assertEquals(403, forbidden.getStatusCode().value());
+    }
+
+    @Test
+    void adminCredentialResetRevokesExistingUserSession() throws Exception {
+        String admin = "credential_admin_" + UUID.randomUUID().toString().replace("-", "");
+        String target = "credential_target_" + UUID.randomUUID().toString().replace("-", "");
+        long adminId = register(admin);
+        long targetId = register(target);
+        jdbc.update("UPDATE users SET role='admin' WHERE user_id=?", adminId);
+
+        ResponseEntity<String> adminLogin = login(admin);
+        HttpHeaders adminHeaders =
+                headers(
+                        cookie(adminLogin, "foodmate_session"),
+                        cookie(adminLogin, "foodmate_csrf"));
+        ResponseEntity<String> targetLogin = login(target);
+        HttpHeaders targetHeaders =
+                headers(
+                        cookie(targetLogin, "foodmate_session"),
+                        cookie(targetLogin, "foodmate_csrf"));
+
+        long revision = userRevision(targetId);
+        ResponseEntity<String> reset =
+                rest.postForEntity(
+                        url("/api/admin/users/" + targetId + "/credentials/reset"),
+                        new HttpEntity<>(
+                                confirmedMutationRequest(
+                                        "admin.user.credentials.reset",
+                                        Long.toString(targetId),
+                                        "",
+                                        revision),
+                                withIdempotencyKey(adminHeaders, "e2e-credential-reset-1")),
+                        String.class);
+
+        assertEquals(200, reset.getStatusCode().value(), reset.getBody());
+        assertTrue(json.readTree(reset.getBody()).path("data").path("requested").asBoolean());
+        assertTrue(json.readTree(reset.getBody()).path("data").path("token").isMissingNode());
+        assertEquals(
+                revision + 1,
+                jdbc.queryForObject(
+                        "SELECT revision FROM users WHERE user_id=?", Long.class, targetId));
+
+        ResponseEntity<String> oldSession =
+                rest.exchange(
+                        url("/api/users/me"),
+                        HttpMethod.GET,
+                        new HttpEntity<>(targetHeaders),
+                        String.class);
+        assertEquals(401, oldSession.getStatusCode().value(), oldSession.getBody());
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM user_auth_sessions WHERE user_id=? AND revoked_at IS NULL",
+                        Integer.class,
+                        targetId));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM auth_refresh_tokens WHERE user_id=? AND revoked_at IS NULL",
+                        Integer.class,
+                        targetId));
     }
 
     private long register(String username) throws Exception {
