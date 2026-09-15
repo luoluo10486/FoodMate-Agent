@@ -233,4 +233,41 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     expect(statusSignals[0]?.aborted).toBe(true);
     expect(eventSignals[0]?.aborted).toBe(true);
   });
+
+  it('切换会话时关闭旧 SSE 并忽略迟到事件', async () => {
+    loadSessionMessages.mockImplementation((sessionId: string) =>
+      Promise.resolve(
+        sessionId === 'session-1'
+          ? [
+              {
+                message_id: 'message-1',
+                role: 'user',
+                content: '旧会话消息',
+                created_at: '2026-09-15T00:00:00Z',
+                sequence_no: 1,
+                agent_run_id: '42',
+              },
+            ]
+          : [],
+      ),
+    );
+
+    const view = renderHook(({ sessionId }: { sessionId: string }) => useRealAgentReplay(true, sessionId), {
+      initialProps: { sessionId: 'session-1' },
+    });
+    await waitFor(() => expect(subscriptions).toHaveLength(1));
+
+    const oldSubscription = subscriptions[0];
+    act(() => oldSubscription.onEvent(event('run.answer_stream', { text: '旧会话回答' }, 'old-event')));
+    expect(view.result.current.assistantText).toBe('旧会话回答');
+
+    view.rerender({ sessionId: 'session-2' });
+    await waitFor(() => expect(oldSubscription.close).toHaveBeenCalled());
+
+    act(() => oldSubscription.onEvent(event('run.answer_stream', { text: '迟到回答' }, 'late-event')));
+    expect(view.result.current.assistantText).toBe('');
+    expect(view.result.current.activeRunId).toBeUndefined();
+
+    view.unmount();
+  });
 });
