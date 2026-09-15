@@ -219,6 +219,16 @@ describe('admin extended APIs', () => {
     );
 
     expect(fetchMock).toHaveBeenCalledTimes(13);
+    const userStatusBody = JSON.parse(String(fetchMock.mock.calls[0][1].body));
+    const revokeSessionsBody = JSON.parse(String(fetchMock.mock.calls[1][1].body));
+    const toolStatusBody = JSON.parse(String(fetchMock.mock.calls[2][1].body));
+    const restoreBody = JSON.parse(String(fetchMock.mock.calls[3][1].body));
+    expect(userStatusBody).toMatchObject({ status: 'locked', revision: 3, confirmed: true });
+    expect(revokeSessionsBody).toMatchObject({ revision: 3, confirmed: true });
+    expect(toolStatusBody).toMatchObject({ status: 'disabled', revision: 7, confirmed: true });
+    expect(restoreBody).toMatchObject({ revision: 4, confirmed: true });
+    for (const body of [userStatusBody, revokeSessionsBody, toolStatusBody, restoreBody])
+      expect(body.confirmationDigest).toMatch(/^[0-9a-f]{64}$/);
     for (const [, init] of fetchMock.mock.calls) {
       expect(init).toEqual(expect.objectContaining({ signal: controller.signal }));
     }

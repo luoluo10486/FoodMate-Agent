@@ -4,8 +4,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.minio.MinioClient;
 import io.minio.StatObjectArgs;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.util.HexFormat;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
@@ -62,7 +66,9 @@ class M11AdminManagementE2ETest {
                 rest.exchange(
                         url("/api/admin/users/" + targetId + "/status"),
                         HttpMethod.PATCH,
-                        new HttpEntity<>("{\"status\":\"disabled\"}", adminHeaders),
+                        new HttpEntity<>(
+                                userStatusRequest(targetId, "disabled"),
+                                withIdempotencyKey(adminHeaders, "e2e-user-status-1")),
                         String.class);
         assertEquals(200, write.getStatusCode().value(), write.getBody());
         assertEquals(
@@ -71,7 +77,7 @@ class M11AdminManagementE2ETest {
                         "SELECT status FROM users WHERE user_id=?", String.class, targetId));
         assertTrue(
                 jdbc.queryForObject(
-                                "SELECT COUNT(*) FROM operation_audits WHERE operator_id=? AND action='user.status.update'",
+                                "SELECT COUNT(*) FROM operation_audits WHERE operator_id=? AND action='admin.user.status.update'",
                                 Long.class,
                                 adminId)
                         > 0);
@@ -85,11 +91,14 @@ class M11AdminManagementE2ETest {
                 "e2e_tool_" + toolId,
                 adminId,
                 adminId);
+        long toolRevision = toolRevision(toolId);
         ResponseEntity<String> tool =
                 rest.exchange(
                         url("/api/admin/tools/e2e_tool_" + toolId + "/status"),
                         HttpMethod.PATCH,
-                        new HttpEntity<>("{\"status\":\"disabled\"}", adminHeaders),
+                        new HttpEntity<>(
+                                toolStatusRequest("e2e_tool_" + toolId, "disabled", toolRevision),
+                                withIdempotencyKey(adminHeaders, "e2e-tool-status-1")),
                         String.class);
         assertEquals(200, tool.getStatusCode().value(), tool.getBody());
         assertEquals(
@@ -160,7 +169,13 @@ class M11AdminManagementE2ETest {
         ResponseEntity<String> revoke =
                 rest.postForEntity(
                         url("/api/admin/users/" + targetId + "/sessions/revoke-all"),
-                        new HttpEntity<>("", adminHeaders),
+                        new HttpEntity<>(
+                                confirmedMutationRequest(
+                                        "admin.user.sessions.revoke_all",
+                                        Long.toString(targetId),
+                                        "",
+                                        userRevision(targetId)),
+                                withIdempotencyKey(adminHeaders, "e2e-revoke-sessions-1")),
                         String.class);
         assertEquals(200, revoke.getStatusCode().value(), revoke.getBody());
 
@@ -168,10 +183,17 @@ class M11AdminManagementE2ETest {
         jdbc.update(
                 "UPDATE users SET is_deleted=TRUE, deleted_at=CURRENT_TIMESTAMP, status='disabled' WHERE user_id=?",
                 deletedId);
+        long deletedRevision = userRevision(deletedId);
         ResponseEntity<String> restore =
                 rest.postForEntity(
                         url("/api/admin/resources/user/" + deletedId + "/restore"),
-                        new HttpEntity<>("", adminHeaders),
+                        new HttpEntity<>(
+                                confirmedMutationRequest(
+                                        "admin.resource.restore",
+                                        "user",
+                                        Long.toString(deletedId),
+                                        deletedRevision),
+                                withIdempotencyKey(adminHeaders, "e2e-restore-user-1")),
                         String.class);
         assertEquals(200, restore.getStatusCode().value(), restore.getBody());
         assertEquals(
@@ -186,7 +208,9 @@ class M11AdminManagementE2ETest {
                 rest.exchange(
                         url("/api/admin/users/" + adminId + "/status"),
                         HttpMethod.PATCH,
-                        new HttpEntity<>("{\"status\":\"active\"}", userHeaders),
+                        new HttpEntity<>(
+                                userStatusRequest(adminId, "active"),
+                                withIdempotencyKey(userHeaders, "e2e-forbidden-user-status-1")),
                         String.class);
         assertEquals(403, forbidden.getStatusCode().value());
     }
@@ -231,6 +255,59 @@ class M11AdminManagementE2ETest {
         h.set(HttpHeaders.COOKIE, "foodmate_session=" + session + "; foodmate_csrf=" + csrf);
         h.set("X-CSRF-Token", csrf);
         return h;
+    }
+
+    private HttpHeaders withIdempotencyKey(HttpHeaders headers, String value) {
+        headers.set("Idempotency-Key", value);
+        return headers;
+    }
+
+    private String userStatusRequest(long userId, String status) throws Exception {
+        long revision = userRevision(userId);
+        ObjectNode body = json.createObjectNode();
+        body.put("status", status);
+        putConfirmation(body, "admin.user.status.update", Long.toString(userId), status, revision);
+        return body.toString();
+    }
+
+    private String toolStatusRequest(String name, String status, long revision) throws Exception {
+        ObjectNode body = json.createObjectNode();
+        body.put("status", status);
+        putConfirmation(body, "admin.tool.status.update", name, status, revision);
+        return body.toString();
+    }
+
+    private String confirmedMutationRequest(
+            String action, String target, String value, long revision) throws Exception {
+        ObjectNode body = json.createObjectNode();
+        putConfirmation(body, action, target, value, revision);
+        return body.toString();
+    }
+
+    private void putConfirmation(
+            ObjectNode body, String action, String target, String value, long revision)
+            throws Exception {
+        body.put("revision", revision);
+        body.put("confirmed", true);
+        body.put("confirmationDigest", confirmationDigest(action, target, value, revision));
+    }
+
+    private String confirmationDigest(String action, String target, String value, long revision)
+            throws Exception {
+        byte[] input =
+                (action + "|" + target + "|" + value + "|" + revision)
+                        .getBytes(StandardCharsets.UTF_8);
+        return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(input));
+    }
+
+    private long userRevision(long userId) {
+        return jdbc.queryForObject(
+                "SELECT revision FROM users WHERE user_id=?", Long.class, userId);
+    }
+
+    private long toolRevision(long toolId) {
+        return jdbc.queryForObject(
+                "SELECT revision FROM tool_registries WHERE tool_id=?", Long.class, toolId);
     }
 
     private String cookie(ResponseEntity<String> response, String name) {
