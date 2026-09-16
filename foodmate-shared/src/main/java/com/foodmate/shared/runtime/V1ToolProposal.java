@@ -14,7 +14,36 @@ public record V1ToolProposal(
         @JsonProperty("tool_name") String toolName,
         @JsonProperty("confirmation_ref") String confirmationRef,
         JsonNode input,
-        Payload payload) {
+        Payload payload,
+        @JsonProperty("dispatch_id") String dispatchId,
+        int attempt) {
+    /** 保持旧版 Proposal 构造方式兼容；旧消息不具备可跳过所需的派发上下文。 */
+    public V1ToolProposal(
+            String schemaVersion,
+            String proposalId,
+            String requestHash,
+            String runId,
+            String proposalType,
+            boolean requiresConfirmation,
+            String toolName,
+            String confirmationRef,
+            JsonNode input,
+            Payload payload) {
+        this(
+                schemaVersion,
+                proposalId,
+                requestHash,
+                runId,
+                proposalType,
+                requiresConfirmation,
+                toolName,
+                confirmationRef,
+                input,
+                payload,
+                null,
+                0);
+    }
+
     /** 工具提案的安全结构化载荷，不携带任何凭据。 */
     public record Payload(
             String statement,

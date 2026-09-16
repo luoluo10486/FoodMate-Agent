@@ -69,6 +69,7 @@ export type AgentRunEvent = {
     plan?: AgentRunEvent['plan'];
   };
   retryable?: boolean;
+  skippable?: boolean;
   citations?: Array<{
     citation_id: string;
     document_id: string;
@@ -100,6 +101,22 @@ export type AgentCancellationResult = {
   run_id: string;
   status: string;
   terminal: boolean;
+};
+
+export type AgentToolSkipResult = {
+  run_id: string;
+  proposal_id: string;
+  skip_id: string;
+  dispatch_id: string;
+  attempt: number;
+  status: string;
+};
+
+type AgentToolSkipPayload = Partial<AgentToolSkipResult> & {
+  runId?: string | number;
+  proposalId?: string;
+  skipId?: string;
+  dispatchId?: string;
 };
 
 type AgentCancellationPayload = Partial<AgentCancellationResult> & {
@@ -309,6 +326,24 @@ export async function retryAgentRun(runId: string, signal?: AbortSignal): Promis
   });
 }
 
+/** 请求后端跳过一个仍可跳过的工具步骤；完成事实必须由后续 SSE 事件确认。 */
+export async function skipAgentTool(
+  runId: string,
+  proposalId: string,
+  reason = '用户请求跳过工具步骤',
+  signal?: AbortSignal,
+): Promise<AgentToolSkipResult> {
+  const result = await apiRequest<AgentToolSkipPayload>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/tool-proposals/${encodeURIComponent(proposalId)}/skip`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      ...requestInit(signal),
+    },
+  );
+  return normalizeToolSkipResult(result);
+}
+
 export async function submitAgentFeedback(
   runId: string,
   messageId: string,
@@ -429,6 +464,17 @@ function normalizeBudgetExtensionResult(payload: AgentBudgetExtensionPayload): A
     dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
     attempt: Number(payload.attempt ?? 0),
     budget_revision: Number(payload.budget_revision ?? payload.budgetRevision ?? 0),
+    status: String(payload.status ?? ''),
+  };
+}
+
+function normalizeToolSkipResult(payload: AgentToolSkipPayload): AgentToolSkipResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    proposal_id: String(payload.proposal_id ?? payload.proposalId ?? ''),
+    skip_id: String(payload.skip_id ?? payload.skipId ?? ''),
+    dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
+    attempt: Number(payload.attempt ?? 0),
     status: String(payload.status ?? ''),
   };
 }

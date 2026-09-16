@@ -1,8 +1,12 @@
 package com.foodmate.api.controller.runtime;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.api.request.runtime.RuntimeProposalRequest;
+import com.foodmate.application.runtime.service.RuntimeProposalService;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.shared.api.ApiResponse;
+import com.foodmate.shared.runtime.V1ToolProposal;
 import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.security.ServiceJwt.PublicKeyRing;
 import com.foodmate.shared.trace.TraceContextHolder;
@@ -16,20 +20,23 @@ import org.springframework.web.bind.annotation.RestController;
 /** Python Proposal 的 Java 入口；生产环境由 RocketMQ consumer 调用同一应用服务。 */
 @RestController
 public class RuntimeProposalController {
-    private final ToolGatewayService gateway;
+    private final RuntimeProposalService proposals;
+    private final ObjectMapper mapper;
     private final String contractVersion;
     private final boolean jwtEnabled;
     private final PublicKeyRing pythonPublicKeys;
 
     public RuntimeProposalController(
-            ToolGatewayService gateway,
+            RuntimeProposalService proposals,
+            ObjectMapper mapper,
             @Value("${foodmate.runtime.contract-version:v1}") String contractVersion,
             @Value("${foodmate.runtime.service-jwt.enabled:false}") boolean jwtEnabled,
             @Value("${foodmate.runtime.service-jwt.python-public-key:}") String pythonPublicKey,
             @Value("${foodmate.runtime.service-jwt.python-public-keys:}")
                     String pythonPublicKeyRing,
             @Value("${foodmate.runtime.service-jwt.python-kid:}") String pythonKid) {
-        this.gateway = gateway;
+        this.proposals = proposals;
+        this.mapper = mapper.copy().findAndRegisterModules();
         this.contractVersion = contractVersion;
         this.jwtEnabled = jwtEnabled;
         this.pythonPublicKeys =
@@ -46,23 +53,34 @@ public class RuntimeProposalController {
                     "RUNTIME_CONTRACT_INVALID", "V1 contract header is required");
         authenticate(authorization);
         RuntimeProposalRequest.Payload payload = body.payload();
+        V1ToolProposal proposal =
+                new V1ToolProposal(
+                        body.schemaVersion(),
+                        body.proposalId(),
+                        body.requestHash(),
+                        body.runId(),
+                        body.proposalType(),
+                        body.requiresConfirmation(),
+                        body.toolName(),
+                        body.confirmationRef(),
+                        body.input(),
+                        payload == null
+                                ? null
+                                : new V1ToolProposal.Payload(
+                                        payload.statement(),
+                                        payload.invocationId(),
+                                        payload.idempotencyKey()),
+                        body.dispatchId(),
+                        body.attempt());
+        String rawPayload;
+        try {
+            rawPayload = mapper.writeValueAsString(body);
+        } catch (JsonProcessingException exception) {
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_CONTRACT_INVALID", "Proposal 请求无法序列化");
+        }
         return ApiResponse.success(
-                gateway.execute(
-                        new ToolGatewayService.ProposalCommand(
-                                body.proposalId(),
-                                body.runId(),
-                                body.proposalType(),
-                                body.schemaVersion(),
-                                body.toolName(),
-                                body.confirmationRef(),
-                                body.input(),
-                                payload == null
-                                        ? null
-                                        : new ToolGatewayService.ProposalPayload(
-                                                payload.statement(),
-                                                payload.invocationId(),
-                                                payload.idempotencyKey()))),
-                TraceContextHolder.currentOrNew());
+                proposals.execute(proposal, rawPayload), TraceContextHolder.currentOrNew());
     }
 
     private void authenticate(String authorization) {

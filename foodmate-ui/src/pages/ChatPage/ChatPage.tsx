@@ -76,6 +76,7 @@ import {
   rejectAgentWrite,
   recoverAgentRunFromCheckpoint,
   retryAgentRun,
+  skipAgentTool,
   type AgentRecoveryRequest,
   type AgentRunEvent,
 } from '../../services/agentRunService';
@@ -198,6 +199,8 @@ function mergeToolCall(current: ToolCall[], payload: AgentRunEvent, phase: 'star
     name,
     displayName: toolDisplayName(name),
     status: phase === 'started' ? 'running' : toolStatus(payload.status),
+    proposalId: payload.proposal_id ?? previous?.proposalId,
+    skippable: payload.skippable === undefined ? previous?.skippable : payload.skippable === true,
     latencyMs: payload.latency_ms ?? previous?.latencyMs,
     summary:
       phase === 'started'
@@ -2609,6 +2612,42 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
     }
   };
 
+  const skipTool = async () => {
+    const target = [...toolCalls]
+      .reverse()
+      .find(
+        (tool) =>
+          Boolean(tool.proposalId) &&
+          tool.skippable === true &&
+          (tool.status === 'failed' || tool.status === 'timeout'),
+      );
+    if (!runId || !target?.proposalId || actionState === 'loading' || actionControllerRef.current) return;
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage('跳过请求已提交，等待后端发送工具完成事件。');
+    const controller = startAction();
+    try {
+      const result = await skipAgentTool(
+        runId,
+        target.proposalId,
+        `工具 ${target.displayName || target.name} 执行失败，用户请求跳过此步骤。`,
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(`后端已接受跳过请求：${result.status || '未知'}，终态以 SSE 事件为准。`);
+      setRunStatus('executing_tools');
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '跳过工具步骤失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
   const recoverRun = async () => {
     if (!runId || !checkpointAvailable || actionState === 'loading' || actionControllerRef.current) return;
     closeRunStream();
@@ -2838,13 +2877,26 @@ function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
         <Card className={styles.realStateCard}>
           <h2>工具失败状态</h2>
           <p className={styles.realStateMeta}>{error || '等待后端返回失败原因。'}</p>
-          {retryable ? (
-            <Button disabled={actionState === 'loading'} onClick={() => void retryRun()}>
-              重试当前 Run
-            </Button>
-          ) : (
-            <p className={styles.realStateMeta}>当前失败未被后端标记为可重试，页面不显示重试请求。</p>
-          )}
+          <div className={styles.realStateActions}>
+            {retryable ? (
+              <Button disabled={actionState === 'loading'} onClick={() => void retryRun()}>
+                重试当前 Run
+              </Button>
+            ) : (
+              <p className={styles.realStateMeta}>当前失败未被后端标记为可重试，页面不显示重试请求。</p>
+            )}
+            {[...toolCalls].some(
+              (tool) =>
+                Boolean(tool.proposalId) &&
+                tool.skippable === true &&
+                (tool.status === 'failed' || tool.status === 'timeout'),
+            ) ? (
+              <Button variant="outline" disabled={actionState === 'loading'} onClick={() => void skipTool()}>
+                <CircleSlash aria-hidden="true" />
+                跳过此步骤
+              </Button>
+            ) : null}
+          </div>
         </Card>
       ) : null}
       {state === 'safety-degraded' ? (
@@ -3968,6 +4020,12 @@ function ChatRunPage() {
     [navigate],
   );
   const agent = useRealAgentReplay(true, sessionId, searchParams.get('prompt'), { onSessionCreated });
+  const skippableTool = [...agent.run.toolCalls]
+    .reverse()
+    .find(
+      (tool) =>
+        Boolean(tool.proposalId) && tool.skippable === true && (tool.status === 'failed' || tool.status === 'timeout'),
+    );
 
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
@@ -4002,6 +4060,14 @@ function ChatRunPage() {
               重新连接
             </Button>
           ) : null}
+        </div>
+      ) : null}
+      {skippableTool && agent.run.status === 'failed' ? (
+        <div className={styles.runtimeErrorBlock}>
+          <Button variant="outline" type="button" disabled={agent.skipping} onClick={() => agent.skipTool()}>
+            <CircleSlash aria-hidden="true" />
+            {agent.skipping ? '正在跳过...' : '跳过此步骤'}
+          </Button>
         </div>
       ) : null}
       {agent.run.connection?.state === 'connecting' ? (

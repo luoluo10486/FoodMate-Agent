@@ -32,6 +32,8 @@ export type ToolCall = {
   name: string;
   displayName: string;
   status: ToolCallStatus;
+  proposalId?: string;
+  skippable?: boolean;
   latencyMs?: number;
   summary: string;
   error?: string;

@@ -33,6 +33,8 @@ class Proposal:
     tool_name: str | None = None
     confirmation_ref: str | None = None
     input: dict[str, Any] | None = None
+    dispatch_id: str | None = None
+    attempt: int | None = None
 
     def as_dict(self) -> dict[str, Any]:
         body = {
@@ -49,6 +51,10 @@ class Proposal:
             body["confirmation_ref"] = self.confirmation_ref
         if self.input is not None:
             body["input"] = self.input
+        if self.dispatch_id is not None:
+            body["dispatch_id"] = self.dispatch_id
+        if self.attempt is not None:
+            body["attempt"] = self.attempt
         body["request_hash"] = self.request_hash or _request_hash(body)
         return body
 
@@ -60,6 +66,12 @@ def validate_proposal(proposal: Proposal) -> None:
         raise ValueError("PROPOSAL_TYPE_NOT_ALLOWED")
     if not proposal.proposal_id or not proposal.run_id or len(proposal.proposal_id) > MAX_ID_LENGTH or len(proposal.run_id) > MAX_ID_LENGTH:
         raise ValueError("PROPOSAL_ID_REQUIRED")
+    if proposal.dispatch_id is not None and (
+        not proposal.dispatch_id or len(proposal.dispatch_id) > MAX_ID_LENGTH
+    ):
+        raise ValueError("PROPOSAL_DISPATCH_ID_INVALID")
+    if proposal.attempt is not None and proposal.attempt < 1:
+        raise ValueError("PROPOSAL_ATTEMPT_INVALID")
     invocation_id = str(proposal.payload.get("invocation_id", ""))
     if not invocation_id or len(invocation_id) > MAX_ID_LENGTH:
         raise ValueError("PROPOSAL_INVOCATION_ID_REQUIRED")
@@ -146,8 +158,25 @@ def validate_proposal(proposal: Proposal) -> None:
             canonical["confirmation_ref"] = proposal.confirmation_ref
         if proposal.input is not None:
             canonical["input"] = proposal.input
+        if proposal.dispatch_id is not None:
+            canonical["dispatch_id"] = proposal.dispatch_id
+        if proposal.attempt is not None:
+            canonical["attempt"] = proposal.attempt
         if proposal.request_hash != _request_hash(canonical):
             raise ValueError("PROPOSAL_REQUEST_HASH_INVALID")
+
+
+def bind_dispatch(proposal: dict[str, Any], dispatch_id: str, attempt: int) -> dict[str, Any]:
+    """把当前运行的 dispatch 和 attempt 绑定到 Proposal，并重新计算请求摘要。"""
+    if not dispatch_id or len(dispatch_id) > MAX_ID_LENGTH or attempt < 1:
+        raise ValueError("PROPOSAL_DISPATCH_CONTEXT_INVALID")
+    bound = dict(proposal)
+    bound.pop("request_hash", None)
+    bound["dispatch_id"] = dispatch_id
+    bound["attempt"] = attempt
+    bound["request_hash"] = _request_hash(bound)
+    validate_proposal(Proposal(**bound))
+    return bound
 
 
 def _validate_food_log_input(value: dict[str, Any] | None) -> None:

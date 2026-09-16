@@ -16,6 +16,7 @@ import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.BudgetExtensionService;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.ToolSkipService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import jakarta.servlet.http.Cookie;
 import java.util.List;
@@ -32,6 +33,7 @@ class V1AgentRunControllerTest {
     private final RuntimeCancellationService cancellations = mock(RuntimeCancellationService.class);
     private final BudgetExtensionService budgets = mock(BudgetExtensionService.class);
     private final RuntimeRecoveryService recovery = mock(RuntimeRecoveryService.class);
+    private final ToolSkipService skips = mock(ToolSkipService.class);
     private MockMvc mockMvc;
 
     @BeforeEach
@@ -49,7 +51,7 @@ class V1AgentRunControllerTest {
         mockMvc =
                 MockMvcBuilders.standaloneSetup(
                                 new V1AgentRunController(
-                                        accounts, events, cancellations, budgets, recovery))
+                                        accounts, events, cancellations, budgets, recovery, skips))
                         .setControllerAdvice(new GlobalExceptionHandler())
                         .build();
     }
@@ -129,5 +131,24 @@ class V1AgentRunControllerTest {
         mockMvc.perform(post("/api/agent-runs/1/retry"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.success", is(false)));
+    }
+
+    @Test
+    void skipEndpointAuthenticatesUserAndPassesProposalReason() throws Exception {
+        when(skips.request(7L, "1", "proposal-1", "外部知识库不可用"))
+                .thenReturn(
+                        new ToolSkipService.SkipResult(
+                                "1", "proposal-1", "skip-1", "d-1", 1, "requested"));
+
+        mockMvc.perform(
+                        post("/api/agent-runs/1/tool-proposals/proposal-1/skip")
+                                .cookie(new Cookie("foodmate_session", "session-token"))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"reason\":\"外部知识库不可用\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.skip_id", is("skip-1")))
+                .andExpect(jsonPath("$.data.status", is("requested")));
+
+        verify(skips).request(7L, "1", "proposal-1", "外部知识库不可用");
     }
 }

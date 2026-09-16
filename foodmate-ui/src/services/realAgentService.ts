@@ -10,6 +10,7 @@ import type { Message } from '../types/session';
 import type { AgentCard } from '../mock/agentReplayData';
 import { flattenAgentEventPayload, resolveAgentEventType } from '../lib/agentEvent';
 import { isAbortError } from './apiClient';
+import { skipAgentTool } from './agentRunService';
 import { loadSessionMessages } from './sessionService';
 import {
   cancelChatRun,
@@ -137,12 +138,15 @@ function mergeToolCall(current: ToolCall[], event: ChatRunEvent, phase: 'started
     `tool-${event.event_seq || event.event_id || Date.now()}`;
   const name = stringValue(payload.tool_name) || stringValue(payload.tool_type) || 'unknown_tool';
   const index = current.findIndex((tool) => tool.id === id);
+  const previous = index >= 0 ? current[index] : undefined;
   const next: ToolCall = {
     id,
     name,
     displayName: name,
     status: phase === 'started' ? 'running' : toolStatus(payload.status),
-    latencyMs: typeof payload.latency_ms === 'number' ? payload.latency_ms : undefined,
+    proposalId: stringValue(payload.proposal_id) || previous?.proposalId,
+    skippable: payload.skippable === undefined ? previous?.skippable : payload.skippable === true,
+    latencyMs: typeof payload.latency_ms === 'number' ? payload.latency_ms : previous?.latencyMs,
     summary:
       phase === 'started'
         ? '正在执行'
@@ -200,6 +204,7 @@ export function useRealAgentReplay(
   const [error, setError] = useState<string>();
   const [cancelling, setCancelling] = useState(false);
   const [cancelAcknowledged, setCancelAcknowledged] = useState(false);
+  const [skipping, setSkipping] = useState(false);
   const [connection, setConnection] = useState<AgentStreamConnection>({
     state: 'closed',
     attempt: 0,
@@ -598,6 +603,57 @@ export function useRealAgentReplay(
       });
   }, [cancelling, closeStream, openStream, running]);
 
+  const skipTool = useCallback(() => {
+    const runId = activeRunIdRef.current;
+    const target = [...run.toolCalls]
+      .reverse()
+      .find(
+        (tool) =>
+          Boolean(tool.proposalId) &&
+          tool.skippable === true &&
+          (tool.status === 'failed' || tool.status === 'timeout'),
+      );
+    if (!runId || !target?.proposalId || skipping || cancelling) return;
+    const currentStream = streamRef.current;
+    const cursor = currentStream?.getConnection().lastEventId ?? lastEventIdRef.current;
+    closeStream();
+    lastEventIdRef.current = cursor;
+    setSkipping(true);
+    setRunning(false);
+    setError(undefined);
+    mutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    mutationControllerRef.current = controller;
+    void skipAgentTool(
+      runId,
+      target.proposalId,
+      `工具 ${target.displayName || target.name} 执行失败，用户请求跳过此步骤。`,
+      controller.signal,
+    )
+      .then(() => {
+        if (!mountedRef.current || controller.signal.aborted || activeRunIdRef.current !== runId) return;
+        // HTTP 响应只代表 Skip 请求被接受，工具结果和后续 Run 状态仍由 SSE 决定。
+        setRunning(true);
+        openStream(runId, cursor, true);
+      })
+      .catch((reason) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          isAbortError(reason) ||
+          activeRunIdRef.current !== runId
+        )
+          return;
+        setError(reason instanceof Error ? reason.message : '跳过工具步骤失败，请稍后重试。');
+        setRunning(true);
+        openStream(runId, cursor, true);
+      })
+      .finally(() => {
+        if (mutationControllerRef.current === controller) mutationControllerRef.current = undefined;
+        if (mountedRef.current && activeRunIdRef.current === runId) setSkipping(false);
+      });
+  }, [cancelling, closeStream, openStream, run.toolCalls, skipping]);
+
   const reconnect = useCallback(() => {
     const runId = activeRunIdRef.current;
     if (!runId || connection.state !== 'exhausted') return;
@@ -616,6 +672,7 @@ export function useRealAgentReplay(
     error,
     cancelling,
     cancelAcknowledged,
+    skipping,
     assistantText,
     assistantTime,
     activeRunId,
@@ -624,6 +681,7 @@ export function useRealAgentReplay(
     send,
     stop,
     reconnect,
+    skipTool,
     answerClarification: () => undefined,
     confirmWrite: () => undefined,
     handleResultPrimary: () => undefined,

@@ -11,6 +11,7 @@ import {
   recoverAgentRunFromCheckpoint,
   rejectAgentWrite,
   retryAgentRun,
+  skipAgentTool,
   submitAgentFeedback,
 } from './agentRunService';
 
@@ -112,6 +113,35 @@ describe('agentRunService HTTP APIs', () => {
 
     expect(fetchMock.mock.calls[0][0]).toBe('/api/agent-runs/42/retry');
     expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+  });
+
+  it('requests a tool skip and normalizes the accepted response without treating it as terminal', async () => {
+    const fetchMock = vi.fn().mockImplementation(() =>
+      Promise.resolve(
+        ok({
+          run_id: '42',
+          proposal_id: 'proposal-1',
+          skip_id: 'skip-1',
+          dispatch_id: 'dispatch-1',
+          attempt: 2,
+          status: 'requested',
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(skipAgentTool('42', 'proposal-1', '外部知识库不可用')).resolves.toEqual({
+      run_id: '42',
+      proposal_id: 'proposal-1',
+      skip_id: 'skip-1',
+      dispatch_id: 'dispatch-1',
+      attempt: 2,
+      status: 'requested',
+    });
+
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/agent-runs/42/tool-proposals/proposal-1/skip');
+    expect(fetchMock.mock.calls[0][1].method).toBe('POST');
+    expect(JSON.parse(String(fetchMock.mock.calls[0][1].body))).toEqual({ reason: '外部知识库不可用' });
   });
 
   it('maps feedback and approval operations to the existing endpoints', async () => {

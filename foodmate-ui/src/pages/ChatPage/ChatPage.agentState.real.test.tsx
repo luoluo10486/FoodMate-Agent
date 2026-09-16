@@ -20,6 +20,7 @@ const {
   recoverAgentRunFromCheckpoint,
   rejectAgentWrite,
   retryAgentRun,
+  skipAgentTool,
 } = vi.hoisted(() => ({
   cancelAgentRun: vi.fn(),
   createApprovalProposal: vi.fn(),
@@ -33,6 +34,7 @@ const {
   recoverAgentRunFromCheckpoint: vi.fn(),
   rejectAgentWrite: vi.fn(),
   retryAgentRun: vi.fn(),
+  skipAgentTool: vi.fn(),
 }));
 
 vi.mock('../../services/agentRunService', async () => {
@@ -53,6 +55,7 @@ vi.mock('../../services/agentRunService', async () => {
     recoverAgentRunFromCheckpoint,
     rejectAgentWrite,
     retryAgentRun,
+    skipAgentTool,
   };
 });
 
@@ -144,6 +147,7 @@ describe('ChatPage Agent 状态真实动作', () => {
     recoverAgentRunFromCheckpoint.mockReset();
     rejectAgentWrite.mockReset();
     retryAgentRun.mockReset();
+    skipAgentTool.mockReset();
     emitStreamEvent = undefined;
     emitConnection = undefined;
 
@@ -179,6 +183,14 @@ describe('ChatPage Agent 状态真实动作', () => {
     });
     rejectAgentWrite.mockResolvedValue(pendingApproval('rejected'));
     retryAgentRun.mockResolvedValue({ run_id: '42', dispatch_id: 'dispatch-2', attempt: 2, status: 'queued' });
+    skipAgentTool.mockResolvedValue({
+      run_id: '42',
+      proposal_id: 'proposal-1',
+      skip_id: 'skip-1',
+      dispatch_id: 'dispatch-1',
+      attempt: 1,
+      status: 'requested',
+    });
     openAgentRunStream.mockImplementation(
       (
         _runId: string,
@@ -390,12 +402,24 @@ describe('ChatPage Agent 状态真实动作', () => {
     expect(openAgentRunStream.mock.calls[1][2]).toMatchObject({ lastEventId: 'event-17' });
   });
 
-  it('只有后端明确标记 retryable=true 时显示重试，不显示虚构的跳过接口', async () => {
+  it('只有后端明确标记 retryable=true 和 skippable=true 时显示对应操作', async () => {
     const user = userEvent.setup();
     renderState('tool-failed-retryable', 'run_id=42');
     await waitFor(() => expect(openAgentRunStream).toHaveBeenCalledWith('42', expect.any(Function), expect.anything()));
 
     await act(async () => {
+      emitStreamEvent?.(
+        'run.tool_finished',
+        {
+          event_type: 'run.tool_finished',
+          proposal_id: 'proposal-1',
+          tool_name: 'knowledge_search',
+          status: 'failed',
+          error_code: 'TOOL_TIMEOUT_001',
+          skippable: true,
+        } as AgentRunEvent,
+        'tool-failed-event',
+      );
       emitStreamEvent?.(
         'run.failed',
         { event_type: 'run.failed', code: 'TOOL_TIMEOUT_001', retryable: true } as AgentRunEvent,
@@ -403,10 +427,57 @@ describe('ChatPage Agent 状态真实动作', () => {
       );
     });
 
-    expect(screen.queryByRole('button', { name: '跳过此步骤' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '跳过此步骤' })).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: '重试当前 Run' }));
     await waitFor(() => expect(retryAgentRun).toHaveBeenCalledWith('42', expect.any(AbortSignal)));
     expect(await screen.findByText(/后端已返回重试状态：queued/)).toBeInTheDocument();
+
+    // 重试请求完成后重新接收同一个失败事实，验证真实 Skip 只在后端明确声明时发送。
+    await act(async () => {
+      emitStreamEvent?.(
+        'run.tool_finished',
+        {
+          event_type: 'run.tool_finished',
+          proposal_id: 'proposal-1',
+          tool_name: 'knowledge_search',
+          status: 'failed',
+          error_code: 'TOOL_TIMEOUT_001',
+          skippable: true,
+        } as AgentRunEvent,
+        'tool-failed-event-2',
+      );
+    });
+    await user.click(await screen.findByRole('button', { name: '跳过此步骤' }));
+    await waitFor(() =>
+      expect(skipAgentTool).toHaveBeenCalledWith(
+        '42',
+        'proposal-1',
+        expect.stringContaining('知识库检索'),
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(await screen.findByText(/后端已接受跳过请求：requested/)).toBeInTheDocument();
+  });
+
+  it('后端未返回 skippable=true 时不显示真实 Skip 操作', async () => {
+    renderState('tool-failed-retryable', 'run_id=42');
+    await waitFor(() => expect(openAgentRunStream).toHaveBeenCalled());
+
+    await act(async () => {
+      emitStreamEvent?.(
+        'run.tool_finished',
+        {
+          event_type: 'run.tool_finished',
+          proposal_id: 'proposal-1',
+          status: 'failed',
+          skippable: false,
+        } as AgentRunEvent,
+        'tool-not-skippable',
+      );
+    });
+
+    expect(screen.queryByRole('button', { name: '跳过此步骤' })).not.toBeInTheDocument();
+    expect(skipAgentTool).not.toHaveBeenCalled();
   });
 
   it('真实状态页缺少标识时不渲染 Fixture，也不调用真实写入接口', async () => {

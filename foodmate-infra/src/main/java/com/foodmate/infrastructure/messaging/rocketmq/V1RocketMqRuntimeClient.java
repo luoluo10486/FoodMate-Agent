@@ -6,6 +6,7 @@ import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import com.foodmate.shared.runtime.V1RunCommand;
+import com.foodmate.shared.runtime.V1SkipCommand;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.rocketmq.client.exception.MQBrokerException;
@@ -54,6 +55,17 @@ public final class V1RocketMqRuntimeClient implements RuntimeClientPort, AutoClo
                 command.dispatchId(),
                 command.attempt(),
                 "CancelCommand",
+                command.requestHash(),
+                command);
+    }
+
+    @Override
+    public RuntimeClientPort.Response skip(V1SkipCommand command) {
+        return send(
+                command.runId(),
+                command.dispatchId(),
+                command.attempt(),
+                "SkipCommand",
                 command.requestHash(),
                 command);
     }

@@ -7,8 +7,8 @@ import com.foodmate.application.runtime.messaging.MessageProperties;
 import com.foodmate.application.runtime.messaging.MqConsumeDecision;
 import com.foodmate.application.runtime.messaging.MqMessageHandler;
 import com.foodmate.application.runtime.messaging.MqMessageHandler.MqMessageContext;
-import com.foodmate.application.runtime.port.out.InboxRepository;
 import com.foodmate.application.runtime.port.out.MessagePublisherPort;
+import com.foodmate.application.runtime.service.RuntimeProposalService;
 import com.foodmate.application.runtime.service.ToolGatewayService;
 import com.foodmate.shared.runtime.V1ToolProposal;
 import com.foodmate.shared.runtime.V1ToolResult;
@@ -26,33 +26,29 @@ import org.springframework.stereotype.Service;
 public class RuntimeProposalMessageProcessor implements MqMessageHandler {
     private static final Logger log =
             LoggerFactory.getLogger(RuntimeProposalMessageProcessor.class);
-    private final ToolGatewayService gateway;
+    private final RuntimeProposalService proposals;
     private final MessagePublisherPort publisher;
     private final String resultTopic;
-    private final InboxRepository inbox;
     private final AgentOperationMetrics metrics;
     private final ObjectMapper mapper = new ObjectMapper().findAndRegisterModules();
 
     public RuntimeProposalMessageProcessor(
-            ToolGatewayService gateway,
+            RuntimeProposalService proposals,
             MessagePublisherPort publisher,
-            InboxRepository inbox,
             @Value("${foodmate.runtime.rocketmq.result-topic:foodmate-agent-result-v1}")
                     String resultTopic) {
-        this(gateway, publisher, inbox, resultTopic, null);
+        this(proposals, publisher, resultTopic, null);
     }
 
     @Autowired
     public RuntimeProposalMessageProcessor(
-            ToolGatewayService gateway,
+            RuntimeProposalService proposals,
             MessagePublisherPort publisher,
-            InboxRepository inbox,
             @Value("${foodmate.runtime.rocketmq.result-topic:foodmate-agent-result-v1}")
                     String resultTopic,
             ObjectProvider<AgentOperationMetrics> metricsProvider) {
-        this.gateway = gateway;
+        this.proposals = proposals;
         this.publisher = publisher;
-        this.inbox = inbox;
         this.resultTopic = resultTopic;
         this.metrics = metricsProvider == null ? null : metricsProvider.getIfAvailable();
     }
@@ -64,36 +60,13 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
             String proposalId = requiredText(proposal.proposalId());
             String requestHash = requiredText(proposal.requestHash());
             String invocationId = invocationId(proposal.payload());
-            ToolGatewayService.ProposalResult result;
-            String existing = claimOrExisting(proposalId, requestHash, body);
-            if (existing != null) {
-                result = mapper.readValue(existing, ToolGatewayService.ProposalResult.class);
-                if (metrics != null) metrics.count("rocketmq", "proposal", "duplicate", "inbox");
-            } else {
-                result =
-                        gateway.execute(
-                                new ToolGatewayService.ProposalCommand(
-                                        proposal.proposalId(),
-                                        proposal.runId(),
-                                        proposal.proposalType(),
-                                        proposal.schemaVersion(),
-                                        proposal.toolName(),
-                                        proposal.confirmationRef(),
-                                        proposal.input(),
-                                        proposal.payload() == null
-                                                ? null
-                                                : new ToolGatewayService.ProposalPayload(
-                                                        proposal.payload().statement(),
-                                                        proposal.payload().invocationId(),
-                                                        proposal.payload().idempotencyKey())));
-                inbox.complete(proposalId, mapper.writeValueAsString(result));
-                if (metrics != null)
-                    metrics.count(
-                            "rocketmq",
-                            "proposal",
-                            result.status() == null ? "success" : result.status(),
-                            result.errorCode() == null ? "completed" : result.errorCode());
-            }
+            ToolGatewayService.ProposalResult result = proposals.execute(proposal, body);
+            if (metrics != null)
+                metrics.count(
+                        "rocketmq",
+                        "proposal",
+                        result.status() == null ? "success" : result.status(),
+                        result.errorCode() == null ? "completed" : result.errorCode());
             String payload =
                     mapper.writeValueAsString(
                             new V1ToolResult(
@@ -162,17 +135,6 @@ public class RuntimeProposalMessageProcessor implements MqMessageHandler {
         } catch (JsonProcessingException ignored) {
             return "unknown";
         }
-    }
-
-    private String claimOrExisting(String proposalId, String requestHash, String body) {
-        int inserted = inbox.claim(proposalId, requestHash, body);
-        if (inserted == 1) return null;
-        InboxRepository.InboxRecord existing = inbox.find(proposalId);
-        if (existing == null || !requestHash.equals(existing.requestHash()))
-            throw new IllegalArgumentException("proposal idempotency conflict");
-        if ("completed".equals(existing.status()) && existing.resultJson() != null)
-            return existing.resultJson();
-        throw new IllegalStateException("proposal execution is incomplete");
     }
 
     private static String requiredText(String value) {

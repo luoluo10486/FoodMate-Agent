@@ -5,6 +5,7 @@ import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.shared.runtime.RuntimeException;
 import com.foodmate.shared.runtime.V1CancelCommand;
 import com.foodmate.shared.runtime.V1RunCommand;
+import com.foodmate.shared.runtime.V1SkipCommand;
 import com.foodmate.shared.security.ServiceJwt;
 import com.foodmate.shared.trace.TraceContext;
 import com.foodmate.shared.trace.TraceContextHeaders;
@@ -69,6 +70,18 @@ public final class V1HttpRuntimeClient implements RuntimeClientPort {
                 "/foodmate/internal/v1/runs/" + command.runId() + "/cancel",
                 command,
                 "runtime:cancel");
+    }
+
+    @Override
+    public RuntimeClientPort.Response skip(V1SkipCommand command) {
+        return send(
+                "/foodmate/internal/v1/runs/"
+                        + command.runId()
+                        + "/tool-proposals/"
+                        + command.proposalId()
+                        + "/skip",
+                command,
+                "runtime:skip");
     }
 
     private RuntimeClientPort.Response send(String path, Object body, String scope) {

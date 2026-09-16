@@ -4,10 +4,13 @@ import com.foodmate.api.controller.account.AuthenticatedControllerSupport;
 import com.foodmate.api.request.runtime.BudgetExtensionRequest;
 import com.foodmate.api.request.runtime.CancelRequest;
 import com.foodmate.api.request.runtime.RecoveryRequest;
+import com.foodmate.api.request.runtime.ToolSkipRequest;
 import com.foodmate.api.response.runtime.RunView;
+import com.foodmate.api.response.runtime.ToolSkipResponse;
 import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.runtime.service.RuntimeCancellationService;
 import com.foodmate.application.runtime.service.RuntimeRecoveryService;
+import com.foodmate.application.runtime.service.ToolSkipService;
 import com.foodmate.application.runtime.service.V1RuntimeEventService;
 import com.foodmate.shared.api.ApiResponse;
 import com.foodmate.shared.trace.TraceContextHolder;
@@ -28,18 +31,21 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
     private final RuntimeCancellationService cancellations;
     private final com.foodmate.application.runtime.service.BudgetExtensionService budgets;
     private final RuntimeRecoveryService recovery;
+    private final ToolSkipService skips;
 
     public V1AgentRunController(
             UserAccountService accounts,
             V1RuntimeEventService events,
             RuntimeCancellationService cancellations,
             com.foodmate.application.runtime.service.BudgetExtensionService budgets,
-            RuntimeRecoveryService recovery) {
+            RuntimeRecoveryService recovery,
+            ToolSkipService skips) {
         super(accounts);
         this.events = events;
         this.cancellations = cancellations;
         this.budgets = budgets;
         this.recovery = recovery;
+        this.skips = skips;
     }
 
     @GetMapping("/{runId}")
@@ -143,6 +149,19 @@ public class V1AgentRunController extends AuthenticatedControllerSupport {
         }
         return ApiResponse.success(
                 recovery.retryFailedRun(user(request).userId(), parsedRunId),
+                TraceContextHolder.currentOrNew());
+    }
+
+    /** 仅允许跳过仍处于 claimed 状态且注册表明确声明可跳过的工具步骤。 */
+    @PostMapping("/{runId}/tool-proposals/{proposalId}/skip")
+    public ApiResponse<ToolSkipResponse> skip(
+            @PathVariable String runId,
+            @PathVariable String proposalId,
+            HttpServletRequest request,
+            @Valid @RequestBody ToolSkipRequest body) {
+        return ApiResponse.success(
+                ToolSkipResponse.from(
+                        skips.request(user(request).userId(), runId, proposalId, body.reason())),
                 TraceContextHolder.currentOrNew());
     }
 }

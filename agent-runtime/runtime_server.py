@@ -26,6 +26,7 @@ from sql_planner import SqlPlannerError
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from knowledge_rag import MilvusIndex, PUBLIC_SCOPE, RagError, RagSettings, RedisStubIndex, build_local_embedder
 from nutrition_catalog_rag import search_nutrition_catalog
+from proposal_protocol import bind_dispatch
 
 JAVA_CALLBACK_URL = os.getenv("JAVA_CALLBACK_URL", "http://localhost:8080")
 CONTRACT_VERSION = os.getenv("FOODMATE_CONTRACT_VERSION", "v1")
@@ -38,6 +39,8 @@ JAVA_PUBLIC_KEY_KID = os.getenv("FOODMATE_JAVA_PUBLIC_KEY_KID", "")
 STATE_FILE = os.getenv("FOODMATE_RUNTIME_STATE_FILE", "")
 _cancelled: set[str] = set()
 _dispatches: dict[str, dict] = {}
+_active_proposals: dict[str, dict] = {}
+_skip_requests: dict[str, dict] = {}
 _lock = threading.Lock()
 _event_publisher = None
 _proposal_publisher = None
@@ -433,8 +436,14 @@ def _on_result(result: dict):
     if not proposal_id:
         return
     with _result_condition:
-        _result_waiters[proposal_id] = result
-        _result_condition.notify_all()
+        pending = _active_proposals.get(proposal_id)
+        expected_hash = pending.get("request_hash") if pending else None
+        result_hash = result.get("request_hash")
+        if expected_hash and result_hash and result_hash != expected_hash:
+            return
+        if proposal_id not in _result_waiters:
+            _result_waiters[proposal_id] = dict(result)
+            _result_condition.notify_all()
     _runtime_metrics.record("result", str(result.get("status", "success")), "received")
 
 
@@ -446,7 +455,72 @@ def _await_result(proposal_id: str, timeout_seconds: float) -> dict:
             if remaining <= 0:
                 raise TimeoutError("TOOL_RESULT_TIMEOUT")
             _result_condition.wait(remaining)
-        return _result_waiters.pop(proposal_id)
+        result = _result_waiters.pop(proposal_id)
+        if result.get("status") == "skipped":
+            result.setdefault("error_code", "TOOL_STEP_SKIPPED")
+        return result
+
+
+def _validate_skip_command(command: dict) -> None:
+    """校验 Skip Command 的标识和并发上下文，不执行任何工具操作。"""
+    if not isinstance(command, dict):
+        raise ValueError("RUNTIME_CONTRACT_INVALID")
+    for key in (
+        "run_id",
+        "dispatch_id",
+        "skip_id",
+        "proposal_id",
+        "invocation_id",
+        "request_hash",
+        "proposal_request_hash",
+    ):
+        value = command.get(key)
+        if not isinstance(value, str) or not value.strip() or len(value) > 128:
+            raise ValueError("RUNTIME_SKIP_COMMAND_INVALID")
+    try:
+        attempt = int(command.get("attempt"))
+    except (TypeError, ValueError) as error:
+        raise ValueError("RUNTIME_SKIP_COMMAND_INVALID") from error
+    if attempt < 1:
+        raise ValueError("RUNTIME_SKIP_COMMAND_INVALID")
+
+
+def _on_skip(command: dict) -> bool:
+    """将一次合法 Skip 转换为等待中的 skipped Tool Result，并保证只通知一次。"""
+    _validate_skip_command(command)
+    skip_id = command["skip_id"]
+    proposal_id = command["proposal_id"]
+    with _result_condition:
+        previous = _skip_requests.get(skip_id)
+        if previous is not None:
+            if previous.get("request_hash") != command.get("request_hash"):
+                raise ValueError("RUNTIME_SKIP_IDEMPOTENCY_CONFLICT")
+            return False
+        pending = _active_proposals.get(proposal_id)
+        if pending is None:
+            return False
+        if (
+            pending["run_id"] != command["run_id"]
+            or pending["dispatch_id"] != command["dispatch_id"]
+            or pending["attempt"] != int(command["attempt"])
+            or pending["invocation_id"] != command["invocation_id"]
+            or pending["request_hash"] != command["proposal_request_hash"]
+        ):
+            raise ValueError("RUNTIME_SKIP_STATE_CONFLICT")
+        _skip_requests[skip_id] = dict(command)
+        if proposal_id not in _result_waiters:
+            _result_waiters[proposal_id] = {
+                "proposal_id": proposal_id,
+                "invocation_id": command["invocation_id"],
+                "tool_name": pending["tool_name"],
+                "status": "skipped",
+                "error_code": "TOOL_STEP_SKIPPED",
+                "skippable": True,
+                "skip_id": skip_id,
+                "request_hash": pending["request_hash"],
+            }
+            _result_condition.notify_all()
+        return True
 
 
 def _enrich_tool_result(result: dict, proposal: dict) -> dict:
@@ -487,6 +561,7 @@ def _save_tool_wait_checkpoint(
         "deadline_at": command["deadline_at"],
         "budget_revision": int(budget.get("revision", 1)),
         "completed_invocation_ids": list(completed_invocation_ids or []),
+        "completed_tool_results": [],
         "pending_proposals": proposals,
         "event_seq": 1,
     }
@@ -513,6 +588,7 @@ def _mark_tool_results_applied(command: dict, results: list[dict]) -> None:
     checkpoint["completed_invocation_ids"] = sorted(
         {str(item["invocation_id"]) for item in results if item.get("invocation_id")}
     )
+    checkpoint["completed_tool_results"] = [dict(item) for item in results]
     checkpoint["pending_proposals"] = []
     checkpoint["event_seq"] = 2
     _checkpoint.save(key, checkpoint, version)
@@ -600,6 +676,10 @@ def execute(command):
         )
         all_results: list[dict] = []
         while execution.proposals:
+            execution.proposals = [
+                bind_dispatch(item, str(command["dispatch_id"]), int(command["attempt"]))
+                for item in execution.proposals
+            ]
             if _proposal_publisher is None:
                 raise RuntimeError("TOOL_RUNTIME_UNAVAILABLE")
             checkpoint_payload = _save_tool_wait_checkpoint(
@@ -627,33 +707,49 @@ def execute(command):
             results = []
             for proposal in execution.proposals:
                 tool_started_at = time.monotonic()
+                proposal_id = str(proposal["proposal_id"])
+                pending = {
+                    "run_id": str(command["run_id"]),
+                    "dispatch_id": str(command["dispatch_id"]),
+                    "attempt": int(command["attempt"]),
+                    "invocation_id": str(proposal["payload"]["invocation_id"]),
+                    "request_hash": str(proposal["request_hash"]),
+                    "tool_name": str(proposal.get("tool_name") or proposal.get("proposal_type") or ""),
+                }
+                with _lock:
+                    _active_proposals[proposal_id] = pending
                 # Tool 的开始/结束事实和 checkpoint 同属运行轨迹，保证 Java 能看见
                 # Python 等待外部 Tool 的边界；事件只携带标识和结果状态，不回传 SQL 原文。
-                emit(command, prefix + "-tool-started-" + str(proposal["proposal_id"]), next_sequence,
-                     "run.tool_started", {
-                         "proposal_id": proposal["proposal_id"],
-                         "invocation_id": proposal.get("payload", {}).get("invocation_id"),
-                         "tool_type": proposal.get("proposal_type"),
-                         "tool_name": proposal.get("tool_name"),
-                     })
-                next_sequence += 1
-                _proposal_publisher.publish(proposal)
-                result = _await_result(
-                    proposal["proposal_id"],
-                    float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
-                )
-                result = _enrich_tool_result(result, proposal)
-                results.append(result)
-                emit(command, prefix + "-tool-finished-" + str(proposal["proposal_id"]), next_sequence,
-                     "run.tool_finished", {
-                         "proposal_id": proposal["proposal_id"],
-                         "invocation_id": proposal.get("payload", {}).get("invocation_id"),
-                         "tool_name": result.get("tool_name") or proposal.get("tool_name"),
-                         "status": result.get("status"),
-                         "error_code": result.get("error_code"),
-                         "latency_ms": int((time.monotonic() - tool_started_at) * 1000),
-                     })
-                next_sequence += 1
+                try:
+                    emit(command, prefix + "-tool-started-" + proposal_id, next_sequence,
+                         "run.tool_started", {
+                             "proposal_id": proposal_id,
+                             "invocation_id": proposal.get("payload", {}).get("invocation_id"),
+                             "tool_type": proposal.get("proposal_type"),
+                             "tool_name": proposal.get("tool_name"),
+                         })
+                    next_sequence += 1
+                    _proposal_publisher.publish(proposal)
+                    result = _await_result(
+                        proposal_id,
+                        float(os.getenv("FOODMATE_AGENT_TOOL_RESULT_TIMEOUT_SECONDS", "30")),
+                    )
+                    result = _enrich_tool_result(result, proposal)
+                    results.append(result)
+                    emit(command, prefix + "-tool-finished-" + proposal_id, next_sequence,
+                         "run.tool_finished", {
+                             "proposal_id": proposal_id,
+                             "invocation_id": proposal.get("payload", {}).get("invocation_id"),
+                             "tool_name": result.get("tool_name") or proposal.get("tool_name"),
+                             "status": result.get("status"),
+                             "error_code": result.get("error_code"),
+                             "skippable": result.get("skippable") is True,
+                             "latency_ms": int((time.monotonic() - tool_started_at) * 1000),
+                         })
+                    next_sequence += 1
+                finally:
+                    with _lock:
+                        _active_proposals.pop(proposal_id, None)
             all_results.extend(results)
             approval_result = next(
                 (
@@ -923,9 +1019,10 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         is_dispatch = self.path == "/foodmate/internal/v1/runs"
         is_cancel = self.path.startswith("/foodmate/internal/v1/runs/") and self.path.endswith("/cancel")
+        is_skip = self.path.startswith("/foodmate/internal/v1/runs/") and self.path.endswith("/skip")
         is_knowledge_search = self.path == "/foodmate/internal/v1/knowledge/search"
         is_nutrition_search = self.path == "/foodmate/internal/v1/nutrition/search"
-        if not is_dispatch and not is_cancel and not is_knowledge_search and not is_nutrition_search:
+        if not is_dispatch and not is_cancel and not is_skip and not is_knowledge_search and not is_nutrition_search:
             self.send_error(404)
             return
         if not self._authenticated() or self.headers.get("X-Contract-Version", CONTRACT_VERSION) != CONTRACT_VERSION:
@@ -935,6 +1032,8 @@ class Handler(BaseHTTPRequestHandler):
             command = json.loads(self.rfile.read(int(self.headers.get("Content-Length", "0"))))
             if is_dispatch:
                 self._dispatch(command)
+            elif is_skip:
+                self._skip(command)
             elif is_knowledge_search:
                 self._knowledge_search(command)
             elif is_nutrition_search:
@@ -1020,6 +1119,31 @@ class Handler(BaseHTTPRequestHandler):
             _cancelled.add(command["run_id"])
         self._json(202, {"accepted": True, "cancel_id": command["cancel_id"]})
 
+    def _skip(self, command):
+        """接收 Java 的 Skip Command，并按 skip_id 做幂等处理。"""
+        _validate_skip_command(command)
+        path_parts = self.path.strip("/").split("/")
+        if (
+            len(path_parts) != 8
+            or path_parts[3] != "runs"
+            or path_parts[4] != command["run_id"]
+            or path_parts[5] != "tool-proposals"
+            or path_parts[6] != command["proposal_id"]
+            or path_parts[7] != "skip"
+        ):
+            self._json(409, {"code": "RUNTIME_STATE_CONFLICT"})
+            return
+        applied = _on_skip(command)
+        self._json(
+            202,
+            {
+                "accepted": True,
+                "duplicate": not applied,
+                "skip_id": command["skip_id"],
+                "proposal_id": command["proposal_id"],
+            },
+        )
+
     def _authenticated(self):
         # Local development can intentionally disable service JWT; production keeps
         # the normal Bearer verification path below.
@@ -1028,17 +1152,18 @@ class Handler(BaseHTTPRequestHandler):
         authorization = self.headers.get("Authorization", "")
         if not authorization.startswith("Bearer "):
             return False
-        required_scope = (
-            "runtime:dispatch"
-            if self.path.endswith("/runs")
-            else "runtime:knowledge-search"
-            if self.path == "/foodmate/internal/v1/knowledge/search"
-            else "runtime:nutrition-search"
-            if self.path == "/foodmate/internal/v1/nutrition/search"
-            else "runtime:metrics"
-            if self.path == "/foodmate/internal/metrics"
-            else "runtime:cancel"
-        )
+        if self.path.endswith("/runs"):
+            required_scope = "runtime:dispatch"
+        elif self.path == "/foodmate/internal/v1/knowledge/search":
+            required_scope = "runtime:knowledge-search"
+        elif self.path == "/foodmate/internal/v1/nutrition/search":
+            required_scope = "runtime:nutrition-search"
+        elif self.path == "/foodmate/internal/metrics":
+            required_scope = "runtime:metrics"
+        elif self.path.endswith("/skip"):
+            required_scope = "runtime:skip"
+        else:
+            required_scope = "runtime:cancel"
         return _verify(authorization[7:], "foodmate-control-plane", "foodmate-agent-runtime", required_scope)
 
     def _json(self, status, value):
@@ -1066,6 +1191,7 @@ if __name__ == "__main__":
             publisher=_event_publisher,
             proposal_publisher=_proposal_publisher,
             on_result=_on_result,
+            on_skip=_on_skip,
             metrics=_runtime_metrics.record,
         )
         _mq_runtime.start()

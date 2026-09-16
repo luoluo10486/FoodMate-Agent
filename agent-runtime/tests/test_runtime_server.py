@@ -14,7 +14,7 @@ from agent_core import BudgetSnapshot, Context, ContextBuilder, InMemoryCheckpoi
 from model_provider import ModelProvider, ModelResponse, ModelRouter
 from knowledge_rag import Citation, PUBLIC_SCOPE
 from nutrition_catalog_rag import NutritionMatch
-from proposal_protocol import Proposal, validate_proposal
+from proposal_protocol import Proposal, bind_dispatch, validate_proposal
 from recovery_protocol import checkpoint_digest, validate_recovery_command
 from langgraph_adapter import build_graph
 
@@ -23,6 +23,8 @@ class RuntimeContractTests(unittest.TestCase):
     def setUp(self):
         runtime_server._cancelled.clear()
         runtime_server._dispatches.clear()
+        runtime_server._active_proposals.clear()
+        runtime_server._skip_requests.clear()
         runtime_server._result_waiters.clear()
         runtime_server._checkpoint = InMemoryCheckpoint()
         runtime_server._model_router = ModelRouter(
@@ -40,6 +42,107 @@ class RuntimeContractTests(unittest.TestCase):
         with patch.object(runtime_server, "emit", side_effect=lambda *args: events.append(args[3])):
             runtime_server.execute(command)
         self.assertEqual(["run.accepted", "run.routed", "run.context_assembled", "run.model_usage", "run.eval_decided", "run.answer_stream", "run.completed"], events)
+
+    def test_skip_unblocks_waiting_proposal_only_once(self):
+        runtime_server._active_proposals["proposal-1"] = {
+            "run_id": "run-1",
+            "dispatch_id": "dispatch-1",
+            "attempt": 2,
+            "invocation_id": "invocation-1",
+            "request_hash": "sha256:proposal",
+            "tool_name": "database_query",
+        }
+        command = {
+            "run_id": "run-1",
+            "dispatch_id": "dispatch-1",
+            "attempt": 2,
+            "skip_id": "skip-1",
+            "proposal_id": "proposal-1",
+            "invocation_id": "invocation-1",
+            "request_hash": "sha256:skip",
+            "proposal_request_hash": "sha256:proposal",
+        }
+
+        self.assertTrue(runtime_server._on_skip(command))
+        self.assertFalse(runtime_server._on_skip(command))
+        result = runtime_server._await_result("proposal-1", 0.1)
+
+        self.assertEqual("skipped", result["status"])
+        self.assertEqual("TOOL_STEP_SKIPPED", result["error_code"])
+        self.assertEqual("skip-1", result["skip_id"])
+
+    def test_execute_persists_skipped_result_and_continues(self):
+        proposal = Proposal(
+            "skip-proposal",
+            "skip-run",
+            "tool",
+            "v1",
+            {"invocation_id": "skip-invocation", "idempotency_key": "skip-key"},
+            False,
+            tool_name="calculator",
+            input={"expression": "1 + 1"},
+        ).as_dict()
+        first = SimpleNamespace(
+            proposals=[proposal],
+            route=SimpleNamespace(intent="calculation", complexity="simple", risk_level="low"),
+            model_attempts=[],
+            usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+        )
+        second = SimpleNamespace(
+            proposals=[],
+            route=first.route,
+            model_attempts=[],
+            eval=SimpleNamespace(result="pass", reason="skipped tool"),
+            answer="工具步骤已跳过",
+            budget_mode="normal",
+            budget_actions={},
+            usage=SimpleNamespace(tokens=1, cost_cny=0.0, model_calls=1),
+            workflow={},
+            memory_candidates=[],
+        )
+        executions = [first, second]
+        published = []
+        events = []
+
+        class Publisher:
+            def publish(self, value):
+                published.append(value)
+                runtime_server._on_skip(
+                    {
+                        "run_id": value["run_id"],
+                        "dispatch_id": value["dispatch_id"],
+                        "attempt": value["attempt"],
+                        "skip_id": "skip-command-1",
+                        "proposal_id": value["proposal_id"],
+                        "invocation_id": value["payload"]["invocation_id"],
+                        "request_hash": "sha256:skip-command-1",
+                        "proposal_request_hash": value["request_hash"],
+                    }
+                )
+
+        command = {
+            "run_id": "skip-run",
+            "dispatch_id": "skip-dispatch",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "attempt": 1,
+        }
+        with patch.object(
+            runtime_server,
+            "run_deterministic",
+            side_effect=lambda *_args, **_kwargs: executions.pop(0),
+        ), patch.object(
+            runtime_server,
+            "emit",
+            side_effect=lambda *args: events.append((args[2], args[3], args[4] if len(args) > 4 else {})),
+        ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
+            runtime_server.execute(command)
+
+        self.assertEqual("skip-dispatch", published[0]["dispatch_id"])
+        self.assertEqual(1, published[0]["attempt"])
+        self.assertEqual("skipped", next(payload for _, event, payload in events if event == "run.tool_finished")["status"])
+        checkpoint = runtime_server._checkpoint.load("skip-run:skip-dispatch")
+        self.assertEqual("skipped", checkpoint[1]["completed_tool_results"][0]["status"])
+        self.assertEqual("TOOL_STEP_SKIPPED", checkpoint[1]["completed_tool_results"][0]["error_code"])
 
     def test_emit_bounds_event_id_to_postgres_contract(self):
         published = []
@@ -313,7 +416,7 @@ class RuntimeContractTests(unittest.TestCase):
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
 
-        self.assertEqual([proposal], published)
+        self.assertEqual([bind_dispatch(proposal, "approval-dispatch", 1)], published)
         self.assertEqual(1, run.call_count)
         self.assertEqual(
             [
@@ -740,17 +843,18 @@ class RuntimeContractTests(unittest.TestCase):
         class Publisher:
             def publish(self, value):
                 published.append(value)
-                runtime_server._on_result({"proposal_id": "p1", "invocation_id": "inv-1", "status": "succeeded", "request_hash": proposal["request_hash"], "rows": []})
+                runtime_server._on_result({"proposal_id": "p1", "invocation_id": "inv-1", "status": "succeeded", "request_hash": value["request_hash"], "rows": []})
 
         command = {"run_id": "r1", "dispatch_id": "d1", "deadline_at": "x", "attempt": 1}
         emitted = []
         with patch.object(runtime_server, "run_deterministic", side_effect=run), patch.object(runtime_server, "emit", side_effect=lambda *args: (events.append(args[3]), emitted.append((args[2], args[3])))), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
-        self.assertEqual([proposal], published)
+        self.assertEqual([bind_dispatch(proposal, "d1", 1)], published)
         self.assertEqual("inv-1", commands[1]["authorized_context"]["tool_results"][0]["invocation_id"])
         checkpoint = runtime_server._checkpoint.load("r1:d1")
         self.assertIsNotNone(checkpoint)
         self.assertEqual(["inv-1"], checkpoint[1]["completed_invocation_ids"])
+        self.assertEqual("succeeded", checkpoint[1]["completed_tool_results"][0]["status"])
         recovery_snapshot = runtime_server._checkpoint.load("r1:d1:recovery")
         self.assertIsNotNone(recovery_snapshot)
         self.assertEqual("tool_wait", recovery_snapshot[1]["current_node"])
@@ -835,7 +939,10 @@ class RuntimeContractTests(unittest.TestCase):
         ), patch.object(runtime_server, "_proposal_publisher", Publisher()):
             runtime_server.execute(command)
 
-        self.assertEqual([time_proposal, database_proposal], published)
+        self.assertEqual(
+            [bind_dispatch(time_proposal, "d1", 1), bind_dispatch(database_proposal, "d1", 1)],
+            published,
+        )
         self.assertEqual(len(event_ids), len(set(event_ids)))
         self.assertEqual(2, len(commands[2]["authorized_context"]["tool_results"]))
         self.assertEqual("database_query", commands[2]["authorized_context"]["tool_results"][1]["tool_name"])

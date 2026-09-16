@@ -72,7 +72,8 @@ public class ToolRegistryServiceImpl implements ToolRegistryService {
                 definition.retryable(),
                 definition.idempotent(),
                 definition.publishedAt(),
-                definition.revision());
+                definition.revision(),
+                definition.skippable());
     }
 
     private JsonNode parse(String value) {

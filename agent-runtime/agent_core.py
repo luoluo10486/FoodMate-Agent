@@ -430,7 +430,10 @@ class StepValidator:
         invocation_ids = [item.get("invocation_id") for item in context.tool_results]
         if any(not item for item in invocation_ids) or len(invocation_ids) != len(set(invocation_ids)):
             raise ValueError("STEP_VALIDATION_FAILED: duplicate or missing tool invocation")
-        if any(item.get("status") not in {"succeeded", "failed", "rejected"} for item in context.tool_results):
+        if any(
+            item.get("status") not in {"succeeded", "failed", "rejected", "skipped"}
+            for item in context.tool_results
+        ):
             raise ValueError("STEP_VALIDATION_FAILED: invalid tool result status")
         if set(invocation_ids) - set(context.sources.get("invocation_id", ())):
             raise ValueError("STEP_VALIDATION_FAILED: tool result source mismatch")
@@ -484,6 +487,17 @@ class DeterministicComposer:
             validation = self._compose_plan_validation(context, budget_mode)
             if validation is not None:
                 return validation
+        skipped = [
+            str(item.get("tool_name") or "未命名工具")
+            for item in context.tool_results
+            if item.get("status") == "skipped"
+        ]
+        if skipped:
+            prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
+            return (
+                f"{prefix}本次处理跳过了 {'、'.join(skipped)} 工具步骤，"
+                "因此结果可能不完整，未生成需要该步骤才能确认的完整结论。"
+            )
         prefix = "节省模式：" if budget_mode in {"economy", "partial"} else ""
         recent = len(context.messages)
         tool_note = ""
