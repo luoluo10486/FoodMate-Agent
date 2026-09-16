@@ -2,6 +2,25 @@
 
 更新时间：2026-09-16
 
+## 1.1.49 全量接口矩阵与代表页面复核（非像素验收）
+
+本节记录执行计划第一阶段的接口矩阵审计和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
+
+| 页面组 | 浏览器路由 | 视口 / 页面宽度 | 复核结论 |
+| --- | --- | --- | --- |
+| Workspace/Home | `/` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 文字、头像和运行状态可读，代表复核通过 |
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 筛选边界和结果卡可读，代表复核通过 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Admin | `/admin?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 宽表在内部容器滚动，代表复核通过 |
+
+- [x] `npm.cmd run audit:api` 通过：Controller `128`、浏览器接口 `121`、内部接口 `7`、生产消费者 `121/121`。
+- [x] 代表路由控制台未发现 warning/error；本批次没有新增后端接口或修改 SSE 协议。
+- [ ] 本节只证明接口矩阵和代表页面的本地结构、可读性与响应式边界，不替代生产环境联调，不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 继续保持 `BLOCKED`。
+
 ## 1.1.48 2026-09-16 Diet Records、Intake Analysis 与 Meal Planning 代表页面复核（非像素验收）
 
 本节记录三类饮食工具页面的真实契约和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
