@@ -2743,3 +2743,15 @@
 | 定向门禁 | Application `12/12`、API `8/8`、前端相关测试 `5` 个文件 `28/28`；新增测试 Spotless 通过；`git diff --check` 待提交前复核。 |
 | 协议边界 | 没有修改 Controller、DTO、错误码或 HTTP/SSE 协议；没有把 HTTP `queued` 当作最终成功；没有触发真实 RocketMQ Broker Relay。 |
 | 未完成范围 | 本地证据不包含真实 Broker 重放、下游消费、原消息对账、生产告警、长稳、故障恢复或部署环境联调；Retention V27 清理结果表和 iconfont 阻塞保持原状。 |
+
+## D187 Agent 接续与 checkpoint 恢复本地真实闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 容器均为 healthy。 |
+| 后端 E2E | `M14ContinuationE2ETest` 与 `M14RuntimeCheckpointRecoveryE2ETest` 共 `4/4` 通过；使用随机临时账号和本地 PostgreSQL 事实。 |
+| 接续验证 | `waiting_user` 旧 Run 变为 `superseded`；新 Run 写入 `parent_run_id`、`continuation_reason=clarification` 和 `superseded_by_run_id`；旧 active dispatch 和 pending outbox 出局，并产生 `run.superseded` SSE Outbox。 |
+| 预算与恢复验证 | 新 Run 存在 revision `1` 的 initial budget snapshot；`run.checkpoint_saved` 写入 Inbox 后，恢复服务创建 attempt `2`、新的 dispatch ID 和 deadline，并回读 checkpoint digest/budget revision。 |
+| 前端门禁 | `agentRunHttpService.test.ts`、`agentRunService.test.ts`、`ChatPage.real.test.tsx`、`ChatPage.agentState.real.test.tsx` 共 `4` 个文件、`67/67` 通过。 |
+| 代码边界 | 本批次没有修改 Java/前端生产代码、Controller、DTO、错误码或 HTTP/SSE 协议；不把恢复请求接受当作运行终态。 |
+| 未完成范围 | 未执行真实 Python/Java 进程重启、PostgreSQL 重启、RocketMQ ACK 丢失/重复投递、SSE 长稳、生产容量和部署环境联调；Figma 全量像素差异、花瓣像素对比和 iconfont 接入均不在本批次范围。 |
