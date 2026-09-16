@@ -146,6 +146,7 @@ describe('ProfilePage', () => {
     expect(screen.getByRole('heading', { name: '最近安全活动' })).toBeInTheDocument();
     expect(screen.getByText('2 ACTIVE DEVICES')).toBeInTheDocument();
     expect(screen.getByText('设备状态在每次登录后更新')).toBeInTheDocument();
+    expect(screen.getByText('新设备登录')).toBeInTheDocument();
     expect(securityPage?.querySelector(`.${styles.securityAccent}`)).toBeInTheDocument();
     expect(securityPage?.querySelector(`.${styles.sessionAccent}`)).toBeInTheDocument();
     expect(securityPage?.querySelector(`.${styles.activityAccent}`)).toBeInTheDocument();

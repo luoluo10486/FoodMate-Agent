@@ -1290,6 +1290,18 @@
   margin-top: 17px;
 }
 
+.activityEmpty {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px dashed #d9e1e4;
+  border-radius: 10px;
+  background: #f7fafb;
+  color: #6b7280;
+  font-size: 13px;
+}
+
 .activityCard > .securityHint {
   margin-top: 10px;
 }

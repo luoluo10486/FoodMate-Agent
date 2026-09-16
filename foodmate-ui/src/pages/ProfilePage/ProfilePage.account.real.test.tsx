@@ -268,6 +268,26 @@ describe('ProfilePage real account states', () => {
     expect(screen.getAllByRole('button', { name: '退出登录' })).toHaveLength(1);
   });
 
+  it('uses the backend activity timestamp and does not render fixture security activity', async () => {
+    vi.mocked(getAuthSessions).mockResolvedValue([
+      {
+        auth_session_id: 1,
+        device_id: 'iphone',
+        current: false,
+        user_agent: '其它浏览器',
+        last_seen_at: 'not-a-fixture-time',
+        expires_at: '2026-10-01',
+      },
+    ]);
+
+    renderPage('/profile/security');
+
+    expect(await screen.findByText('最近活动 not-a-fixture-time')).toBeInTheDocument();
+    expect(screen.queryByText('Active 4 hours ago')).not.toBeInTheDocument();
+    expect(screen.queryByText('新设备登录')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('当前接口未提供安全活动历史。');
+  });
+
   it('reloads sessions from the backend after revoking an individual device', async () => {
     const user = userEvent.setup();
     vi.mocked(getAuthSessions)

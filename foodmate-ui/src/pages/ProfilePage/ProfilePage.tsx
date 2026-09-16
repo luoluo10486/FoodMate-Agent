@@ -1863,7 +1863,12 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((session) => (
-                <SessionRow key={session.auth_session_id} session={session} onLogout={() => setLogoutTarget(session)} />
+                <SessionRow
+                  key={session.auth_session_id}
+                  session={session}
+                  figmaFixture={figmaFixture}
+                  onLogout={() => setLogoutTarget(session)}
+                />
               ))}
             </div>
           )}
@@ -1885,14 +1890,22 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           </Button>
         </div>
         <div className={styles.activityList}>
-          <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
-          <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
-          <ActivityRow
-            dot="green"
-            title="设备会话检查"
-            detail={`已检查 ${sessions.length} 台设备，未发现异常`}
-            status="正常"
-          />
+          {realMode ? (
+            <div className={styles.activityEmpty} role="status">
+              当前接口未提供安全活动历史。
+            </div>
+          ) : (
+            <>
+              <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
+              <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
+              <ActivityRow
+                dot="green"
+                title="设备会话检查"
+                detail={`已检查 ${sessions.length} 台设备，未发现异常`}
+                status="正常"
+              />
+            </>
+          )}
         </div>
         <p className={styles.securityHint}>
           {realMode
@@ -1940,18 +1953,39 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   );
 }
 
-function SessionRow({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
+function formatSessionLastSeen(value?: string) {
+  const normalized = value?.trim();
+  if (!normalized) return '最近活动未知';
+  const timestamp = Date.parse(normalized);
+  if (Number.isNaN(timestamp)) return normalized;
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(timestamp);
+}
+
+function sessionActivityLabel(session: AuthSession, figmaFixture: boolean) {
+  if (session.current === true) return '当前在线';
+  if (figmaFixture) return session.device_id === 'iphone' ? 'Active 4 hours ago' : 'Active 3 days ago';
+  // 真实模式只展示后端提供的最近活动时间，不根据设备标识猜测活跃时长。
+  return `最近活动 ${formatSessionLastSeen(session.last_seen_at)}`;
+}
+
+function SessionRow({
+  session,
+  figmaFixture,
+  onLogout,
+}: {
+  session: AuthSession;
+  figmaFixture: boolean;
+  onLogout: () => void;
+}) {
   const current = session.current === true;
   return (
     <div className={styles.sessionRow}>
       <div className={styles.sessionInfo}>
         <strong>{session.user_agent ?? '未知设备'}</strong>
         <span>
-          {session.ip_address ?? 'IP 未记录'} · {session.last_seen_at ?? '最近活动未知'}
+          {session.ip_address ?? 'IP 未记录'} · {formatSessionLastSeen(session.last_seen_at)}
         </span>
-        <small>
-          {current ? '当前在线' : session.device_id === 'iphone' ? 'Active 4 hours ago' : 'Active 3 days ago'}
-        </small>
+        <small>{sessionActivityLabel(session, figmaFixture)}</small>
       </div>
       {current ? (
         <StatusChip tone="green">当前设备</StatusChip>
