@@ -2,6 +2,18 @@
 
 > 模板记录。实际执行后必须由执行人填写，不能用应用启动日志替代。
 
+## M14 RocketMQ Proposal/Result 与 DLQ reconciliation（2026-09-16 已执行）
+
+| 字段 | 内容 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Docker Compose `foodmate` 网络；PostgreSQL、RocketMQ NameServer/Broker/Proxy healthy |
+| 运行方式 | Docker Maven 容器加入 `foodmate` 网络；同时启用 `foodmate.local-e2e=true` 与 `foodmate.local-mq-e2e=true` |
+| 测试 | `M14ProposalResultE2ETest` `2/2`；`M14DlqReconciliationE2ETest` `3/3` |
+| 执行结果 | 成功，合计 `5/5`；正常 Proposal Result、SQL 失败 Result、重复 Proposal 幂等和 DLQ reconciliation 均完成 |
+| 代码修复 | 修正 `ToolRegistryMapper` 的 `published_at/revision/skippable` 列顺序；Tool Gateway 只读 SQL 使用独立 `REQUIRES_NEW` 事务，失败后仍可写入审计和 Result |
+| 数据边界 | 仅使用随机测试账号、Run、Proposal 和 DLQ 事实；未删除容器、数据库卷或既有业务数据；不代表生产消息重放或部署验收完成 |
+| 代码门禁 | 受影响 reactor Spotless 通过；Alibaba Checkstyle `0 violations`；`git diff --check` 通过 |
+
 ## V2 临时 PostgreSQL 演练（非目标库）
 
 | 字段 | 内容 |
