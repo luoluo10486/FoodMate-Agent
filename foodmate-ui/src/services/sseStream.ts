@@ -103,6 +103,7 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
     closeSource(failedSource);
     if (connection.attempt >= maxAttempts) {
       terminal = true;
+      removeAbortListener();
       publishState('exhausted');
       options.onError?.(connection);
       return;
@@ -160,10 +161,8 @@ export function openSseStream<T>(options: SseStreamOptions<T>): AgentStreamHandl
         const eventType = parsed.eventType?.trim() || registeredType;
         options.onEvent(eventType, parsed.payload, eventId);
         if (options.isTerminal?.(eventType, parsed.payload)) {
-          terminal = true;
-          closeSource(nextSource);
-          removeAbortListener();
-          publishState('closed');
+          // 终态统一走幂等关闭，避免业务回调或组件卸载先关闭时重复发布 closed。
+          close();
         }
       });
     }

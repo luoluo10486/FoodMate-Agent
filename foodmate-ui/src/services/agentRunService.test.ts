@@ -290,6 +290,21 @@ describe('openAgentRunStream', () => {
     expect(stream.getConnection()).toMatchObject({ state: 'closed', lastEventId: 'failed-state' });
   });
 
+  it('does not publish closed twice when a terminal stream is explicitly closed again', () => {
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const states: string[] = [];
+    const stream = openAgentRunStream('42', () => undefined, {
+      onStateChange: (connection) => states.push(connection.state),
+    });
+    const source = FakeEventSource.instances[0];
+
+    source.emit('run.completed', { event_type: 'run.completed', sse_event_id: 'completed-1' });
+    stream.close();
+
+    expect(source.closed).toBe(true);
+    expect(states.filter((state) => state === 'closed')).toHaveLength(1);
+  });
+
   it('enters exhausted after the bounded number of attempts', () => {
     vi.useFakeTimers();
     vi.stubGlobal('EventSource', FakeEventSource);
@@ -306,6 +321,30 @@ describe('openAgentRunStream', () => {
 
     expect(states).toContain('reconnecting');
     expect(states.at(-1)).toBe('exhausted');
+  });
+
+  it('keeps exhausted stable when the lifecycle signal aborts afterwards', () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('EventSource', FakeEventSource);
+    const controller = new AbortController();
+    const states: string[] = [];
+    const stream = openAgentRunStream('42', () => undefined, {
+      signal: controller.signal,
+      reconnectDelayMs: 5,
+      maxAttempts: 2,
+      onStateChange: (connection) => states.push(connection.state),
+    });
+
+    FakeEventSource.instances[0].fail();
+    vi.advanceTimersByTime(5);
+    FakeEventSource.instances[1].fail();
+    expect(stream.getConnection().state).toBe('exhausted');
+
+    controller.abort();
+
+    expect(stream.getConnection().state).toBe('exhausted');
+    expect(states.at(-1)).toBe('exhausted');
+    stream.close();
   });
 
   it('publishes a single initial connecting state and closes without scheduling a reconnect', () => {
