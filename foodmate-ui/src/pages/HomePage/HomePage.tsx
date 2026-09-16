@@ -339,27 +339,38 @@ export function HomePage() {
 
   const quickActions = useMemo(
     () => [
-      { label: '记录饮食', prompt: recommendedPrompts[0], icon: Utensils, figmaIcon: '🍽', tone: 'green' },
+      {
+        label: '记录饮食',
+        prompt: recommendedPrompts[0],
+        icon: Utensils,
+        figmaIconSrc: '/assets/figma/workspace/home/diet-records.svg',
+        tone: 'green',
+      },
       {
         label: '分析摄入',
         prompt: taskCards.find((task) => task.id === 'analysis')?.prompt ?? recommendedPrompts[2],
         icon: BarChart3,
-        figmaIcon: '📊',
+        figmaIconSrc: '/assets/figma/workspace/home/intake-analysis.svg',
         tone: 'purple',
       },
       {
         label: '创建计划',
         prompt: taskCards.find((task) => task.id === 'planning')?.prompt ?? recommendedPrompts[1],
         icon: CalendarDays,
-        figmaIcon: '📋',
+        figmaIconSrc: '/assets/figma/workspace/home/meal-planning.svg',
         tone: 'red',
       },
-      { label: '搜索知识', prompt: recommendedPrompts[3], icon: Search, figmaIcon: '🔍', tone: 'blue' },
+      {
+        label: '搜索知识',
+        prompt: recommendedPrompts[3],
+        icon: Search,
+        figmaIconSrc: '/assets/figma/workspace/home/knowledge.svg',
+        tone: 'blue',
+      },
       {
         label: '快速计算',
         prompt: taskCards.find((task) => task.id === 'calorie')?.prompt ?? '计算这份食物的热量',
         icon: Calculator,
-        figmaIcon: '🧮',
         tone: 'orange',
       },
     ],
@@ -480,17 +491,15 @@ export function HomePage() {
               </div>
             ) : null}
             <section className={styles.quickActions} aria-label="快速操作">
-              {quickActions.map(({ icon: Icon, figmaIcon, label, prompt: actionPrompt, tone }) => (
+              {quickActions.map(({ icon: Icon, figmaIconSrc, label, prompt: actionPrompt, tone }) => (
                 <Button
                   className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
                   key={label}
                   variant="outline"
                   onClick={() => setPrompt(actionPrompt)}
                 >
-                  {isFigmaFixture ? (
-                    <span className={styles.quickEmoji} aria-hidden="true">
-                      {figmaIcon}
-                    </span>
+                  {isFigmaFixture && figmaIconSrc ? (
+                    <img className={styles.quickIcon} src={figmaIconSrc} alt="" aria-hidden="true" />
                   ) : (
                     <Icon aria-hidden="true" />
                   )}

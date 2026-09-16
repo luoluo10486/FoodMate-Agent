@@ -48,8 +48,8 @@ describe('HomePage session cards', () => {
       '/assets/avatars/default-male.svg',
     );
     const quickAction = screen.getByRole('button', { name: '记录饮食' });
-    expect(within(quickAction).getByText('🍽')).toBeInTheDocument();
-    expect(quickAction.querySelector('svg')).not.toBeInTheDocument();
+    expect(quickAction.querySelector('img')).toHaveAttribute('src', '/assets/figma/workspace/home/diet-records.svg');
+    expect(screen.getByRole('button', { name: '快速计算' }).querySelector('svg')).toBeInTheDocument();
     expect(
       within(screen.getByRole('navigation', { name: '主导航' })).queryByRole('link', { name: '知识库' }),
     ).toBeNull();

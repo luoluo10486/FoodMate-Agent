@@ -2,6 +2,18 @@
 
 更新时间：2026-09-16
 
+## 1.1.50 2026-09-16 Workspace/Home 快捷操作图标资源复核（非像素验收）
+
+本节记录首页快捷操作图标的资源替换和代表页面运行时证据。Figma 继续作为颜色、字体、布局和图标意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | `759×698 / 1.25` | `diet-records.svg`、`intake-analysis.svg`、`meal-planning.svg`、`knowledge.svg` 均以 `16×16` 加载；“快速计算”保留 Lucide；字体 `loaded`，页面 `scrollWidth=759` | 代表复核通过 |
+
+- [x] Home 定向测试 `8/8`，typecheck、lint、format、build、接口审计和 diff 检查通过。
+- [x] 浏览器控制台没有 warning/error；本批次没有新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
 ## 1.1.49 全量接口矩阵与代表页面复核（非像素验收）
 
 本节记录执行计划第一阶段的接口矩阵审计和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
