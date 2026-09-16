@@ -37,6 +37,7 @@ import { Input } from '@/components/ui/input';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resolveAvatarUrl } from '../../lib/avatar';
 import { AvatarImage } from '../../components/common/AvatarImage';
+import { useAuthContext } from '../../auth/AuthContext';
 import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
 import {
   FigmaWorkspaceAsset,
@@ -137,7 +138,8 @@ export function WorkspaceLayout({
   pageOverlay,
 }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const [authReady, setAuthReady] = useState(!realMode);
+  const authContext = useAuthContext();
+  const [localAuthReady, setLocalAuthReady] = useState(!realMode);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
   const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionQuery, setSessionQuery] = useState('');
@@ -159,8 +161,9 @@ export function WorkspaceLayout({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const authStatus = getAuthStatus();
-  const authUser = currentUser;
+  const authReady = authContext ? authContext.status !== 'checking' : localAuthReady;
+  const authStatus = authContext?.status ?? getAuthStatus();
+  const authUser = authContext?.user ?? currentUser;
   const authScenarios = getAuthScenarios();
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
@@ -193,13 +196,14 @@ export function WorkspaceLayout({
     fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name={name} /> : fallback;
 
   useEffect(() => {
+    if (authContext) return;
     const syncCurrentUser = () => setCurrentUser(getAuthUser());
     window.addEventListener('foodmate:auth-changed', syncCurrentUser);
     return () => window.removeEventListener('foodmate:auth-changed', syncCurrentUser);
-  }, []);
+  }, [authContext]);
 
   useEffect(() => {
-    if (!realMode) return;
+    if (!realMode || authContext) return;
     let cancelled = false;
     const controller = new AbortController();
     loadCurrentUser(controller.signal)
@@ -208,13 +212,13 @@ export function WorkspaceLayout({
       })
       .catch(() => undefined)
       .finally(() => {
-        if (!cancelled) setAuthReady(true);
+        if (!cancelled) setLocalAuthReady(true);
       });
     return () => {
       cancelled = true;
       controller.abort();
     };
-  }, [realMode]);
+  }, [authContext, realMode]);
 
   useEffect(
     () => () => {
@@ -228,10 +232,11 @@ export function WorkspaceLayout({
   );
 
   useEffect(() => {
-    if (authReady && realMode && !isAuthenticated) {
+    if (authContext || !authReady || !realMode || isAuthenticated) return;
+    if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`, { replace: true });
     }
-  }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
+  }, [authContext, authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
 
   const loadSessionList = useCallback(
     async (query: string, page: number) => {

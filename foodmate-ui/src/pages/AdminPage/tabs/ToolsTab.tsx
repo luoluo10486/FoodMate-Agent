@@ -22,9 +22,9 @@ import {
   type ToolRow,
   adminToolRegistryRows,
   adminToolRows,
-  canManage,
   riskTag,
   statusTag,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload, AdminOperationState } from './types';
 import { isAbortError } from '../../../services/apiClient';
@@ -754,6 +754,7 @@ function ToolCallsSection({
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce?: number;
 }) {
+  const { canManage } = useAdminAccess();
   const [tools, setTools] = useState<ToolRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminToolRows);
   const [selectedTool, setSelectedTool] = useState<ToolRow | undefined>(tools[0]);
   useEffect(() => {

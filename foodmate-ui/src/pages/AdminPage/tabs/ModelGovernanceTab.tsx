@@ -27,7 +27,7 @@ import {
   type ModelGovernanceRoute,
   type ModelGovernanceView,
 } from '../../../services/adminService';
-import { getAuthUser } from '../../../services/authService';
+import { useAuth } from '../../../auth/AuthContext';
 import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
@@ -141,7 +141,8 @@ function ToggleButton({ status, disabled, onClick }: { status: string; disabled:
 
 export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernanceSectionProps) {
   const isReal = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isSuperadmin = getAuthUser().role === 'superadmin';
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [data, setData] = useState<ModelGovernanceView>();
   const [loading, setLoading] = useState(isReal);
   const [error, setError] = useState('');

@@ -15,9 +15,9 @@ import {
   adminUserRows,
   adminUserSessionRows,
   adminToolRows,
-  canManage,
   operationAuditColumns,
   sectionMeta,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
@@ -121,6 +121,8 @@ export function OperationAuditCard() {
 }
 
 export function AdminActionsCard({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+  const { canManage } = useAdminAccess();
+
   return (
     <Card className={styles.card}>
       <strong>管理操作</strong>

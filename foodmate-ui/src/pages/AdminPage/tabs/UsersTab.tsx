@@ -36,10 +36,9 @@ import {
   adminUserBusinessSessionRows,
   adminUserOperationHistoryRows,
   adminUserSessionRows,
-  canAccessAdmin,
-  canManage,
   sessionColumns,
   statusTag,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import {
@@ -198,6 +197,7 @@ export function UsersSection({
   figmaFixture?: boolean;
   refreshNonce?: number;
 }) {
+  const { canAccess, canManage } = useAdminAccess();
   const isFigmaFixture = figmaFixture && isMockMode;
   const [selectedUser, setSelectedUser] = useState<AdminUserView | undefined>(
     isMockMode ? figmaUserRows[0] : undefined,
@@ -309,7 +309,7 @@ export function UsersSection({
     });
   }, [filtersChanged, query, roleFilter, statusFilter, users]);
 
-  if (!canAccessAdmin) return <AdminOnlyNotice title="无权访问用户管理" />;
+  if (!canAccess) return <AdminOnlyNotice title="无权访问用户管理" />;
 
   const updateFilter = (setter: (value: string) => void, value: string) => {
     setter(value);
@@ -696,6 +696,7 @@ function UserDetailCard({
   onRevoke: () => void;
   onResetCredentials: () => void;
 }) {
+  const { canManage } = useAdminAccess();
   const profile = detail?.profile;
   const sessions = isMockMode
     ? adminUserSessionRows.filter((item) => item.userId === user.userId)

@@ -17,8 +17,8 @@ import {
   type RetentionPurgeResult,
 } from '../../../services/adminService';
 import { isAbortError } from '../../../services/apiClient';
-import { getAuthUser } from '../../../services/authService';
 import type { AdminActionPayload } from './types';
+import { useAuth } from '../../../auth/AuthContext';
 import styles from '../AdminPage.module.css';
 
 type RetentionSectionProps = {
@@ -139,8 +139,9 @@ function Flag({ label, value }: { label: string; value: boolean }) {
 
 export function RetentionSection({ onAction, refreshNonce }: RetentionSectionProps) {
   const isReal = import.meta.env.VITE_AGENT_MODE === 'real';
-  const role = getAuthUser().role;
-  const canManageRetention = role === 'admin' || role === 'superadmin';
+  const auth = useAuth();
+  const role = auth.user?.role ?? 'user';
+  const canManageRetention = auth.isAdmin && role !== 'operator';
   const isSuperadmin = role === 'superadmin';
   const [purgeForm, setPurgeForm] = useState<PurgeFormState>(initialPurgeForm);
   const [holdForm, setHoldForm] = useState<HoldFormState>(initialHoldForm);

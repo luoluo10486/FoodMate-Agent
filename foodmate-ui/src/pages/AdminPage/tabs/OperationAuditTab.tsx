@@ -9,7 +9,7 @@ import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AdminOnlyNotice } from './AdminComponents';
-import { adminOperationAuditRows, canManage, canViewAudit, statusTag } from './AdminShared';
+import { adminOperationAuditRows, statusTag, useAdminAccess } from './AdminShared';
 import {
   downloadAdminExport,
   loadAdminAuditReport,
@@ -723,6 +723,7 @@ function AuditDetail({ row, onClose }: { row: AuditRecord; onClose: () => void }
 }
 
 function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+  const { canManage, canViewAudit } = useAdminAccess();
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const mockRows = (adminOperationAuditRows as AuditSource[]).map(normalizeAuditRow);
   const [realRows, setRealRows] = useState<AuditRecord[]>([]);
@@ -771,7 +772,7 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
     } finally {
       if (!controller.signal.aborted && version === reportRequestVersion.current) setAuditReportLoading(false);
     }
-  }, [isRealMode]);
+  }, [canViewAudit, isRealMode]);
 
   useEffect(() => {
     // 审计报告随页面刷新重新读取，状态变化由异步请求结果驱动。

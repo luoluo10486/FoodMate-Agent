@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ApiError, isAbortError } from '../../../services/apiClient';
 import styles from '../AdminPage.module.css';
-import { type KnowledgeRow, canManage } from './AdminShared';
+import { type KnowledgeRow, useAdminAccess } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import type { AgentStreamConnection } from '../../../types/agent';
 import {
@@ -132,7 +132,7 @@ export function KnowledgeSection({
   figmaFixture = false,
   openUploadRequest = 0,
   refreshNonce = 0,
-  canManageAccess = canManage,
+  canManageAccess,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   figmaFixture?: boolean;
@@ -140,6 +140,8 @@ export function KnowledgeSection({
   refreshNonce?: number;
   canManageAccess?: boolean;
 }) {
+  const { canManage } = useAdminAccess();
+  const effectiveCanManageAccess = canManageAccess ?? canManage;
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [documents, setDocuments] = useState<KnowledgeRow[]>(isRealMode ? [] : figmaKnowledgeRows);
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
@@ -238,7 +240,7 @@ export function KnowledgeSection({
     window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone } }));
   };
   const selectFiles = (files: FileList | File[]) => {
-    if (isRealMode && !canManageAccess) {
+    if (isRealMode && !effectiveCanManageAccess) {
       return notify('当前角色没有知识库上传权限。', 'warning');
     }
     const selected = Array.from(files);
@@ -275,7 +277,7 @@ export function KnowledgeSection({
     uploadControllerRef.current = controller;
     setUploading(true);
     try {
-      if (isRealMode && !canManageAccess) {
+      if (isRealMode && !effectiveCanManageAccess) {
         return notify('当前角色没有知识库上传权限。', 'warning');
       }
       if (!uploadFiles.length) {
@@ -412,7 +414,7 @@ export function KnowledgeSection({
             type="file"
             multiple
             accept={figmaFixture ? '.pdf,.csv,.xlsx,.txt' : '.pdf,.docx,.md,.txt'}
-            disabled={isRealMode && !canManageAccess}
+            disabled={isRealMode && !effectiveCanManageAccess}
             onChange={(event: ChangeEvent<HTMLInputElement>) => event.target.files && selectFiles(event.target.files)}
           />
         </label>
@@ -550,7 +552,7 @@ export function KnowledgeSection({
             {selectedVisibility === 'published' ? (
               <Button
                 className={styles.knowledgeManageButton}
-                disabled={!canManage}
+                disabled={!effectiveCanManageAccess}
                 variant="outline"
                 onClick={() => requestVisibilityChange('disabled', '下线文档')}
               >
@@ -560,7 +562,7 @@ export function KnowledgeSection({
               <>
                 <Button
                   className={styles.knowledgeManageButton}
-                  disabled={!canManage || selectedDoc.status !== 'indexed'}
+                  disabled={!effectiveCanManageAccess || selectedDoc.status !== 'indexed'}
                   variant="outline"
                   onClick={() => requestVisibilityChange('published', '发布文档')}
                 >
@@ -568,7 +570,7 @@ export function KnowledgeSection({
                 </Button>
                 <Button
                   className={styles.knowledgeManageButton}
-                  disabled={!canManage}
+                  disabled={!effectiveCanManageAccess}
                   variant="outline"
                   onClick={() => requestVisibilityChange('draft', '恢复草稿')}
                 >
@@ -578,7 +580,7 @@ export function KnowledgeSection({
             )}
             <Button
               className={styles.knowledgeManageButton}
-              disabled={!canManage}
+              disabled={!effectiveCanManageAccess}
               variant="destructive"
               onClick={() => requestVisibilityChange('deleted', '删除文档')}
             >
@@ -660,7 +662,7 @@ export function KnowledgeSection({
       {isRealMode && batchId ? (
         <BatchProgress
           batchId={batchId}
-          canManageAccess={canManageAccess}
+          canManageAccess={effectiveCanManageAccess}
           onRetry={(documentId, signal) => retryKnowledgeItem(batchId, documentId, signal)}
           onReindex={(documentId, signal) => reindexKnowledgeItem(batchId, documentId, signal)}
         />

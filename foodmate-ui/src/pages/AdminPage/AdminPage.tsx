@@ -12,9 +12,10 @@ import { AvatarImage } from '../../components/common/AvatarImage';
 import { isAbortError } from '../../services/apiClient';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
+import { useAuth } from '../../auth/AuthContext';
 import styles from './AdminPage.module.css';
 import { AdminHeader } from './tabs/AdminComponents';
-import { adminNavItems, canAccessAdmin, canManage, getSectionKey, isAdminNavItemActive } from './tabs/AdminShared';
+import { adminNavItems, getSectionKey, isAdminNavItemActive, useAdminAccess } from './tabs/AdminShared';
 import { DeletedSection } from './tabs/DeletedResourcesTab';
 import { KnowledgeSection } from './tabs/KnowledgeTab';
 import { OverviewSection } from './tabs/OverviewTab';
@@ -818,7 +819,9 @@ function AdminSectionRenderer({
 }
 
 export function AdminPage() {
-  const authUser = getAuthUser();
+  const auth = useAuth();
+  const authUser = auth.user ?? getAuthUser();
+  const { canAccess, canManage } = useAdminAccess();
   const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
@@ -1004,7 +1007,7 @@ export function AdminPage() {
 
   const handleRefresh = () => setRefreshNonce((current) => current + 1);
 
-  if (!canAccessAdmin) {
+  if (!canAccess) {
     return (
       <div className={styles.authShell}>
         <Card className={styles.noAccessCard}>

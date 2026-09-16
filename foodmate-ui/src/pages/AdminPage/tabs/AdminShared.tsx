@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth, type AuthProviderStatus } from '../../../auth/AuthContext';
 import type { TableColumnProps } from '@/components/ui/data-table';
 import {
   adminAuditRows,
@@ -33,7 +35,7 @@ export type AdminAccess = {
   canRestoreResources: boolean;
 };
 
-export function resolveAdminAccess(status: AuthStatus, role: string): AdminAccess {
+export function resolveAdminAccess(status: AuthStatus | AuthProviderStatus, role: string): AdminAccess {
   const canAccess = status === 'authenticated' && ['admin', 'operator', 'superadmin'].includes(role);
   const canManage = canAccess && ['admin', 'superadmin'].includes(role);
   return {
@@ -46,6 +48,12 @@ export function resolveAdminAccess(status: AuthStatus, role: string): AdminAcces
   };
 }
 
+export function useAdminAccess(): AdminAccess {
+  const auth = useAuth();
+  return useMemo(() => resolveAdminAccess(auth.status, auth.user?.role ?? 'user'), [auth.status, auth.user?.role]);
+}
+
+// 保留独立挂载测试和旧版 Fixture 的静态导出；正式页面通过 useAdminAccess 读取实时权限。
 const adminAccess = resolveAdminAccess(authStatus, authUser.role);
 export const canAccessAdmin = adminAccess.canAccess;
 export const canManage = adminAccess.canManage;

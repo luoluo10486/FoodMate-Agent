@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import styles from '../AdminPage.module.css';
 import { AdminOnlyNotice } from './AdminComponents';
-import { type DeletedRow, adminDeletedRows, canRestoreResources } from './AdminShared';
+import { type DeletedRow, adminDeletedRows, useAdminAccess } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import { loadAdminDeletedResourcesPage, restoreAdminResource } from '../../../services/adminService';
 import { isAbortError } from '../../../services/apiClient';
@@ -134,6 +134,7 @@ export function DeletedSection({
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce?: number;
 }) {
+  const { canRestoreResources } = useAdminAccess();
   const isReal = import.meta.env.VITE_AGENT_MODE === 'real';
   const [rows, setRows] = useState<DeletedRow[]>(isReal ? [] : (adminDeletedRows as DeletedRow[]));
   const [resourceFilter, setResourceFilter] = useState('all');
