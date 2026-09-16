@@ -13,8 +13,7 @@ class FlywayV40MigrationScriptTest {
 
     @Test
     void migrationCreatesSkipCommandAndPolicyFields() throws Exception {
-        String migration =
-                Files.readString(ROOT.resolve("migration/V40__m2_2_tool_step_skip.sql"));
+        String migration = Files.readString(ROOT.resolve("migration/V40__m2_2_tool_step_skip.sql"));
 
         assertTrue(migration.contains("agent_run_tool_skips"));
         assertTrue(migration.contains("skippable"));
@@ -28,8 +27,7 @@ class FlywayV40MigrationScriptTest {
                 Files.readString(
                         ROOT.resolve("validation/V40__m2_2_tool_step_skip_validation.sql"));
         String rollback =
-                Files.readString(
-                        ROOT.resolve("rollback/R40__m2_2_tool_step_skip_precheck.sql"));
+                Files.readString(ROOT.resolve("rollback/R40__m2_2_tool_step_skip_precheck.sql"));
 
         assertTrue(validation.contains("invalid_skip_status_rows"));
         assertTrue(rollback.contains("rollback_precheck"));

@@ -2720,3 +2720,14 @@
 | 代码门禁 | 新增 `FlywayV40MigrationScriptTest`，`2/2` 通过；`git diff --check` 通过。 |
 | Admin 预检 | `M11AdminManagementE2ETest` `2/2`、`M11ExportDownloadE2ETest` `1/1` 通过；迁移前测试日志暴露的 `agent_run_tool_skips` 定时查询错误已不再有数据库结构阻塞。 |
 | 边界 | 本次只修复本地数据库结构和迁移台账，不代表生产数据库已执行 V40；生产执行仍需按备份、审批和 validation 流程单独完成。 |
+
+## D185 Admin Retention 本地真实接口闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 测试 | 新增 `foodmate-bootstrap/.../M11RetentionGovernanceE2ETest.java`；真实本地 HTTP E2E `1/1` 通过。 |
+| 业务覆盖 | 随机 admin/superadmin/operator、唯一软删除 Knowledge 文档、清理申请、幂等回放、详情、preflight、法律保留、operator 拒绝审批、hold 阻断、释放 hold、superadmin 审批和三类任务生成。 |
+| 数据断言 | 资源软删除且保留期已到；默认硬删除为 `false`；审批生成 `object_storage`、`vector_index`、`database` 三个任务；preflight 不泄露 `target_ref` 或原始对象键。 |
+| 定向门禁 | Retention Application `5/5`、API `4/4`、前端 `RetentionTab` `5/5`；生产代码未新增接口或修改 HTTP/SSE 协议。 |
+| 数据边界 | 当前本地人工迁移库未应用 V27 的 `data_purge_task_results` 表；测试未执行硬删除，清理逻辑对该可选表做存在性判断，临时账号、文档、hold、request、task 和审计数据均按唯一 ID 清理。 |
+| 结论 | Admin Retention 的页面消费者和治理接口状态闭环已获得本地真实证据；清理结果对账、对象/向量/数据库实际删除和生产迁移仍未标记完成。 |
