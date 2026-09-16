@@ -96,6 +96,27 @@ describe('apiClient authentication recovery', () => {
     });
   });
 
+  it('preserves backend request and trace metadata on errors', async () => {
+    vi.mocked(fetch).mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          success: false,
+          error: { code: 'ADMIN_OPERATION_FAILED', message: '操作未完成' },
+          meta: { request_id: 'req-real-42', trace_id: 'trace-real-42' },
+        }),
+        { status: 503 },
+      ),
+    );
+
+    await expect(apiRequest('/api/admin/tools/nutrition_lookup/status', { method: 'PATCH' })).rejects.toMatchObject({
+      code: 'ADMIN_OPERATION_FAILED',
+      status: 503,
+      requestId: 'req-real-42',
+      traceId: 'trace-real-42',
+      meta: { request_id: 'req-real-42', trace_id: 'trace-real-42' },
+    });
+  });
+
   it('preserves account lock and disable codes from forbidden responses', async () => {
     const fetchMock = vi.mocked(fetch);
     fetchMock.mockResolvedValueOnce(

@@ -1,14 +1,25 @@
 export type ApiErrorCode = 'AUTH_REQUIRED' | 'FORBIDDEN' | 'NETWORK_ERROR' | 'SERVER_ERROR' | string;
 
+export type ApiResponseMeta = {
+  request_id?: string;
+  trace_id?: string;
+};
+
 export class ApiError extends Error {
+  public readonly requestId?: string;
+  public readonly traceId?: string;
+
   constructor(
     public readonly code: ApiErrorCode,
     message: string,
     public readonly status?: number,
     public readonly details?: unknown,
+    public readonly meta?: ApiResponseMeta,
   ) {
     super(message);
     this.name = 'ApiError';
+    this.requestId = meta?.request_id;
+    this.traceId = meta?.trace_id;
   }
 }
 
@@ -16,6 +27,7 @@ type ApiEnvelope<T> = {
   success: boolean;
   data: T;
   error?: { code: string; message: string; details?: unknown };
+  meta?: ApiResponseMeta;
 };
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
@@ -94,6 +106,7 @@ async function refreshAuthSession(): Promise<void> {
           body?.error?.message ?? '登录已失效，请重新登录',
           response.status,
           body?.error?.details,
+          body?.meta,
         );
     })().finally(() => {
       refreshInFlight = undefined;
@@ -133,6 +146,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       body?.error?.message ?? '当前账号无权执行此操作',
       403,
       body?.error?.details,
+      body?.meta,
     );
   if (!response.ok || !body?.success)
     throw new ApiError(
@@ -140,6 +154,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       body?.error?.message ?? `请求失败（${response.status}）`,
       response.status,
       body?.error?.details,
+      body?.meta,
     );
   return body.data;
 }
