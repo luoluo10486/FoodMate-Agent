@@ -88,7 +88,8 @@ function Invoke-Api(
     [object]$Payload = $null,
     [hashtable]$Headers = @{}
 ) {
-    $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new($Method), $Url)
+    $requestUri = [System.Uri]$Url
+    $request = [System.Net.Http.HttpRequestMessage]::new([System.Net.Http.HttpMethod]::new($Method), $requestUri)
     try {
         if ($null -ne $Payload) {
             $body = $Payload | ConvertTo-Json -Depth 20 -Compress
@@ -162,7 +163,7 @@ try {
     [void](Invoke-Api $context "POST" "$JavaBaseUrl/api/auth/register" $registerPayload)
     $csrf = Get-Csrf $context
     $headers = @{ "X-CSRF-Token" = $csrf }
-    $selected = Search-NutritionFood $context "米饭"
+    $selected = Search-NutritionFood $context "rice"
     $report.search = $selected
 
     $payload = @{
@@ -170,10 +171,10 @@ try {
         meal_type = "lunch"
         notes = "local-food-log-e2e"
         items = @(@{
-                raw_name = "熟米饭"
-                amount = 150
-                unit = "g"
-                nutrition_food_id = [long]$selected.nutrition_food_id
+                raw_name = "cooked rice";
+                amount = 150;
+                unit = "g";
+                nutrition_food_id = [long]$selected.nutrition_food_id;
             })
     }
     $createHeaders = $headers + @{ "Idempotency-Key" = "local-food-log-$suffix" }
@@ -205,10 +206,13 @@ try {
 } finally {
     if (-not $KeepData -and $null -ne $context -and -not [string]::IsNullOrWhiteSpace($foodLogId) -and $foodLogRevision -gt 0) {
         try {
-            # 使用格式化字符串拼接查询参数，避免 PowerShell 把问号后的文本并入变量名。
-            $cleanupUrl = "{0}/api/food-logs/{1}?revision={2}" -f $JavaBaseUrl, $foodLogId, $foodLogRevision
+            $cleanupRequestUrl = @(([string]$JavaBaseUrl).TrimEnd('/'), "/api/food-logs/", [string]$foodLogId, "?revision=", [string]$foodLogRevision) -join ""
+            $cleanupUri = [System.Uri]$cleanupRequestUrl
+            if ($null -eq $cleanupUri -or [string]::IsNullOrWhiteSpace($cleanupUri.AbsoluteUri)) {
+                throw ("cleanup URI is invalid: urlLength={0}, baseLength={1}, idLength={2}, revisionText={3}" -f $cleanupRequestUrl.Length, ([string]$JavaBaseUrl).Length, ([string]$foodLogId).Length, [string]$foodLogRevision)
+            }
             $cleanupHeaders = $headers + @{ "Idempotency-Key" = "local-food-log-cleanup-$foodLogId" }
-            [void](Invoke-Api $context "DELETE" $cleanupUrl $null $cleanupHeaders)
+            [void](Invoke-Api -ApiContext $context -Method "DELETE" -Url $cleanupUri.AbsoluteUri -Payload $null -Headers $cleanupHeaders)
             $report.cleanup.food_log_deleted = $true
         } catch {
             Add-CleanupError ("food log cleanup failed: " + (Get-SafeSummary $_))
