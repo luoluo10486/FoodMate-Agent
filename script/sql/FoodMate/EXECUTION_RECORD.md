@@ -2731,3 +2731,15 @@
 | 定向门禁 | Retention Application `5/5`、API `4/4`、前端 `RetentionTab` `5/5`；生产代码未新增接口或修改 HTTP/SSE 协议。 |
 | 数据边界 | 当前本地人工迁移库未应用 V27 的 `data_purge_task_results` 表；测试未执行硬删除，清理逻辑对该可选表做存在性判断，临时账号、文档、hold、request、task 和审计数据均按唯一 ID 清理。 |
 | 结论 | Admin Retention 的页面消费者和治理接口状态闭环已获得本地真实证据；清理结果对账、对象/向量/数据库实际删除和生产迁移仍未标记完成。 |
+
+## D186 Model Governance 与 DLQ Replay 本地真实接口闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 容器均为 healthy；未执行付费模型调用。 |
+| 测试 | 新增 `foodmate-bootstrap/src/test/java/com/foodmate/bootstrap/e2e/M11ModelGovernanceAndDlqReplayE2ETest.java`；本地真实 HTTP E2E `2/2` 通过。 |
+| Model Governance 覆盖 | Admin 写权限拒绝；Superadmin 供应商状态变更、revision、相同幂等键回放、价格创建、预算创建；治理读取；数据库回读；审计记录；响应不暴露 `api_key`。 |
+| DLQ Replay 覆盖 | 非 Superadmin `403`；Superadmin 创建 `queued`；相同幂等键回放；活跃重放 `409`；响应不返回原始 payload；DLQ 保持 `needs_attention`；Replay Outbox 保持异步 `pending`。 |
+| 定向门禁 | Application `12/12`、API `8/8`、前端相关测试 `5` 个文件 `28/28`；新增测试 Spotless 通过；`git diff --check` 待提交前复核。 |
+| 协议边界 | 没有修改 Controller、DTO、错误码或 HTTP/SSE 协议；没有把 HTTP `queued` 当作最终成功；没有触发真实 RocketMQ Broker Relay。 |
+| 未完成范围 | 本地证据不包含真实 Broker 重放、下游消费、原消息对账、生产告警、长稳、故障恢复或部署环境联调；Retention V27 清理结果表和 iconfont 阻塞保持原状。 |
