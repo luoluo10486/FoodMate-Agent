@@ -4,7 +4,9 @@ param(
     [string]$SourceDirectory = "",
     [int]$BatchTimeoutSeconds = 600,
     [string]$SourceVersion = "",
-    [string]$IdempotencyKey = ""
+    [string]$IdempotencyKey = "",
+    [ValidateSet("stub", "local", "unknown")]
+    [string]$RuntimeMode = "unknown"
 )
 
 $ErrorActionPreference = "Stop"
@@ -176,7 +178,7 @@ try {
 
     $result = [ordered]@{
         status = "published"
-        mode = "local-stub"
+        mode = $RuntimeMode
         dataset = [string]$manifest.dataset
         dataset_version = [string]$manifest.dataset_version
         document_count = $documentIds.Count
