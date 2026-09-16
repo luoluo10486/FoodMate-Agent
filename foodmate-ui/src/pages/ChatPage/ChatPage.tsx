@@ -85,6 +85,18 @@ import styles from './ChatPage.module.css';
 // Chat Fixture 的人物身份只有一个示例账号，壳层和用户消息必须引用同一份登记头像。
 const FIXTURE_CHAT_ACCOUNT_AVATAR = FIXTURE_ACCOUNT_AVATAR;
 
+// 默认 Chat 画板与 Figma 640:428 共用完整的第一页会话历史，保证壳层导航不是空态。
+const FIGMA_CHAT_SIDEBAR_SESSIONS: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true, status: 'completed' },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', status: 'completed' },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', status: 'completed' },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', status: 'completed' },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', status: 'completed' },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', status: 'completed' },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', status: 'completed' },
+];
+
 type ChatMessage = {
   id: string;
   role: Message['role'];
@@ -459,6 +471,7 @@ type ChatSurfaceProps = {
     sessions: SessionSummary[];
     currentPage: number;
     searchValue?: string;
+    sessionCountLabel?: string;
   };
 };
 
@@ -4146,6 +4159,15 @@ function MockChatPage() {
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
       sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
       topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      sidebarFixture={
+        isFigmaFixture
+          ? {
+              sessions: FIGMA_CHAT_SIDEBAR_SESSIONS,
+              currentPage: 1,
+              sessionCountLabel: '共 15 条会话',
+            }
+          : undefined
+      }
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}

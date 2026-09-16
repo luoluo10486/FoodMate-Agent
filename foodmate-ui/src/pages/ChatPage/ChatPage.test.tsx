@@ -132,6 +132,15 @@ describe('ChatPage Figma 默认状态', () => {
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
   });
 
+  it('renders the default Figma conversation history in the workspace sidebar', () => {
+    renderChatState('figma-v2');
+
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(screen.getByText('共 15 条会话')).toBeInTheDocument();
+    expect(screen.queryByText('暂无会话')).not.toBeInTheDocument();
+  });
+
   it('keeps the initial user message visible instead of auto-scrolling the Figma canvas', () => {
     const scrollSpy = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => undefined);
 
