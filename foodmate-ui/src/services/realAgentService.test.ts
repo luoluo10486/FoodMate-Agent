@@ -198,6 +198,48 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     expect(result.current.run.connection?.state).toBe('connected');
   });
 
+  it('旧 Run 已有回答时，新 Run 仍能接收未持久化的流式回答', async () => {
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'old-user',
+        session_id: 'session-1',
+        agent_run_id: '41',
+        role: 'user',
+        content: '上一轮问题',
+        sequence_no: 1,
+        created_at: '2026-09-15T10:00:00Z',
+      },
+      {
+        message_id: 'old-assistant',
+        session_id: 'session-1',
+        agent_run_id: '41',
+        role: 'assistant',
+        content: '上一轮已保存回答',
+        sequence_no: 2,
+        created_at: '2026-09-15T10:00:01Z',
+      },
+      {
+        message_id: 'new-user',
+        session_id: 'session-1',
+        agent_run_id: '42',
+        role: 'user',
+        content: '新一轮问题',
+        sequence_no: 3,
+        created_at: '2026-09-15T10:01:00Z',
+      },
+    ]);
+
+    const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    await waitFor(() =>
+      expect(streamChatRun).toHaveBeenCalledWith('42', expect.any(Function), undefined, expect.anything()),
+    );
+    act(() => subscriptions[0].onEvent(event('run.answer_stream', { text: '新一轮流式回答' }, 'event-42')));
+
+    expect(result.current.activeRunId).toBe('42');
+    expect(result.current.assistantText).toBe('新一轮流式回答');
+  });
+
   it('卸载时取消 ChatRun 的历史和状态请求', async () => {
     const messageSignals: AbortSignal[] = [];
     const statusSignals: AbortSignal[] = [];

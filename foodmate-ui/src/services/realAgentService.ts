@@ -454,8 +454,14 @@ export function useRealAgentReplay(
             time: message.created_at,
           })),
         );
-        persistedAssistantRef.current = ordered.some((message) => message.role === 'assistant');
         const latestRunId = [...ordered].reverse().find((message) => message.agent_run_id)?.agent_run_id;
+        // 只把当前 Run 的 assistant 消息视为已持久化，避免旧 Run 的回答阻断新 Run 的流式内容。
+        persistedAssistantRef.current = Boolean(
+          latestRunId &&
+          ordered.some(
+            (message) => message.role === 'assistant' && String(message.agent_run_id) === String(latestRunId),
+          ),
+        );
         if (latestRunId) {
           const normalizedRunId = String(latestRunId);
           activeRunIdRef.current = normalizedRunId;
