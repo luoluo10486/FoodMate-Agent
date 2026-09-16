@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
+const CURRENT_STATUS_PATTERN = /^(?:REAL_CONNECTED|SERVICE_ONLY|BACKEND_CONTRACT_MISSING)(?:\s*\/\s*SPECIAL_302)?$/;
 const MAPPING_PATTERN = /@(?:[A-Za-z0-9_$]+\.)*(?<verb>Get|Post|Put|Patch|Delete)Mapping\s*(?:\((?<args>[\s\S]*?)\))?/g;
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -176,7 +177,7 @@ export function auditCoverage() {
     staleDocumentation,
     consumerRows,
     missingConsumers,
-    staleStatuses: coverageRows.filter((row) => /已封装|待页面接入|FIXTURE_ONLY/.test(row.status)),
+    invalidStatuses: coverageRows.filter((row) => !CURRENT_STATUS_PATTERN.test(row.status)),
   };
 }
 
@@ -195,7 +196,7 @@ export function main() {
   console.log(
     `生产消费者证据: ${result.consumerRows.length - result.missingConsumers.length}/${result.coverageRows.length}`,
   );
-  console.log(`历史状态仍写作“已封装”的当前行: ${result.staleStatuses.length}`);
+  console.log(`状态字段不符合当前规范的当前行: ${result.invalidStatuses.length}`);
 
   printList('文档缺少接口', result.missingDocumentation);
   printList('文档多出的接口', result.staleDocumentation);
@@ -204,8 +205,8 @@ export function main() {
     result.missingConsumers.map((row) => `${row.method} ${row.path} [${row.service}]`),
   );
   printList(
-    '仍使用历史或禁止状态的接口',
-    result.staleStatuses.map((row) => `${row.number} ${row.method} ${row.path} [${row.status}]`),
+    '状态字段不符合当前规范的接口',
+    result.invalidStatuses.map((row) => `${row.number} ${row.method} ${row.path} [${row.status}]`),
   );
 
   if (
@@ -216,7 +217,7 @@ export function main() {
     result.missingDocumentation.length > 0 ||
     result.staleDocumentation.length > 0 ||
     result.missingConsumers.length > 0 ||
-    result.staleStatuses.length > 0
+    result.invalidStatuses.length > 0
   ) {
     throw new Error('接口覆盖审计未通过，请先修正后端映射、覆盖清单或前端生产消费者。');
   }
