@@ -2,6 +2,23 @@
 
 更新时间：2026-09-16
 
+## 1.1.47 2026-09-16 Auth 页面组短视口滚动复核（非像素验收）
+
+本节记录 Auth 页面在窄桌面视口下的实际容器滚动修复。Figma 节点 `647:214`、`680:216` 继续作为颜色、字体、布局和控件意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Login | `/login?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、内容不超出视口，字体 `loaded` | 代表复核通过 |
+| Register | `/register?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、`scrollHeight=895`；滚动后注册按钮和底部登录入口可见 | 代表复核通过 |
+| Forgot Password | `/forgot-password?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、`scrollHeight=827`；表单和成功卡片可纵向访问 | 代表复核通过 |
+| Reset Password | `/reset-password?visual-qa=1` | `759×698 / 1.25` | 单卡内容稳定可见，字体 `loaded` | 代表复核通过 |
+| Token Status | `/token-status?state=invalid/expired/used&visual-qa=1` | `759×698 / 1.25` | 三种状态标题、说明和动作均可见；Used 状态客服按钮保持禁用 | 代表复核通过 |
+
+- [x] 所有复核路由页面级 `scrollWidth=759`，Auth 控制台 warning/error 为空。
+- [x] 本批次修复的是 Auth 容器高度和滚动边界，不改变 Figma 视觉层级、现有真实接口或 Fixture/真实隔离。
+- [x] Auth 定向测试 `3` 个文件、`43/43`；本节为结构、可访问性和响应式边界复核，不新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比，也不把本地 Auth 复核扩展为生产邮件、Cookie、数据库和部署联调；iconfont 实体包、完整映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
 ## 1.1.46 2026-09-16 Chat 六种 Agent 状态与终态消息复核（非像素验收）
 
 本节记录 Chat/Agent 状态和服务端终态消息投影的本地浏览器复核。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
