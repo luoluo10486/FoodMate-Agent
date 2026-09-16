@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const HTTP_METHODS = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
 const CURRENT_STATUS_PATTERN = /^(?:REAL_CONNECTED|SERVICE_ONLY|BACKEND_CONTRACT_MISSING)(?:\s*\/\s*SPECIAL_302)?$/;
 const MAPPING_PATTERN = /@(?:[A-Za-z0-9_$]+\.)*(?<verb>Get|Post|Put|Patch|Delete)Mapping\s*(?:\((?<args>[\s\S]*?)\))?/g;
+const SHARED_BOUNDARY_FUNCTIONS = new Set(['refreshAuthSession', 'getAvatarUrl']);
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
 const uiDirectory = path.resolve(scriptDirectory, '..');
@@ -97,6 +98,14 @@ function sourceFilesForProduction() {
   );
 }
 
+function pageConsumerFilesForProduction() {
+  // 页面、布局和业务组件是浏览器接口的最终消费者，不能只检查 service 自身。
+  return sourceFilesForProduction().filter((filePath) => {
+    const relativePath = path.relative(sourceDirectory, filePath);
+    return /^(pages|layouts|components[\\/])/.test(relativePath);
+  });
+}
+
 function serviceReferences(serviceCell) {
   const references = [];
   for (const group of serviceCell.split('、')) {
@@ -113,20 +122,36 @@ function serviceReferences(serviceCell) {
   return references;
 }
 
+function pageReferenceNames(row) {
+  const names = new Set();
+  for (const value of [row.page, row.service]) {
+    for (const match of value.matchAll(/\b[A-Z][A-Za-z0-9]*(?:Page|Layout|Section|Tab|Panel)\b/g)) {
+      names.add(match[0]);
+    }
+  }
+  return [...names];
+}
+
 function findProductionConsumers(rows) {
   const sourceFiles = sourceFilesForProduction();
   const sourceTexts = sourceFiles.map((filePath) => ({ filePath, text: readText(filePath) }));
-  const sharedBoundaryFunctions = new Set(['refreshAuthSession', 'getAvatarUrl']);
+  const pageSourceFiles = pageConsumerFilesForProduction();
+  const pageSourceTexts = pageSourceFiles.map((filePath) => ({ filePath, text: readText(filePath) }));
 
   return rows.map((row) => {
     const references = serviceReferences(row.service);
+    const declaredPageReferences = pageReferenceNames(row);
+    const declaredPageMatches = declaredPageReferences.filter((name) =>
+      pageSourceTexts.some(({ text }) => new RegExp(`(?<![A-Za-z0-9_$])${name}(?![A-Za-z0-9_$])`).test(text)),
+    );
     const consumers = [];
+    const pageConsumers = [];
     const missingReferences = [];
     for (const reference of references) {
       const serviceFile = path.join(sourceDirectory, 'services', `${reference.module}.ts`);
       const serviceSource = fs.existsSync(serviceFile) ? readText(serviceFile) : '';
       const functionExists =
-        sharedBoundaryFunctions.has(reference.functionName) ||
+        SHARED_BOUNDARY_FUNCTIONS.has(reference.functionName) ||
         (serviceSource.length > 0 &&
           new RegExp(`(?:export\\s+)?(?:async\\s+)?(?:function|const)\\s+${reference.functionName}\\b`).test(
             serviceSource,
@@ -140,17 +165,27 @@ function findProductionConsumers(rows) {
         if (path.resolve(filePath) === path.resolve(serviceFile)) return false;
         return new RegExp(`(?<![A-Za-z0-9_$])${reference.functionName}(?![A-Za-z0-9_$])`).test(text);
       });
-      if (matches.length > 0 || sharedBoundaryFunctions.has(reference.functionName)) {
+      const pageMatches = pageSourceTexts.filter(({ filePath, text }) => {
+        if (path.resolve(filePath) === path.resolve(serviceFile)) return false;
+        return new RegExp(`(?<![A-Za-z0-9_$])${reference.functionName}(?![A-Za-z0-9_$])`).test(text);
+      });
+      if (matches.length > 0 || SHARED_BOUNDARY_FUNCTIONS.has(reference.functionName)) {
         consumers.push(`${reference.module}.${reference.functionName}`);
       } else {
         missingReferences.push(`${reference.module}.${reference.functionName}`);
       }
+
+      if (pageMatches.length > 0 || SHARED_BOUNDARY_FUNCTIONS.has(reference.functionName)) {
+        pageConsumers.push(`${reference.module}.${reference.functionName}`);
+      }
     }
+    pageConsumers.push(...declaredPageMatches);
 
     return {
       ...row,
       references,
       consumers,
+      pageConsumers,
       missingReferences,
     };
   });
@@ -167,6 +202,11 @@ export function auditCoverage() {
   const staleDocumentation = [...documentedKeys].filter((key) => !controllerKeys.has(key));
   const consumerRows = findProductionConsumers(coverageRows);
   const missingConsumers = consumerRows.filter((row) => row.references.length === 0 || row.consumers.length === 0);
+  const missingPageConsumers = consumerRows.filter((row) => {
+    if (row.status !== 'REAL_CONNECTED') return false;
+    const pageReferences = row.references.filter((reference) => !SHARED_BOUNDARY_FUNCTIONS.has(reference.functionName));
+    return pageReferences.length > 0 && row.pageConsumers.length === 0;
+  });
 
   return {
     controllerMappings,
@@ -177,6 +217,7 @@ export function auditCoverage() {
     staleDocumentation,
     consumerRows,
     missingConsumers,
+    missingPageConsumers,
     invalidStatuses: coverageRows.filter((row) => !CURRENT_STATUS_PATTERN.test(row.status)),
   };
 }
@@ -196,6 +237,9 @@ export function main() {
   console.log(
     `生产消费者证据: ${result.consumerRows.length - result.missingConsumers.length}/${result.coverageRows.length}`,
   );
+  console.log(
+    `页面消费者证据: ${result.coverageRows.length - result.missingPageConsumers.length}/${result.coverageRows.length}`,
+  );
   console.log(`状态字段不符合当前规范的当前行: ${result.invalidStatuses.length}`);
 
   printList('文档缺少接口', result.missingDocumentation);
@@ -203,6 +247,10 @@ export function main() {
   printList(
     '缺少 service 生产消费者的接口',
     result.missingConsumers.map((row) => `${row.method} ${row.path} [${row.service}]`),
+  );
+  printList(
+    '缺少页面消费者的接口',
+    result.missingPageConsumers.map((row) => `${row.method} ${row.path} [${row.service}]`),
   );
   printList(
     '状态字段不符合当前规范的接口',
@@ -217,6 +265,7 @@ export function main() {
     result.missingDocumentation.length > 0 ||
     result.staleDocumentation.length > 0 ||
     result.missingConsumers.length > 0 ||
+    result.missingPageConsumers.length > 0 ||
     result.invalidStatuses.length > 0
   ) {
     throw new Error('接口覆盖审计未通过，请先修正后端映射、覆盖清单或前端生产消费者。');
