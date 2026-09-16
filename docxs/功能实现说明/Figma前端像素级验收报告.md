@@ -2,6 +2,20 @@
 
 更新时间：2026-09-16
 
+## 1.1.48 2026-09-16 Diet Records、Intake Analysis 与 Meal Planning 代表页面复核（非像素验收）
+
+本节记录三类饮食工具页面的真实契约和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
+
+| 页面 | 浏览器路由 | 观察到的关键内容 | 结论 |
+| --- | --- | --- | --- |
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | 日期导航、日/周视图、营养指标、餐次记录、详情、记录一餐、编辑和软删除入口可访问 | 代表复核通过 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | 7/30/90 天范围、自定义范围、全部餐次、导出、摘要、图表和 Agent 洞察入口可访问 | 代表复核通过 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 计划重生成/保存、周日程、约束校验、购物清单和勾选控件可访问 | 代表复核通过 |
+
+- [x] 前端全量 Vitest `72` 个文件、`578/578`；typecheck、lint、format、build 通过；后端 `.\mvnw.cmd verify` 为 `BUILD SUCCESS`。
+- [x] 本批次按 Controller/DTO 核对 revision、幂等键、分析范围和购物清单请求差异；没有新增虚构接口或把 Fixture 状态写入真实模式。
+- [ ] 本节不使用像素差异比例替代视觉判断，不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、映射、来源和许可证继续保持 `BLOCKED`。
+
 ## 1.1.47 2026-09-16 Auth 页面组短视口滚动复核（非像素验收）
 
 本节记录 Auth 页面在窄桌面视口下的实际容器滚动修复。Figma 节点 `647:214`、`680:216` 继续作为颜色、字体、布局和控件意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
