@@ -710,6 +710,56 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(openAgentRunStream).toHaveBeenCalledTimes(1);
   });
 
+  it('回答完成后用服务端最终消息替换临时流式文本', async () => {
+    const userMessage = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      role: 'user' as const,
+      content: '请继续分析。',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+      agent_run_id: 'run-1',
+    };
+    const assistantMessage = {
+      message_id: 'message-2',
+      session_id: 'session-1',
+      role: 'assistant' as const,
+      content: '服务端最终回答',
+      sequence_no: 2,
+      created_at: '2026-09-06T10:00:01Z',
+      agent_run_id: 'run-1',
+    };
+    const finalMessages = [userMessage, assistantMessage];
+    let resolveRefresh: ((value: typeof finalMessages) => void) | undefined;
+    loadSessionMessages.mockResolvedValueOnce([userMessage]).mockImplementationOnce(
+      (_sessionId: string, _params: unknown, _signal?: AbortSignal) =>
+        new Promise((resolve) => {
+          resolveRefresh = resolve as (value: typeof finalMessages) => void;
+        }),
+    );
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent('run.answer_stream', { event_type: 'run.answer_stream', text: '临时流式回答' }, 'answer-event');
+        onEvent('run.completed', { event_type: 'run.completed' }, 'completed-event');
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('临时流式回答')).toBeInTheDocument();
+    resolveRefresh?.(finalMessages);
+    await waitFor(() => expect(screen.getByText('服务端最终回答')).toBeInTheDocument());
+    expect(screen.queryByText('临时流式回答')).not.toBeInTheDocument();
+    expect(screen.getByText('服务端最终回答').closest('article')).toBeInTheDocument();
+  });
+
   it('完成后刷新消息失败时显示真实错误，并在卸载后忽略迟到响应', async () => {
     loadSessionMessages
       .mockResolvedValueOnce([

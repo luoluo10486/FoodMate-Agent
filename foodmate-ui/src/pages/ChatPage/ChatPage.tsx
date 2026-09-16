@@ -3224,10 +3224,14 @@ function RealChatPage() {
                   loadGeneration !== messageLoadGenerationRef.current
                 )
                   return;
-                const assistant = rows.find(
+                const ordered = [...rows].sort((left, right) => left.sequence_no - right.sequence_no);
+                const assistant = ordered.find(
                   (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
                 );
+                // 终态后以服务端消息替换临时流式气泡，避免页面继续展示未经持久化确认的本地文本。
+                setMessages(ordered);
                 setAssistantMessageId(assistant?.message_id);
+                if (assistant) setAssistantText('');
               })
               .catch((reason) => {
                 if (
