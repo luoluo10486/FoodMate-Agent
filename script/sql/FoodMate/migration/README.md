@@ -67,6 +67,8 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 
 `V39__m2_6_composite_dish_item_active_order.sql`：将复合菜组成明细顺序唯一性收敛到活动行，允许更新时保留旧版本软删除并写入相同顺序的新明细。配套校验为 `validation/V39__m2_6_composite_dish_item_active_order_validation.sql`，回滚为只读前置检查 `rollback/R39__m2_6_composite_dish_item_active_order_precheck.sql`。
 
+`V40__m2_2_tool_step_skip.sql`：为单个 Agent 工具步骤增加可跳过策略、执行状态时间和控制命令审计事实。迁移只增加字段、索引和控制命令表，不删除既有运行事实；配套校验为 `validation/V40__m2_2_tool_step_skip_validation.sql`，回滚为只读前置检查 `rollback/R40__m2_2_tool_step_skip_precheck.sql`。
+
 ## 配套文件矩阵
 
 | 版本 | validation | rollback | 处理边界 |
@@ -89,6 +91,7 @@ V33 不属于 Flyway 迁移，而是人工执行的生成式 seed：`seed/genera
 | V37 seed | 有 | 不适用 | SQL Agent 计划执行和购物项只读 Catalog 增量；依赖 V36，不能代替结构迁移 |
 | V38 | 有 | 有（只读前置检查） | 复合菜饮食记录聚合营养快照约束修正；普通食材约束不变，不修改既有数据 |
 | V39 | 有 | 有（只读前置检查） | 复合菜组成明细活动顺序唯一约束；保留软删除历史，允许复合菜版本更新 |
+| V40 | 有 | 有（只读前置检查） | Agent 单工具步骤跳过策略和控制命令审计；只增加结构，不删除运行事实 |
 
 该矩阵描述文件现状，不代表任何迁移已在当前数据库执行。实际执行状态、validation 输出、失败与补偿必须以 `../EXECUTION_RECORD.md` 为准。历史版本若需补充校验，优先新增只读 SQL 文档；若需修复结构，创建更高版本迁移，不原地修改已执行脚本，不执行宽泛删除或 `TRUNCATE`。
 

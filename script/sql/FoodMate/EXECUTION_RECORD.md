@@ -2707,3 +2707,16 @@
 | Alibaba 规范验证 | `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`：根项目及五个 Java 模块构建成功，Checkstyle 均为 `0 violations`，Spotless clean，Bootstrap repackage 通过。 |
 | 业务与安全边界 | 本轮未新增业务逻辑、外部调用或测试数据；未执行性能压测、长稳、组件重启、ACK/重复投递故障注入、备份恢复、Kubernetes、生产部署或发布回滚。 |
 | Git | 待提交内容仅包含本次 Java 格式修复和对应文档；工作区其他前端/Figma 文档改动、临时目录与截图不纳入本提交。 |
+
+## D184 本地 V40 工具步骤跳过迁移与 Admin 回归前置修复（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL 16 容器 `foodmate-postgres`。 |
+| 数据库备份 | 执行迁移前创建 schema-only 逻辑备份；SHA-256 为 `55648385CB07EAEDB7F477E6333DD10F2E1E47E7E770088FE816CB40CF7692AF`；验证完成后删除临时备份文件。 |
+| 脚本版本 | `migration/V40__m2_2_tool_step_skip.sql`；此前仓库已有脚本，但当前本地人工迁移数据库尚未执行 V40。 |
+| 执行结果 | 成功；新增 `agent_run_tool_skips`、`tool_schema_versions.skippable`、`runtime_tool_proposal_inbox.execution_started_at/skip_requested_at`，没有删除或改写既有业务数据。 |
+| validation | `migration_status=applied`；非法跳过状态 `0`；可跳过策略行 `6`；回滚前置检查中的待处理跳过命令和待跳过提案均为 `0`。 |
+| 代码门禁 | 新增 `FlywayV40MigrationScriptTest`，`2/2` 通过；`git diff --check` 通过。 |
+| Admin 预检 | `M11AdminManagementE2ETest` `2/2`、`M11ExportDownloadE2ETest` `1/1` 通过；迁移前测试日志暴露的 `agent_run_tool_skips` 定时查询错误已不再有数据库结构阻塞。 |
+| 边界 | 本次只修复本地数据库结构和迁移台账，不代表生产数据库已执行 V40；生产执行仍需按备份、审批和 validation 流程单独完成。 |
