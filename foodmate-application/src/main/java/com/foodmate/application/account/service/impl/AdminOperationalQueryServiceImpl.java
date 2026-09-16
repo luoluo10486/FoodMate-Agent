@@ -145,8 +145,12 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
     private static String defaultSort(String resource) {
         return switch (resource) {
             case "users" -> "created_at";
+            case "traces" -> "started_at";
             case "tools" -> "name";
             case "usage" -> "created_at";
+            case "knowledge" -> "updated_at";
+            case "deleted" -> "deleted_at";
+            case "dlq" -> "first_seen_at";
             default -> "created_at";
         };
     }

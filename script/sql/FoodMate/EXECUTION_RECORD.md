@@ -2778,3 +2778,16 @@
 | 测试配置修复 | HTTP 测试补充 `foodmate.runtime.agent-base-url=http://localhost:9002`，解决测试 fixture 创建阶段缺少 Runtime 地址的问题；没有修改生产业务协议。 |
 | 运行结果 | 两次测试均为 `BUILD SUCCESS`；测试完成后 `foodmate` 与 `foodmate-agent-runtime` 均恢复为 `healthy`。 |
 | 数据与安全边界 | 只验证本地受控业务状态，没有执行生产 Broker Relay、进程重启、长稳、付费模型或未经授权的硬删除；Figma 不执行全量像素差异，iconfont 继续为 `BLOCKED`。 |
+
+## D189 Admin 只读查询本地真实业务闭环（2026-09-17）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 均为 healthy。 |
+| 测试范围 | 新增 `M16AdminReadQueriesE2ETest`，覆盖 Dashboard、11 类 Admin 分页查询、Trace Detail、Audit Report、筛选、分页、权限和敏感字段脱敏。 |
+| 真实 HTTP 结果 | Admin 查询 `1/1` 通过；普通用户访问全部 Admin 只读入口返回 `403`；SQL 原文、原始 Payload 和对象存储 Key 未出现在响应中。 |
+| 后端修复 | 资源默认排序与 Mapper 白名单统一；`countUsage` 改为同条件 `COUNT(*)`，不再把 usage 行映射为 `long`。 |
+| 定向验证 | Application `AdminOperationalQueryServiceImplTest` `11/11`；Infrastructure `AdminOperationalQueryMapperContractTest` `2/2`；Bootstrap `M16AdminReadQueriesE2ETest` `1/1`。 |
+| 代码门禁 | `-Palibaba-code-style -pl foodmate-bootstrap -am -DskipTests verify` 成功；Spotless clean，Checkstyle `0 violations`；`git diff --check` 通过。 |
+| 数据清理 | M16 临时账号及关联 Session、Run、事件、SSE outbox、审计数据已清理；`m16fault` 用户、Session、Run、事件、SSE、审计残留均为 `0`。 |
+| 边界 | 本批次没有新增浏览器接口，没有执行 Figma 105 画板像素差异或花瓣对比；生产外部依赖和 iconfont 资料仍未完成，iconfont 继续为 `BLOCKED`。 |

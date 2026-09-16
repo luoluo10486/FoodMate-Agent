@@ -245,14 +245,11 @@ public interface AdminOperationalQueryMapper {
     List<UsageRow> usage(@Param("q") Query query);
 
     @Select(
-            "<script>SELECT provider_code AS provider,model_name AS"
-                    + " model,scene,COALESCE((usage_json->>'total_tokens'),'0') AS"
-                    + " tokens,cost_amount AS cost,latency_ms,status FROM model_usage_logs WHERE"
-                    + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
-                    + " (provider_code ILIKE CONCAT('%',#{q.text},'%') OR model_name ILIKE"
-                    + " CONCAT('%',#{q.text},'%') OR scene ILIKE CONCAT('%',#{q.text},'%'))</if><if"
-                    + " test='q.status != null and q.status != &quot;&quot;'> AND"
-                    + " status=#{q.status}</if></script>")
+            "<script>SELECT COUNT(*) FROM model_usage_logs WHERE is_deleted=FALSE<if"
+                    + " test='q.text != null and q.text != &quot;&quot;'> AND (provider_code ILIKE"
+                    + " CONCAT('%',#{q.text},'%') OR model_name ILIKE CONCAT('%',#{q.text},'%') OR"
+                    + " scene ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
+                    + " q.status != &quot;&quot;'> AND status=#{q.status}</if></script>")
     long countUsage(@Param("q") Query query);
 
     @Select(

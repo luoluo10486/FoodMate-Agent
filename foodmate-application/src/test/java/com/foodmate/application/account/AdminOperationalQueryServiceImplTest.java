@@ -45,6 +45,42 @@ class AdminOperationalQueryServiceImplTest {
     }
 
     @Test
+    void usesValidDefaultSortForResourcesWithoutCreatedAt() {
+        when(store.traces(any())).thenReturn(List.of());
+        when(store.countTraces(any())).thenReturn(0L);
+        when(store.knowledge(any())).thenReturn(List.of());
+        when(store.countKnowledge(any())).thenReturn(0L);
+        when(store.deleted(any())).thenReturn(List.of());
+        when(store.countDeleted(any())).thenReturn(0L);
+        when(store.dlq(any())).thenReturn(List.of());
+        when(store.countDlq(any())).thenReturn(0L);
+
+        service.query(
+                "traces",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "knowledge",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "deleted",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "dlq",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+
+        ArgumentCaptor<AdminOperationalQueryRepository.Query> query =
+                ArgumentCaptor.forClass(AdminOperationalQueryRepository.Query.class);
+        verify(store).traces(query.capture());
+        assertEquals("started_at", query.getValue().sort());
+        verify(store).knowledge(query.capture());
+        assertEquals("updated_at", query.getValue().sort());
+        verify(store).deleted(query.capture());
+        assertEquals("deleted_at", query.getValue().sort());
+        verify(store).dlq(query.capture());
+        assertEquals("first_seen_at", query.getValue().sort());
+    }
+
+    @Test
     void forwardsRunResultFiltersAndMapsDegradedState() {
         when(store.runs(any()))
                 .thenReturn(
