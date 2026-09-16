@@ -176,7 +176,7 @@ export function auditCoverage() {
     staleDocumentation,
     consumerRows,
     missingConsumers,
-    staleStatuses: coverageRows.filter((row) => row.status.includes('已封装')),
+    staleStatuses: coverageRows.filter((row) => /已封装|待页面接入|FIXTURE_ONLY/.test(row.status)),
   };
 }
 
@@ -203,6 +203,10 @@ export function main() {
     '缺少 service 生产消费者的接口',
     result.missingConsumers.map((row) => `${row.method} ${row.path} [${row.service}]`),
   );
+  printList(
+    '仍使用历史或禁止状态的接口',
+    result.staleStatuses.map((row) => `${row.number} ${row.method} ${row.path} [${row.status}]`),
+  );
 
   if (
     result.controllerMappings.length !== 128 ||
@@ -211,7 +215,8 @@ export function main() {
     result.coverageRows.length !== 121 ||
     result.missingDocumentation.length > 0 ||
     result.staleDocumentation.length > 0 ||
-    result.missingConsumers.length > 0
+    result.missingConsumers.length > 0 ||
+    result.staleStatuses.length > 0
   ) {
     throw new Error('接口覆盖审计未通过，请先修正后端映射、覆盖清单或前端生产消费者。');
   }
