@@ -122,6 +122,11 @@
   font-weight: 700;
 }
 
+.filter:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 .resultCount {
   flex: 0 0 auto;
   margin-top: 24px;

@@ -61,6 +61,11 @@ describe('KnowledgePage real mode', () => {
     renderPage();
     await screen.findByRole('heading', { name: '知识库' });
 
+    expect(screen.getByRole('button', { name: '全部主题' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '营养素' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '仅引用' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '近90天' })).toBeDisabled();
+
     const search = screen.getByRole('textbox', { name: '搜索食物知识、食材、烹饪技巧' });
     await user.type(search, '低 GI');
     await user.keyboard('{Enter}');

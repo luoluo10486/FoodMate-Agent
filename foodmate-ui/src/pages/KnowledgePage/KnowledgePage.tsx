@@ -21,7 +21,7 @@ type KnowledgeResult = {
   source: string;
   updated: string;
   sourceTone: 'green' | 'blue' | 'purple';
-  topic: 'nutrition';
+  topic?: 'nutrition' | 'cooking';
   details: {
     sourceName: string;
     documentId: string;
@@ -45,7 +45,6 @@ function toKnowledgeResult(citation: KnowledgeCitation): KnowledgeResult {
     source: `版本 ${version}`,
     updated: `章节 ${sectionPath}`,
     sourceTone: 'blue',
-    topic: 'nutrition',
     details: {
       sourceName: citation.title,
       documentId: `DOC ID: ${citation.document_id}`,
@@ -63,7 +62,7 @@ const knowledgeResults: KnowledgeResult[] = [
     source: 'NIH §4.2',
     updated: '2天前更新',
     sourceTone: 'blue',
-    topic: 'nutrition',
+    topic: 'cooking',
     details: {
       sourceName: 'NIH 研究实验室文献库',
       documentId: 'DOC ID: NIH-451992-B',
@@ -110,7 +109,14 @@ const topics = [
   { icon: '🥩', title: '氨基酸合成', count: '19 篇引用' },
 ];
 
-const filterOptions = ['全部主题', '营养素', '仅引用', '近90天'];
+const filterOptions = [
+  { key: 'all', label: '全部主题', fixtureSupported: true, realSupported: true },
+  { key: 'nutrition', label: '营养素', fixtureSupported: true, realSupported: false },
+  { key: 'citations', label: '仅引用', fixtureSupported: false, realSupported: false },
+  { key: 'recent', label: '近90天', fixtureSupported: false, realSupported: false },
+] as const;
+
+type KnowledgeFilterKey = (typeof filterOptions)[number]['key'];
 
 const figmaSidebarSessions: SessionSummary[] = [
   { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
@@ -134,7 +140,7 @@ export function KnowledgePage() {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [selectedResultTitle, setSelectedResultTitle] = useState(knowledgeResults[0].title);
-  const [activeFilter, setActiveFilter] = useState('全部主题');
+  const [activeFilter, setActiveFilter] = useState<KnowledgeFilterKey>('all');
   const [remoteResults, setRemoteResults] = useState<KnowledgeResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [searchError, setSearchError] = useState<KnowledgeSearchError>();
@@ -162,7 +168,9 @@ export function KnowledgePage() {
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const filterMatches = (item: KnowledgeResult) => {
-      if (activeFilter === '营养素') return item.topic === 'nutrition';
+      // 真实接口当前只接受 query，不能根据浏览器推断主题、引用类型或更新时间。
+      if (isRealMode || activeFilter === 'all') return true;
+      if (activeFilter === 'nutrition') return item.topic === 'nutrition';
       return true;
     };
 
@@ -259,7 +267,7 @@ export function KnowledgePage() {
     searchControllerRef.current?.abort();
     searchControllerRef.current = undefined;
     setQuery('');
-    setActiveFilter('全部主题');
+    setActiveFilter('all');
     setRemoteResults([]);
     setSearchError(undefined);
     setHasSearched(false);
@@ -325,18 +333,25 @@ export function KnowledgePage() {
               />
             </form>
             <div className={styles.filters} aria-label="知识库筛选">
-              {filterOptions.map((filter) => (
-                <Button
-                  className={`${styles.filter} ${activeFilter === filter ? styles.filterActive : ''}`}
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  type="button"
-                  variant="outline"
-                  aria-pressed={activeFilter === filter}
-                >
-                  {filter}
-                </Button>
-              ))}
+              {filterOptions.map((filter) => {
+                const supported = isFigmaFixture ? filter.fixtureSupported : filter.realSupported;
+                return (
+                  <Button
+                    aria-disabled={!supported}
+                    className={`${styles.filter} ${activeFilter === filter.key ? styles.filterActive : ''}`}
+                    data-filter-supported={supported ? 'true' : 'false'}
+                    disabled={!supported}
+                    key={filter.key}
+                    onClick={() => setActiveFilter(filter.key)}
+                    type="button"
+                    variant="outline"
+                    aria-pressed={activeFilter === filter.key}
+                    title={supported ? undefined : '当前接口未提供此筛选字段'}
+                  >
+                    {filter.label}
+                  </Button>
+                );
+              })}
             </div>
           </header>
 
