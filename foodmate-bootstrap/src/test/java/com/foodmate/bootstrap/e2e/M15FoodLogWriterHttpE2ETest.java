@@ -31,6 +31,9 @@ import org.springframework.test.context.DynamicPropertySource;
         properties = {
             "foodmate.runtime.transport=http",
             "foodmate.runtime.admission.enabled=false",
+            "foodmate.runtime.agent-base-url=http://localhost:9002",
+            "foodmate.runtime.dispatch-poll-ms=3600000",
+            "foodmate.id.worker-id=2",
             "spring.data.redis.url=redis://:foodmate-redis-change-me@localhost:6380"
         })
 @ActiveProfiles("local")

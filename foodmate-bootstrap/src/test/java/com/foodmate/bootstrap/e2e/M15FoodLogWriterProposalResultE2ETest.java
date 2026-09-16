@@ -28,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(
         properties = {
             "foodmate.runtime.transport=rocketmq",
+            "foodmate.id.worker-id=2",
             "foodmate.runtime.dispatch-poll-ms=3600000",
             "foodmate.runtime.dlq-reconcile-ms=3600000"
         })

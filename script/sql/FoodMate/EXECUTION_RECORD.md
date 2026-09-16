@@ -2767,3 +2767,14 @@
 | 前端门禁 | `agentRunHttpService.test.ts`、`agentRunService.test.ts`、`ChatPage.real.test.tsx`、`ChatPage.agentState.real.test.tsx` 共 `4` 个文件、`67/67` 通过。 |
 | 代码边界 | 本批次没有修改 Java/前端生产代码、Controller、DTO、错误码或 HTTP/SSE 协议；不把恢复请求接受当作运行终态。 |
 | 未完成范围 | 未执行真实 Python/Java 进程重启、PostgreSQL 重启、RocketMQ ACK 丢失/重复投递、SSE 长稳、生产容量和部署环境联调；Figma 全量像素差异、花瓣像素对比和 iconfont 接入均不在本批次范围。 |
+
+## D188 M15 FoodLog Writer HTTP/RocketMQ 本地业务闭环复验（2026-09-17）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；本地 Docker `foodmate` 网络、PostgreSQL、Runtime 和 RocketMQ。 |
+| HTTP E2E | `M15FoodLogWriterHttpE2ETest` `11/11` 通过，覆盖创建、拒绝、失败回滚、superseded、更新、删除、恢复、revision 冲突、幂等重放、单位换算和 pending。 |
+| RocketMQ E2E | `M15FoodLogWriterProposalResultE2ETest` `11/11` 通过，覆盖正常 Proposal/Result、失败结果和重复消息幂等。 |
+| 测试配置修复 | HTTP 测试补充 `foodmate.runtime.agent-base-url=http://localhost:9002`，解决测试 fixture 创建阶段缺少 Runtime 地址的问题；没有修改生产业务协议。 |
+| 运行结果 | 两次测试均为 `BUILD SUCCESS`；测试完成后 `foodmate` 与 `foodmate-agent-runtime` 均恢复为 `healthy`。 |
+| 数据与安全边界 | 只验证本地受控业务状态，没有执行生产 Broker Relay、进程重启、长稳、付费模型或未经授权的硬删除；Figma 不执行全量像素差异，iconfont 继续为 `BLOCKED`。 |

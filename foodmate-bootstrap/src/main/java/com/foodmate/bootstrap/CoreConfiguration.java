@@ -2,6 +2,7 @@ package com.foodmate.bootstrap;
 
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.id.SnowflakeIdGenerator;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -9,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class CoreConfiguration {
     @Bean
-    public IdGenerator idGenerator() {
-        return new SnowflakeIdGenerator(1);
+    public IdGenerator idGenerator(@Value("${foodmate.id.worker-id:1}") long workerId) {
+        return new SnowflakeIdGenerator(workerId);
     }
 }
