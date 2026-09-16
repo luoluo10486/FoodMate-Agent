@@ -112,6 +112,38 @@ describe('useRealAgentReplay ChatRun 兼容入口', () => {
     expect(subscriptions[0].close).not.toHaveBeenCalled();
   });
 
+  it('从历史事件返回的 SSE 游标继续订阅，而不是使用 Runtime 事件 ID', async () => {
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: '42',
+        role: 'user',
+        content: '继续分析',
+        sequence_no: 1,
+        created_at: '2026-09-16T00:00:00Z',
+      },
+    ]);
+    getChatRun.mockResolvedValue({ run_id: '42', status: 'RUNNING' });
+    getChatRunEvents.mockResolvedValue([
+      {
+        event_id: 'runtime-event-7',
+        sse_event_id: 'sse-19',
+        run_id: '42',
+        event_seq: 7,
+        state: 'RUNNING',
+        payload: {},
+        occurred_at: '2026-09-16T00:00:01Z',
+        event_type: 'run.planned',
+      },
+    ]);
+
+    renderHook(() => useRealAgentReplay(true, 'session-1'));
+
+    await waitFor(() => expect(streamChatRun).toHaveBeenCalledTimes(1));
+    expect(streamChatRun.mock.calls[0][2]).toBe('sse-19');
+  });
+
   it('将兼容 run.event 的外层终态映射为失败并保留可重试错误', async () => {
     const { result } = renderHook(() => useRealAgentReplay(true, 'session-1'));
 

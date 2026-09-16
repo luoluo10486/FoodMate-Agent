@@ -313,6 +313,40 @@ public class V1RuntimeEventServiceImpl implements V1RuntimeEventService {
                 .toList();
     }
 
+    @Override
+    public synchronized List<ChatEvent> chatEvents(String runId) {
+        if (store == null) {
+            return memoryEvents.getOrDefault(runId, List.of()).stream()
+                    .map(
+                            event ->
+                                    new ChatEvent(
+                                            event.eventId(),
+                                            "sse_memory_" + event.eventId(),
+                                            event.runId(),
+                                            event.dispatchId(),
+                                            event.attempt(),
+                                            event.eventSeq(),
+                                            event.eventType(),
+                                            event.payload(),
+                                            event.occurredAt()))
+                    .toList();
+        }
+        return store.events(parseRunId(runId)).stream()
+                .map(
+                        row ->
+                                new ChatEvent(
+                                        row.eventId(),
+                                        row.sseEventId(),
+                                        runId,
+                                        row.dispatchId(),
+                                        row.attempt(),
+                                        row.seq(),
+                                        row.type(),
+                                        readPayload(row.payload()),
+                                        row.occurredAt()))
+                .toList();
+    }
+
     /** 返回 Run 是否属于 V1 持久化 Runtime，而不是内存测试 Runtime。 */
     @Override
     public synchronized boolean exists(String runId) {

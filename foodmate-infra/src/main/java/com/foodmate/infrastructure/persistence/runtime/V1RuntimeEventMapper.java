@@ -79,7 +79,7 @@ public interface V1RuntimeEventMapper {
     void promoteOutbox(String runId);
 
     @Select(
-            "SELECT event_id AS eventId,dispatch_id AS dispatchId,attempt,event_seq AS seq,event_type AS type,occurred_at AS occurredAt,payload_json::text AS payload,request_hash AS hash FROM runtime_event_inbox_v2 WHERE agent_run_id=#{runId} ORDER BY event_seq")
+            "SELECT e.event_id AS eventId,s.sse_event_id AS sseEventId,e.dispatch_id AS dispatchId,e.attempt,e.event_seq AS seq,e.event_type AS type,e.occurred_at AS occurredAt,e.payload_json::text AS payload,e.request_hash AS hash FROM runtime_event_inbox_v2 e LEFT JOIN agent_run_sse_outbox s ON s.agent_run_id=e.agent_run_id AND s.source_event_key=CONCAT(e.agent_run_id, ':', e.event_id) WHERE e.agent_run_id=#{runId} ORDER BY e.event_seq")
     List<EventRow> events(long runId);
 
     @Select(

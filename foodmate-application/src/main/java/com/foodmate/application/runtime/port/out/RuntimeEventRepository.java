@@ -91,6 +91,7 @@ public interface RuntimeEventRepository {
 
     record EventRow(
             String eventId,
+            String sseEventId,
             String dispatchId,
             int attempt,
             long seq,

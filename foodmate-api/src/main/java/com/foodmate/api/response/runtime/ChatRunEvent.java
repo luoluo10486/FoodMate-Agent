@@ -8,6 +8,7 @@ import java.time.Instant;
 @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
 public record ChatRunEvent(
         String eventId,
+        String sseEventId,
         String runId,
         long eventSeq,
         String state,

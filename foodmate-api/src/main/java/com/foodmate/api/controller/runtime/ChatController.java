@@ -16,7 +16,6 @@ import com.foodmate.shared.conversation.enums.MessageRole;
 import com.foodmate.shared.conversation.enums.SessionMode;
 import com.foodmate.shared.id.IdGenerator;
 import com.foodmate.shared.runtime.RunCommand;
-import com.foodmate.shared.runtime.V1RunEvent;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -59,8 +58,7 @@ public class ChatController {
     @PostMapping("/runs")
     public ApiResponse<ChatRunResponse> createRun(
             HttpServletRequest servletRequest, @Valid @RequestBody ChatRunRequest request) {
-        // The authenticated V1 path persists the run through AgentRunCommandService;
-        // it does not need the fallback-only IdGenerator dependency here.
+        // 已认证的 V1 路径通过 AgentRunCommandService 持久化 Run，不需要仅供回退路径使用的 ID 生成器。
         boolean authenticated = accounts != null;
         if (authenticated && agentRuns != null) {
             var user = new AuthenticatedControllerSupport(accounts) {}.user(servletRequest);
@@ -163,7 +161,7 @@ public class ChatController {
         requireOwner(runId, request);
         if (isV1(runId))
             return ApiResponse.success(
-                    v1Events.events(runId).stream().map(ChatController::toChatEvent).toList(),
+                    v1Events.chatEvents(runId).stream().map(ChatController::toChatEvent).toList(),
                     TraceContextHolder.currentOrNew());
         return ApiResponse.success(service.events(runId), TraceContextHolder.currentOrNew());
     }
@@ -216,9 +214,10 @@ public class ChatController {
         return v1Events != null && runId.matches("\\d+") && v1Events.exists(runId);
     }
 
-    private static ChatRunEvent toChatEvent(V1RunEvent event) {
+    private static ChatRunEvent toChatEvent(V1RuntimeEventService.ChatEvent event) {
         return new ChatRunEvent(
                 event.eventId(),
+                event.sseEventId(),
                 event.runId(),
                 event.eventSeq(),
                 stateFor(event.eventType()),

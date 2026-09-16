@@ -66,6 +66,8 @@ export function getChatRunEvents(runId: string, signal?: AbortSignal): Promise<C
     events.map((event) => ({
       ...event,
       event_id: String(event.event_id ?? ''),
+      sse_event_id:
+        stringValue(event.sse_event_id ?? (event as ChatRunEvent & { sseEventId?: unknown }).sseEventId) || undefined,
       run_id: String(event.run_id ?? runId),
       event_seq: Number(event.event_seq ?? 0),
       state: String(event.state ?? ''),

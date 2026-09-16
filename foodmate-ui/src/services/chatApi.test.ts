@@ -88,6 +88,29 @@ describe('chatApi HTTP contract', () => {
     expect(fetchMock.mock.calls.every(([, init]) => init?.signal === controller.signal)).toBe(true);
   });
 
+  it('保留后端返回的持久化 SSE 游标，供历史 Run 续接使用', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        ok([
+          {
+            event_id: 'runtime-event-7',
+            sse_event_id: 'sse-19',
+            run_id: '42',
+            event_seq: 7,
+            state: 'RUNNING',
+            payload: {},
+            occurred_at: '2026-09-16T00:00:00Z',
+          },
+        ]),
+      ),
+    );
+
+    await expect(getChatRunEvents('42')).resolves.toMatchObject([
+      { event_id: 'runtime-event-7', sse_event_id: 'sse-19' },
+    ]);
+  });
+
   it('reconnects the Chat stream, resumes the cursor, deduplicates events and closes on terminal state', () => {
     vi.useFakeTimers();
     vi.stubGlobal('EventSource', FakeEventSource);
