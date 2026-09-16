@@ -14,6 +14,24 @@
 - [x] 浏览器控制台没有 warning/error；本批次没有新增 PNG、diff JSON 或像素级 `PASS`。
 - [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
 
+## 1.1.51 2026-09-16 页面组代表路由复核（非像素验收）
+
+本节记录 Diet、Knowledge、Profile 和 Admin 页面组的代表路由检查。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节只验证可读性、页面边界和行为，不代表 105 个画板全量验收完成。
+
+| 页面组 | 代表路由 | 页面级宽度证据 | 结果 |
+|---|---|---|---|
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 关键餐次、营养指标、详情和操作入口可见 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 时间范围、餐次筛选、洞察和数据质量说明可见 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 页面级宽度未溢出 | 计划摘要、五日餐表、约束校验和购物清单可见 |
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 搜索、引用详情和主题预览可见 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | 页面级宽度未溢出 | 资料、头像、安全设备和隐私入口可见 |
+| Admin | `/admin*?state=figma-v2&visual-qa=1` | 页面级宽度未溢出；宽表在内部滚动 | 概览、用户、知识库、工具、保留和用量入口可见 |
+
+- [x] 前端定向测试：Diet `100/100`、Knowledge/Profile `82/82`、Admin `127/127`。
+- [x] 后端定向测试：Diet Application/API `39/39` + `21/21`；Knowledge/Profile Application/API `52/52` + `19/19`；Admin Application/API `134/134` + `35/35`。
+- [x] 代表路由字体均完成加载，控制台没有业务 warning/error；本节没有生成 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
 ## 1.1.49 全量接口矩阵与代表页面复核（非像素验收）
 
 本节记录执行计划第一阶段的接口矩阵审计和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
