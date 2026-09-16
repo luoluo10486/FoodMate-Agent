@@ -15,6 +15,7 @@ type SessionAction = 'rename' | 'archive' | 'unarchive' | 'delete';
 type SidebarSessionListProps = {
   sessions: SessionSummary[];
   onAction?: (action: SessionAction, session: SessionSummary) => void;
+  onNavigate?: () => void;
   currentPage?: number;
   sessionCountLabel?: string;
   hidePagination?: boolean;
@@ -28,6 +29,7 @@ type SidebarSessionListProps = {
 export function SidebarSessionList({
   sessions,
   onAction,
+  onNavigate,
   currentPage = 1,
   sessionCountLabel,
   hidePagination = false,
@@ -46,6 +48,7 @@ export function SidebarSessionList({
           `${styles.sectionTitle} sidebar-session-section-title ${isActive ? styles.active : ''}`
         }
         to="/chat"
+        onClick={onNavigate}
       >
         {fixtureVariant ? (
           <FigmaWorkspaceAsset variant={fixtureVariant} name="agentChat" />
@@ -67,7 +70,7 @@ export function SidebarSessionList({
                     className={`${styles.item} sidebar-session-list-item ${session.active ? styles.active : ''}`}
                     key={session.id}
                   >
-                    <NavLink className={styles.itemLink} to={`/chat/${session.id}`}>
+                    <NavLink className={styles.itemLink} to={`/chat/${session.id}`} onClick={onNavigate}>
                       {fixtureVariant ? (
                         <FigmaWorkspaceAsset
                           className={styles.figmaSessionDot}

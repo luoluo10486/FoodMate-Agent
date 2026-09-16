@@ -295,6 +295,30 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('.sidebar-session-section')).toBeInTheDocument();
   });
 
+  it('provides the complete workspace navigation from the mobile sheet', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const mobileTrigger = screen.getByRole('button', { name: '打开工作区导航' });
+    expect(mobileTrigger).toHaveClass('inline-flex');
+    await user.click(mobileTrigger);
+
+    const mobileNavigation = screen.getByRole('dialog', { name: '移动端工作区导航' });
+    expect(within(mobileNavigation).getByRole('button', { name: '新建任务' })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole('link', { name: '饮食记录' })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole('link', { name: '知识库' })).toBeInTheDocument();
+
+    await user.click(within(mobileNavigation).getByRole('link', { name: '知识库' }));
+    await waitFor(() => expect(container.querySelector('[data-state="closed"]')).toBeInTheDocument());
+  });
+
   it('renders the Figma fixture pagination as a compact control', () => {
     const { container } = render(
       <MemoryRouter initialEntries={['/']}>

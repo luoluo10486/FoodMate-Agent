@@ -593,6 +593,42 @@
   border-bottom: 1px solid var(--fm-figma-workspace-border);
 }
 
+.mobileNavTrigger {
+  position: absolute;
+  top: 50%;
+  left: 16px;
+  display: none;
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
+.mobileNavTrigger svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* 移动端导航使用同一份侧栏内容，避免隐藏桌面侧栏后丢失会话和账户入口。 */
+.mobileNavSheet {
+  width: min(320px, 86vw);
+  max-width: 320px;
+  padding: 0;
+  background: var(--fm-figma-workspace-surface);
+  border-right: 1px solid var(--fm-figma-workspace-border);
+}
+
+.mobileNavSheet .mobileSidebar {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-height: 100%;
+  padding: 24px;
+  border: 0;
+}
+
 .planningListTopbar .iconButton {
   box-sizing: border-box;
   border: 1px solid var(--fm-figma-workspace-border);
@@ -635,7 +671,7 @@
 }
 
 @media (min-width: 1400px) {
-  .figmaFixture .topbar > :first-child {
+  .figmaFixture .topbar > :global(.brand) {
     flex: 0 0 136px;
   }
 
@@ -951,6 +987,10 @@
   .topbar > :global(.brand) {
     grid-column: 1;
     grid-row: 1;
+    margin-left: 44px;
+  }
+  .mobileNavTrigger {
+    display: inline-flex;
   }
   .nav {
     grid-column: 1 / -1;
@@ -979,7 +1019,7 @@
     overflow: hidden;
   }
 
-  .designChat.withRail .topbar > :first-child {
+  .designChat.withRail .topbar > :global(.brand) {
     flex: 0 0 136px;
   }
 
@@ -1004,7 +1044,7 @@
     gap: 0;
   }
 
-  .withWideRail .topbar > :first-child {
+  .withWideRail .topbar > :global(.brand) {
     flex: 0 0 136px;
   }
 
