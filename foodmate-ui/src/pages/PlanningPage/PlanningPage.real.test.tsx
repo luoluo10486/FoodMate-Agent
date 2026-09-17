@@ -209,6 +209,28 @@ describe('PlanningPage real mode', () => {
     expect(screen.queryByText('燕麦莓果碗')).not.toBeInTheDocument();
   });
 
+  it('opens the real plan editor when a server meal slot is empty', async () => {
+    const user = userEvent.setup();
+    const sparsePlan = {
+      ...plan,
+      days_plan: [
+        {
+          ...plan.days_plan[0],
+          lunch: undefined,
+        },
+      ],
+    };
+    vi.mocked(loadMealPlans).mockResolvedValue([sparsePlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(sparsePlan);
+    renderPage('/planning?planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '+ 计划' }));
+
+    expect(await screen.findByRole('heading', { name: '步骤 1: 设置基本目标' })).toBeInTheDocument();
+    expect(updateMealPlan).not.toHaveBeenCalled();
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
   it('submits planning constraints to an Agent session instead of directly saving a plan', async () => {
     const user = userEvent.setup();
     vi.mocked(createSession).mockResolvedValue({

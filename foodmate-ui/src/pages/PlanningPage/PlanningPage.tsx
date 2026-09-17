@@ -568,7 +568,13 @@ function DefaultPlanningView({
                     variant="ghost"
                     key={`${row.label}-${index}`}
                     type="button"
-                    onClick={() => announce(`已打开${row.label}的计划入口。`)}
+                    onClick={() => {
+                      if (plan && onEditPlan) {
+                        onEditPlan();
+                        return;
+                      }
+                      announce(`已打开${row.label}的计划入口。`);
+                    }}
                   >
                     + 计划
                   </Button>
