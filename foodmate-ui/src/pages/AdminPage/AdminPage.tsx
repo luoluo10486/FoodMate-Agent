@@ -1197,7 +1197,9 @@ export function AdminPage() {
                       : isRetentionRoute
                         ? handleRefresh
                         : isUsageRoute
-                          ? () => setNotice('模型用量 CSV 已生成。')
+                          ? isMockMode
+                            ? () => setNotice('模型用量 CSV 已生成。')
+                            : handleRefresh
                           : isAuditFigmaRoute
                             ? () => setNotice('审计导出已准备。')
                             : handleRefresh
@@ -1212,7 +1214,9 @@ export function AdminPage() {
                         : isRetentionRoute
                           ? '刷新状态'
                           : isUsageRoute
-                            ? '导出 CSV'
+                            ? isMockMode
+                              ? '导出 CSV'
+                              : '刷新'
                             : isAuditFigmaRoute
                               ? '导出审计'
                               : sectionKey === 'users'

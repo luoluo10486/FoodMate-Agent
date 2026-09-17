@@ -1,12 +1,19 @@
-import { AlertCircle, Copy, LoaderCircle, RefreshCw } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { AlertCircle, Copy, Download, LoaderCircle, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import styles from '../AdminPage.module.css';
-import { loadAdminUsagePage, type AdminUsageRow } from '../../../services/adminService';
+import {
+  downloadAdminExport,
+  loadAdminExportStatus,
+  loadAdminUsagePage,
+  requestAdminExport,
+  type AdminExportStatus,
+  type AdminUsageRow,
+} from '../../../services/adminService';
 import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 
@@ -444,6 +451,31 @@ function formatCostTotal(rows: AdminUsageRow[]) {
   return values.reduce((sum, value) => sum + value, 0).toFixed(2);
 }
 
+type ExportDisplayState = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'consumed' | 'unknown';
+
+function exportDisplayState(job: AdminExportStatus): ExportDisplayState {
+  if (job.download_consumed_at) return 'consumed';
+  const normalizedStatus = job.status.toLowerCase();
+  if (normalizedStatus === 'completed' && job.expires_at) {
+    const expiresAt = Date.parse(job.expires_at);
+    if (!Number.isNaN(expiresAt) && expiresAt <= Date.now()) return 'expired';
+  }
+  if (normalizedStatus === 'queued' || normalizedStatus === 'running' || normalizedStatus === 'completed') {
+    return normalizedStatus;
+  }
+  if (normalizedStatus === 'failed' || normalizedStatus === 'expired') return normalizedStatus;
+  return 'unknown';
+}
+
+function exportStatusMessage(job: AdminExportStatus) {
+  const state = exportDisplayState(job);
+  return job.failure_code
+    ? `导出任务 #${job.export_job_id} 当前状态：${state} · 错误码：${job.failure_code}`
+    : `导出任务 #${job.export_job_id} 当前状态：${state}`;
+}
+
+const usageExportFields = ['provider', 'model', 'scene', 'tokens', 'cost', 'latency_ms', 'status'];
+
 function pageNumbers(totalPages: number, currentPage: number) {
   const start = Math.min(Math.max(1, currentPage - 2), Math.max(1, totalPages - 4));
   const end = Math.min(totalPages, start + 4);
@@ -460,6 +492,12 @@ function RealUsageSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
+  const [exportJob, setExportJob] = useState<AdminExportStatus>();
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+  const exportController = useRef<AbortController>();
+  const exportTimer = useRef<number>();
+  const exportRequestVersion = useRef(0);
 
   useEffect(() => {
     let active = true;
@@ -497,6 +535,106 @@ function RealUsageSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       controller.abort();
     };
   }, [page, refreshNonce, result, retryNonce, search]);
+
+  const beginExportRequest = useCallback(() => {
+    exportController.current?.abort();
+    if (exportTimer.current !== undefined) {
+      window.clearTimeout(exportTimer.current);
+      exportTimer.current = undefined;
+    }
+    const controller = new AbortController();
+    exportController.current = controller;
+    const version = ++exportRequestVersion.current;
+    return { controller, version };
+  }, []);
+
+  const trackExport = useCallback(
+    (jobId: number) => {
+      const { controller, version } = beginExportRequest();
+      setExportBusy(true);
+
+      const poll = async (): Promise<void> => {
+        try {
+          const status = await loadAdminExportStatus(jobId, controller.signal);
+          if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+          setExportJob(status);
+          setExportMessage(exportStatusMessage(status));
+          const state = exportDisplayState(status);
+          if (state === 'queued' || state === 'running') {
+            exportTimer.current = window.setTimeout(() => void poll(), 1000);
+            return;
+          }
+          setExportBusy(false);
+        } catch (error) {
+          if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+          setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
+          setExportBusy(false);
+        }
+      };
+
+      void poll();
+    },
+    [beginExportRequest],
+  );
+
+  const createUsageExport = async () => {
+    const { controller, version } = beginExportRequest();
+    setExportBusy(true);
+    setExportJob(undefined);
+    setExportMessage('正在创建模型用量导出任务...');
+    try {
+      const created = await requestAdminExport(
+        'usage',
+        { query: search.trim() || undefined, status: result === 'all' ? undefined : result },
+        usageExportFields,
+        controller.signal,
+      );
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportMessage(`导出任务 #${created.export_job_id} 已创建，正在读取服务端状态...`);
+      trackExport(created.export_job_id);
+    } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+      setExportMessage(error instanceof Error ? error.message : '导出任务创建失败');
+      setExportBusy(false);
+    }
+  };
+
+  const refreshExport = () => {
+    if (!exportJob) return;
+    trackExport(exportJob.export_job_id);
+  };
+
+  const consumeExport = async () => {
+    if (!exportJob || exportDisplayState(exportJob) !== 'completed') return;
+    const { controller, version } = beginExportRequest();
+    setExportBusy(true);
+    try {
+      const result = await downloadAdminExport(exportJob.export_job_id, controller.signal);
+      window.open(result.download_url, '_blank', 'noopener,noreferrer');
+      const status = await loadAdminExportStatus(exportJob.export_job_id, controller.signal);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportJob(status);
+      setExportMessage(
+        exportDisplayState(status) === 'consumed'
+          ? '下载链接已生成，下载资格已消费一次。'
+          : '下载链接已生成，服务端状态仍在确认。',
+      );
+    } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+      setExportMessage(error instanceof Error ? error.message : '导出下载失败');
+    } finally {
+      if (!controller.signal.aborted && version === exportRequestVersion.current) setExportBusy(false);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      exportRequestVersion.current += 1;
+      exportController.current?.abort();
+      if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current);
+    },
+    [],
+  );
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
   const currentPage = Math.min(page, totalPages);
@@ -540,17 +678,47 @@ function RealUsageSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             ]}
           />
         </div>
-        <div className={styles.usageSearch}>
-          <span className={styles.usageSearchIcon} data-figma-asset="admin-overview-search" aria-hidden="true" />
-          <Input
-            aria-label="供应商 / 模型 / 场景"
-            className={styles.usageSearchInput}
-            placeholder="供应商 / 模型 / 场景..."
-            value={search}
-            onChange={(event) => updateSearch(event.target.value)}
-          />
+        <div className={styles.usageFilterActions}>
+          <div className={styles.usageSearch}>
+            <span className={styles.usageSearchIcon} data-figma-asset="admin-overview-search" aria-hidden="true" />
+            <Input
+              aria-label="供应商 / 模型 / 场景"
+              className={styles.usageSearchInput}
+              placeholder="供应商 / 模型 / 场景..."
+              value={search}
+              onChange={(event) => updateSearch(event.target.value)}
+            />
+          </div>
+          <Button type="button" variant="outline" disabled={exportBusy} onClick={() => void createUsageExport()}>
+            <Download aria-hidden="true" />
+            {exportBusy ? '导出处理中...' : '导出当前结果'}
+          </Button>
         </div>
       </section>
+
+      {exportMessage ? (
+        <div className={styles.usageExportStatus} role="status" aria-live="polite">
+          <span>{exportMessage}</span>
+          {exportJob && ['queued', 'running'].includes(exportDisplayState(exportJob)) ? (
+            <Button type="button" variant="outline" size="sm" disabled={exportBusy} onClick={refreshExport}>
+              <RefreshCw aria-hidden="true" />
+              检查状态
+            </Button>
+          ) : null}
+          {exportJob && exportDisplayState(exportJob) === 'completed' ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={exportBusy}
+              onClick={() => void consumeExport()}
+            >
+              <Download aria-hidden="true" />
+              下载 JSON
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
 
       <section className={styles.usageStats} aria-label="模型用量统计">
         <Card className={styles.usageStatCard}>
