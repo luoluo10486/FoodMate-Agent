@@ -138,6 +138,13 @@ function displayRunStatus(status: string): AgentDisplayStatus {
   return 'routing';
 }
 
+const TERMINAL_RUN_STATUSES = ['completed', 'failed', 'cancelled', 'superseded'] as const;
+type TerminalRunStatus = (typeof TERMINAL_RUN_STATUSES)[number];
+
+function isTerminalRunStatus(status: AgentDisplayStatus): status is TerminalRunStatus {
+  return TERMINAL_RUN_STATUSES.includes(status as TerminalRunStatus);
+}
+
 function runtimeErrorMessage(payload: { code?: string; error_message?: string; message?: string }) {
   if (payload.code === 'RUNTIME_COORDINATION_UNAVAILABLE') return '系统暂时异常，运行协调服务不可用，请稍后重试。';
   if (payload.code === 'RUNTIME_CAPACITY_EXCEEDED') return '当前运行队列已满，请稍后重试。';
@@ -3025,6 +3032,7 @@ function RealChatPage() {
   const messageLoadControllerRef = useRef<AbortController>();
   const streamRef = useRef<AgentStreamHandle>();
   const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
+  const runReconciliationControllerRef = useRef<AbortController>();
   const mountedRef = useRef(true);
   const sendControllerRef = useRef<AbortController>();
   const runActionControllerRef = useRef<AbortController>();
@@ -3036,11 +3044,16 @@ function RealChatPage() {
   }, [messages]);
 
   useEffect(() => {
+    // React StrictMode 会在开发环境重新执行 effect；重新挂载时必须恢复存活标记，
+    // 否则真实请求完成后的响应会被误判为来自已卸载页面。
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
       messageLoadControllerRef.current?.abort();
       messageLoadControllerRef.current = undefined;
       messageLoadGenerationRef.current += 1;
+      runReconciliationControllerRef.current?.abort();
+      runReconciliationControllerRef.current = undefined;
       sendControllerRef.current?.abort();
       sendControllerRef.current = undefined;
       runActionControllerRef.current?.abort();
@@ -3061,6 +3074,8 @@ function RealChatPage() {
     messageLoadControllerRef.current?.abort();
     messageLoadControllerRef.current = undefined;
     messageLoadGenerationRef.current += 1;
+    runReconciliationControllerRef.current?.abort();
+    runReconciliationControllerRef.current = undefined;
     // 路由切换先关闭旧 Run，避免旧会话的事件继续写入新会话状态。
     streamRef.current?.close();
     streamRef.current = undefined;
@@ -3150,16 +3165,131 @@ function RealChatPage() {
   useEffect(() => {
     if (!activeRunId) return undefined;
     let streamActive = true;
+    let terminalStatus: TerminalRunStatus | undefined;
+    let reconciliationInFlight: Promise<void> | undefined;
     const streamResume = streamResumeRef.current;
     const hasPersistedAnswer = messagesStateRef.current.some(
       (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
     );
+    let receivedAssistantText = hasPersistedAnswer;
+    const isStreamLive = () => streamActive && mountedRef.current;
+
+    const updateRunStatus = (nextStatus: AgentDisplayStatus) => {
+      if (terminalStatus) return;
+      if (isTerminalRunStatus(nextStatus)) terminalStatus = nextStatus;
+      setRunStatus(nextStatus);
+    };
+
+    const loadTerminalMessages = async () => {
+      if (!sessionId) return undefined;
+      messageLoadControllerRef.current?.abort();
+      const controller = new AbortController();
+      messageLoadControllerRef.current = controller;
+      const loadGeneration = ++messageLoadGenerationRef.current;
+      try {
+        const rows = await loadSessionMessages(sessionId, {}, controller.signal);
+        if (!isStreamLive() || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current)
+          return undefined;
+        const ordered = [...rows].sort((left, right) => left.sequence_no - right.sequence_no);
+        const assistant = [...ordered]
+          .reverse()
+          .find((message) => message.agent_run_id === activeRunId && message.role === 'assistant');
+        setMessages(ordered);
+        setAssistantMessageId(assistant?.message_id);
+        if (assistant) {
+          receivedAssistantText = true;
+          setAssistantText('');
+          setAssistantTime(assistant.created_at);
+        }
+        return assistant;
+      } finally {
+        if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+      }
+    };
+
+    const settleTerminal = async (nextStatus: TerminalRunStatus, terminalError?: string, retryable = false) => {
+      if (!isStreamLive()) return;
+      if (terminalStatus) return;
+      terminalStatus = nextStatus;
+      setRunStatus(nextStatus);
+
+      // 服务端终态已经确定后关闭当前连接，避免继续接收迟到的中间事件。
+      streamRef.current?.close();
+      streamRef.current = undefined;
+      setConnection((current) => ({ ...current, state: 'closed' }));
+      setLoading(false);
+      setSending(false);
+      setCancelling(false);
+      setCancelAcknowledged(false);
+      setRetrying(false);
+      setRetryAvailable(nextStatus === 'failed' && retryable);
+      setBudgetSubmitting(false);
+      setCheckpointAvailable(false);
+      setCheckpointRecovery(undefined);
+      setApproval(undefined);
+      setApprovalSubmitting(false);
+
+      let persistedAssistant: RealMessage | undefined;
+      try {
+        persistedAssistant = await loadTerminalMessages();
+      } catch (reason) {
+        if (!isStreamLive() || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '回答完成后刷新消息失败，请刷新会话。');
+        return;
+      }
+      if (!isStreamLive()) return;
+      setLoading(false);
+      if (nextStatus === 'failed') {
+        setError(terminalError ?? 'Agent 运行失败，页面未收到完整的失败事件，请刷新会话查看详情。');
+      } else if (nextStatus === 'completed') {
+        if (persistedAssistant || receivedAssistantText) setError(undefined);
+        else setError('运行已完成，但最终消息尚未回读，请刷新会话。');
+      } else {
+        setError(undefined);
+      }
+    };
+
+    const reconcileFromServer = (showExhaustedError: boolean) => {
+      if (!isStreamLive() || terminalStatus || reconciliationInFlight) return;
+      const controller = new AbortController();
+      runReconciliationControllerRef.current?.abort();
+      runReconciliationControllerRef.current = controller;
+      const reconciliation = (async () => {
+        try {
+          const serverRun = await loadAgentRun(activeRunId, controller.signal);
+          if (!isStreamLive() || controller.signal.aborted) return;
+          const serverStatus = displayRunStatus(serverRun.status);
+          if (isTerminalRunStatus(serverStatus)) {
+            await settleTerminal(serverStatus);
+            return;
+          }
+          // 非终态只用于确认连接仍应继续，不能覆盖当前 SSE 已展示的阶段。
+          if (showExhaustedError) {
+            setLoading(false);
+            setError('SSE 连接重试已耗尽，服务端运行尚未结束，请刷新页面。');
+          }
+        } catch (reason) {
+          if (!isStreamLive() || controller.signal.aborted || isAbortError(reason)) return;
+          if (showExhaustedError) {
+            setLoading(false);
+            setError(reason instanceof Error ? reason.message : '无法确认 Agent 运行状态，请刷新会话。');
+          }
+        } finally {
+          if (runReconciliationControllerRef.current === controller) {
+            runReconciliationControllerRef.current = undefined;
+            reconciliationInFlight = undefined;
+          }
+        }
+      })();
+      reconciliationInFlight = reconciliation;
+    };
+
     // SSE 订阅建立后先进入排队状态，再接收运行事件。
     if (!streamResume.preserveContent) {
       setRunStatus('queued');
       setAssistantText('');
     }
-    const stream = openAgentRunStream(
+    const activeStream = openAgentRunStream(
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
@@ -3169,16 +3299,16 @@ function RealChatPage() {
         setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(normalizedPayload)));
         if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
         if (normalizedEventType === 'run.created' || normalizedEventType === 'run.accepted') {
-          setRunStatus('queued');
+          updateRunStatus('routing');
           return;
         }
         if (normalizedEventType === 'run.routed') {
           setRunIntent(normalizeRunIntent(normalizedPayload.intent));
-          setRunStatus('routed');
+          updateRunStatus('routing');
           return;
         }
         if (normalizedEventType === 'run.planned') {
-          setRunStatus('planning');
+          updateRunStatus('planning');
           return;
         }
         if (
@@ -3186,11 +3316,11 @@ function RealChatPage() {
           normalizedEventType === 'run.retrieval_started' ||
           normalizedEventType === 'run.retrieval_finished'
         ) {
-          setRunStatus('retrieving');
+          updateRunStatus('retrieving');
           return;
         }
         if (normalizedEventType === 'run.tool_started') {
-          setRunStatus('executing');
+          updateRunStatus('executing_tools');
           setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'started'));
           return;
         }
@@ -3199,72 +3329,40 @@ function RealChatPage() {
           return;
         }
         if (normalizedEventType === 'run.eval_decided') {
-          setRunStatus('validating');
+          updateRunStatus('validating');
           return;
         }
         if (normalizedEventType === 'run.model_usage') {
-          setRunStatus('composing');
+          updateRunStatus('composing');
           return;
         }
         if (normalizedEventType === 'run.answer_stream') {
-          setRunStatus('composing');
+          updateRunStatus('composing');
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => current + (normalizedPayload.text ?? ''));
+          if (!hasPersistedAnswer && normalizedPayload.text) {
+            receivedAssistantText = true;
+            setAssistantText((current) => current + normalizedPayload.text!);
+          }
           return;
         }
         if (normalizedEventType === 'run.completed') {
+          if (terminalStatus) return;
           setCancelling(false);
           setCancelAcknowledged(false);
           setRetryAvailable(false);
           setRetrying(false);
-          setRunStatus('completed');
           // 终态可能在首次消息请求完成前回放；完成事件接管刷新时必须结束页面加载态。
           setLoading(false);
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
           setApproval(undefined);
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => normalizedPayload.answer ?? current);
+          if (!hasPersistedAnswer && normalizedPayload.answer) {
+            receivedAssistantText = true;
+            setAssistantText((current) => normalizedPayload.answer ?? current);
+          }
           const degraded = normalizedPayload.result_type === 'safety_degraded';
           setSafetyDegraded(degraded);
-          if (sessionId) {
-            messageLoadControllerRef.current?.abort();
-            const controller = new AbortController();
-            messageLoadControllerRef.current = controller;
-            const loadGeneration = ++messageLoadGenerationRef.current;
-            void loadSessionMessages(sessionId, {}, controller.signal)
-              .then((rows) => {
-                if (
-                  !streamActive ||
-                  !mountedRef.current ||
-                  controller.signal.aborted ||
-                  loadGeneration !== messageLoadGenerationRef.current
-                )
-                  return;
-                const ordered = [...rows].sort((left, right) => left.sequence_no - right.sequence_no);
-                const assistant = ordered.find(
-                  (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
-                );
-                // 终态后以服务端消息替换临时流式气泡，避免页面继续展示未经持久化确认的本地文本。
-                setMessages(ordered);
-                setAssistantMessageId(assistant?.message_id);
-                if (assistant) setAssistantText('');
-              })
-              .catch((reason) => {
-                if (
-                  !streamActive ||
-                  !mountedRef.current ||
-                  controller.signal.aborted ||
-                  isAbortError(reason) ||
-                  loadGeneration !== messageLoadGenerationRef.current
-                )
-                  return;
-                setError(reason instanceof Error ? reason.message : '回答完成后刷新消息失败，请刷新会话。');
-              })
-              .finally(() => {
-                if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
-              });
-          }
           setCitations(
             degraded
               ? []
@@ -3276,11 +3374,12 @@ function RealChatPage() {
                 })),
           );
           setBudgetConfirmation((current) => current || budgetConfirmationRequested(normalizedPayload));
+          void settleTerminal('completed');
           return;
         }
         if (normalizedEventType === 'run.checkpoint_saved') {
           if (normalizedPayload.approval_request_id) {
-            setRunStatus('waiting_user');
+            updateRunStatus('waiting_user');
             setCheckpointAvailable(false);
             setCheckpointRecovery(undefined);
             setApproval({
@@ -3291,16 +3390,16 @@ function RealChatPage() {
               details: normalizedPayload.details ?? {},
             });
           } else {
-            setRunStatus('waiting_user');
+            updateRunStatus('waiting_user');
             setCheckpointRecovery(recoveryRequestFromEvent(normalizedPayload));
             setCheckpointAvailable(true);
           }
           return;
         }
         if (normalizedEventType === 'run.failed') {
+          if (terminalStatus) return;
           setCancelling(false);
           setCancelAcknowledged(false);
-          setRunStatus('failed');
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
           setSafetyDegraded(false);
@@ -3308,11 +3407,13 @@ function RealChatPage() {
           setBudgetSubmitting(false);
           setRetryAvailable(normalizedPayload.retryable === true);
           if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
-          setError(runtimeErrorMessage(normalizedPayload));
+          const failureMessage = runtimeErrorMessage(normalizedPayload);
+          setError(failureMessage);
+          void settleTerminal('failed', failureMessage, normalizedPayload.retryable === true);
           return;
         }
         if (normalizedEventType === 'run.cancelled') {
-          setRunStatus('cancelled');
+          if (terminalStatus) return;
           setCancelling(false);
           setCancelAcknowledged(false);
           setCheckpointAvailable(false);
@@ -3321,20 +3422,22 @@ function RealChatPage() {
           setRetrying(false);
           setBudgetConfirmation(false);
           setBudgetSubmitting(false);
+          void settleTerminal('cancelled');
           return;
         }
         if (normalizedEventType === 'run.superseded') {
+          if (terminalStatus) return;
           setCancelling(false);
           setCancelAcknowledged(false);
-          setRunStatus('superseded');
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
           setBudgetConfirmation(false);
           setBudgetSubmitting(false);
+          void settleTerminal('superseded');
           return;
         }
         if (normalizedEventType === 'run.clarification_requested') {
-          setRunStatus('waiting_user');
+          updateRunStatus('waiting_user');
           if (normalizedPayload.approval_request_id) {
             setCheckpointAvailable(false);
             setApproval({
@@ -3351,13 +3454,17 @@ function RealChatPage() {
           setCancelAcknowledged(true);
           return;
         }
-        setRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType.replace('run.', ''));
+        if (!terminalStatus)
+          setRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType.replace('run.', ''));
       },
       {
         maxAttempts: 5,
         lastEventId: streamResume.lastEventId,
         onStateChange: (nextConnection) => {
-          if (streamActive && mountedRef.current) setConnection(nextConnection);
+          if (!streamActive || !mountedRef.current) return;
+          setConnection(nextConnection);
+          if (['reconnecting', 'exhausted', 'closed'].includes(nextConnection.state))
+            reconcileFromServer(nextConnection.state === 'exhausted');
         },
         onError: () => {
           if (!streamActive || !mountedRef.current) return;
@@ -3366,11 +3473,21 @@ function RealChatPage() {
         },
       },
     );
-    streamRef.current = stream;
+    streamRef.current = activeStream;
+    if (terminalStatus) {
+      activeStream.close();
+      if (streamRef.current === activeStream) streamRef.current = undefined;
+    }
+    // 页面进入已有 Run 时先校准一次服务端状态；非终态不会覆盖当前 SSE 阶段。
+    reconcileFromServer(false);
     return () => {
       streamActive = false;
-      stream.close();
-      if (streamRef.current === stream) streamRef.current = undefined;
+      activeStream.close();
+      if (runReconciliationControllerRef.current) {
+        runReconciliationControllerRef.current.abort();
+        runReconciliationControllerRef.current = undefined;
+      }
+      if (streamRef.current === activeStream) streamRef.current = undefined;
     };
   }, [activeRunId, sessionId, streamGeneration]);
 

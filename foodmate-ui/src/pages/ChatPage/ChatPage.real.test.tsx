@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -10,6 +11,7 @@ const {
   createSession,
   deleteMessage,
   extendAgentRunBudget,
+  loadAgentRun,
   loadSessionMessages,
   loadSessionSummariesPage,
   openAgentRunStream,
@@ -21,6 +23,7 @@ const {
   createSession: vi.fn(),
   deleteMessage: vi.fn(),
   extendAgentRunBudget: vi.fn(),
+  loadAgentRun: vi.fn(),
   loadSessionMessages: vi.fn(),
   loadSessionSummariesPage: vi.fn(),
   loadSessionsPage: vi.fn(),
@@ -47,7 +50,7 @@ vi.mock('../../services/agentRunService', async () => {
   const actual = await vi.importActual<typeof import('../../services/agentRunService')>(
     '../../services/agentRunService',
   );
-  return { ...actual, cancelAgentRun, extendAgentRunBudget, openAgentRunStream, retryAgentRun };
+  return { ...actual, cancelAgentRun, extendAgentRunBudget, loadAgentRun, openAgentRunStream, retryAgentRun };
 });
 
 vi.mock('../../services/authService', async () => {
@@ -80,6 +83,7 @@ describe('ChatPage 真实历史会话回放', () => {
     cancelAgentRun.mockReset();
     deleteMessage.mockReset();
     extendAgentRunBudget.mockReset();
+    loadAgentRun.mockReset();
     loadSessionMessages.mockReset();
     loadSessionSummariesPage.mockReset();
     openAgentRunStream.mockReset();
@@ -87,6 +91,7 @@ describe('ChatPage 真实历史会话回放', () => {
     sendUserMessage.mockReset();
     updateMessage.mockReset();
     loadSessionSummariesPage.mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+    loadAgentRun.mockResolvedValue({ run_id: 'run-1', status: 'RUNNING', accepted_event_count: 0 });
     openAgentRunStream.mockImplementation(
       (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
         onEvent('run.completed', {
@@ -133,11 +138,13 @@ describe('ChatPage 真实历史会话回放', () => {
     loadSessionMessages.mockResolvedValue([saved]);
 
     render(
-      <MemoryRouter initialEntries={['/chat']}>
-        <Routes>
-          <Route path="/chat/:session_id?" element={<ChatPage />} />
-        </Routes>
-      </MemoryRouter>,
+      <StrictMode>
+        <MemoryRouter initialEntries={['/chat']}>
+          <Routes>
+            <Route path="/chat/:session_id?" element={<ChatPage />} />
+          </Routes>
+        </MemoryRouter>
+      </StrictMode>,
     );
 
     const composer = await screen.findByPlaceholderText('追问或添加自定义指令...');
@@ -931,6 +938,98 @@ describe('ChatPage 真实历史会话回放', () => {
     expect(exhaustedNotice).not.toBeNull();
     expect(exhaustedNotice as HTMLElement).toHaveTextContent('连接重试已耗尽');
     expect(screen.getByRole('button', { name: '发送消息' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '停止生成' })).not.toBeInTheDocument();
+  });
+
+  it('SSE 未收到终态时以服务端 Run 状态和消息回读收口', async () => {
+    const userMessage = {
+      message_id: 'message-1',
+      session_id: 'session-1',
+      agent_run_id: 'run-1',
+      role: 'user' as const,
+      content: '请给出一条饮食建议。',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    const assistantMessage = {
+      message_id: 'message-2',
+      session_id: 'session-1',
+      agent_run_id: 'run-1',
+      role: 'assistant' as const,
+      content: '服务端已经保存的最终回答',
+      sequence_no: 2,
+      created_at: '2026-09-06T10:00:01Z',
+    };
+    loadSessionMessages.mockResolvedValueOnce([userMessage]).mockResolvedValueOnce([userMessage, assistantMessage]);
+    loadAgentRun.mockResolvedValue({ run_id: 'run-1', status: 'completed', accepted_event_count: 8 });
+    openAgentRunStream.mockImplementation(
+      (
+        _runId: string,
+        _onEvent: (type: string, payload: unknown, eventId?: string) => void,
+        options: {
+          onStateChange?: (connection: {
+            state: 'exhausted';
+            attempt: number;
+            maxAttempts: number;
+            lastEventId: string;
+          }) => void;
+        },
+      ) => {
+        options.onStateChange?.({ state: 'exhausted', attempt: 5, maxAttempts: 5, lastEventId: 'event-7' });
+        return {
+          close: vi.fn(),
+          getConnection: () => ({ state: 'exhausted', attempt: 5, maxAttempts: 5, lastEventId: 'event-7' }),
+        };
+      },
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(loadAgentRun).toHaveBeenCalledWith('run-1', expect.any(AbortSignal)));
+    await waitFor(() => expect(loadSessionMessages).toHaveBeenCalledTimes(2));
+    expect(await screen.findByText('服务端已经保存的最终回答')).toBeInTheDocument();
+    expect(screen.getByLabelText('Agent 运行状态')).toHaveTextContent('Composing✓');
+    expect(screen.queryByText('连接重试已耗尽')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '停止生成' })).not.toBeInTheDocument();
+  });
+
+  it('进入已有 Run 时服务端已失败会立即结束连接并展示失败状态', async () => {
+    const userMessage = {
+      message_id: 'message-failed',
+      session_id: 'session-failed',
+      agent_run_id: 'run-failed',
+      role: 'user' as const,
+      content: '请分析早餐。',
+      sequence_no: 1,
+      created_at: '2026-09-06T10:00:00Z',
+    };
+    const close = vi.fn();
+    loadSessionMessages.mockResolvedValue([userMessage]);
+    loadAgentRun.mockResolvedValue({ run_id: 'run-failed', status: 'failed', accepted_event_count: 5 });
+    openAgentRunStream.mockImplementation(() => ({
+      close,
+      getConnection: () => ({ state: 'connected', attempt: 1, maxAttempts: 5 }),
+    }));
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-failed']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByText('Agent 运行失败，页面未收到完整的失败事件，请刷新会话查看详情。'),
+    ).toBeInTheDocument();
+    await waitFor(() => expect(loadAgentRun).toHaveBeenCalledWith('run-failed', expect.any(AbortSignal)));
+    expect(close).toHaveBeenCalled();
     expect(screen.queryByRole('button', { name: '停止生成' })).not.toBeInTheDocument();
   });
 
