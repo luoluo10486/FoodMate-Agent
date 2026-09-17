@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AnalysisPage } from './AnalysisPage';
 import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
@@ -9,12 +9,22 @@ vi.mock('../../services/analysisService', () => ({
   loadNutritionAnalysis: vi.fn(),
 }));
 
-function renderPage(initialEntry = '/analysis') {
+function LocationProbe() {
+  const location = useLocation();
+  return (
+    <output data-testid="location" role="presentation">
+      {location.pathname + location.search}
+    </output>
+  );
+}
+
+function renderPage(initialEntry = '/analysis', withNavigationProbe = false) {
   return render(
     <MemoryRouter initialEntries={[initialEntry]}>
       <Routes>
         <Route path="/analysis" element={<AnalysisPage />} />
       </Routes>
+      {withNavigationProbe ? <LocationProbe /> : null}
     </MemoryRouter>,
   );
 }
@@ -99,6 +109,26 @@ describe('AnalysisPage real mode', () => {
     expect(screen.getByRole('tab', { name: '30 天' })).toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: '90 天' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '导出 CSV' })).toBeDisabled();
+  });
+
+  it('exposes real Agent interpretation and planning routes from a completed analysis', async () => {
+    vi.mocked(loadNutritionAnalysis).mockResolvedValue(response);
+    const user = userEvent.setup();
+    const interpretationView = renderPage('/analysis', true);
+
+    await screen.findByText('4,200 kcal');
+    await user.click(screen.getByRole('button', { name: '让 Agent 解读' }));
+    const interpretationLocation = decodeURIComponent(screen.getByTestId('location').textContent ?? '');
+    expect(interpretationLocation).toContain('/chat?prompt=请解读我最近 7 天的饮食摄入分析。');
+    expect(interpretationLocation).toContain('未匹配项：自制酱料');
+
+    interpretationView.unmount();
+    vi.mocked(loadNutritionAnalysis).mockResolvedValue(response);
+    renderPage('/analysis', true);
+
+    await screen.findByText('4,200 kcal');
+    await user.click(screen.getByRole('button', { name: '基于分析制定计划' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/planning');
   });
 
   it('requests today and 30d independently in real mode', async () => {

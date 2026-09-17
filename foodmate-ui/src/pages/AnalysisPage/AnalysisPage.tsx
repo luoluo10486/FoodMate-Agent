@@ -88,6 +88,23 @@ function getAnalysisState(value: string | null): AnalysisState {
   return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
 }
 
+function buildAnalysisInterpretPrompt(analysis: NutritionAnalysis) {
+  const rangeLabel = analysis.range === 'today' ? '今天' : analysis.range === '30d' ? '最近 30 天' : '最近 7 天';
+  const unmatchedItems = analysis.unmatched_names.length ? analysis.unmatched_names.join('、') : '无';
+  const calorieTarget =
+    analysis.calorie_target == null ? '未配置能量目标' : `能量目标为 ${analysis.calorie_target} kcal/天`;
+  const proteinTarget =
+    analysis.protein_target == null ? '未配置蛋白质目标' : `蛋白质目标为 ${analysis.protein_target} g/天`;
+
+  return [
+    `请解读我${rangeLabel}的饮食摄入分析。`,
+    `总能量 ${analysis.calories_kcal} kcal，蛋白质 ${analysis.protein_g} g，脂肪 ${analysis.fat_g} g，碳水 ${analysis.carbs_g} g。`,
+    `已匹配 ${analysis.matched_items}/${analysis.total_items} 条饮食记录，未匹配项：${unmatchedItems}。`,
+    `${calorieTarget}，${proteinTarget}。`,
+    `请区分已记录事实、估算值和建议，并说明数据限制：${analysis.disclaimer}`,
+  ].join(' ');
+}
+
 function LoadingMetrics() {
   const skeletons = [
     { label: '日均能量', value: 'metricSkeletonWide', detail: 'metricDetailWide' },
@@ -485,6 +502,16 @@ export function AnalysisPage() {
                     ? `有 ${realData.unmatched_names.length} 项记录未匹配营养目录。`
                     : '所有记录均已匹配营养目录。'}
                 </p>
+              </div>
+              <div className={styles.insightActions}>
+                <Button
+                  onClick={() => navigate(`/chat?prompt=${encodeURIComponent(buildAnalysisInterpretPrompt(realData))}`)}
+                >
+                  让 Agent 解读
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/planning')}>
+                  基于分析制定计划
+                </Button>
               </div>
             </section>
           ) : null}
