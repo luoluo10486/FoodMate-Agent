@@ -28,6 +28,7 @@ import {
   type MealPlanDraft,
   type MealPlanProgress,
   type ShoppingList,
+  type ShoppingListItem,
 } from '../../services/planningService';
 import { createSession, sendUserMessage } from '../../services/sessionService';
 import { MealPlanningFlow, type MealPlanningFlowView } from './MealPlanningFlow';
@@ -599,67 +600,24 @@ function PlanSidebar({
   plan,
   shoppingList,
   shoppingLoading,
-  onShoppingListChange,
   onCreateShoppingList,
   creatingShoppingList,
   shoppingError,
+  shoppingMutationError,
+  updatingShoppingItemId,
+  onToggleShoppingItem,
 }: {
   plan?: MealPlan;
   shoppingList?: ShoppingList;
   shoppingLoading?: boolean;
-  onShoppingListChange?: (value: ShoppingList) => void;
   onCreateShoppingList?: () => void;
   creatingShoppingList?: boolean;
   shoppingError?: string;
+  shoppingMutationError?: string;
+  updatingShoppingItemId?: string;
+  onToggleShoppingItem?: (item: ShoppingListItem) => void;
 }) {
-  const [updatingItemId, setUpdatingItemId] = useState<string>();
   const [fixturePurchasedItems, setFixturePurchasedItems] = useState<Record<string, boolean>>({});
-  const [shoppingMutationError, setShoppingMutationError] = useState<string>();
-  const shoppingMutationRequestId = useRef(0);
-  const shoppingMutationController = useRef<AbortController>();
-
-  useEffect(() => {
-    shoppingMutationRequestId.current += 1;
-    shoppingMutationController.current?.abort();
-    shoppingMutationController.current = undefined;
-    // 计划切换后，上一份购物清单的提交状态不能阻塞新计划。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setUpdatingItemId(undefined);
-    setShoppingMutationError(undefined);
-    return () => {
-      shoppingMutationRequestId.current += 1;
-      shoppingMutationController.current?.abort();
-      shoppingMutationController.current = undefined;
-    };
-  }, [plan?.meal_plan_id]);
-
-  const toggleShoppingItem = (item: ShoppingList['items'][number]) => {
-    if (!plan || !item.shopping_list_item_id || !onShoppingListChange || updatingItemId) return;
-    const nextPurchased = !item.purchased;
-    const mealPlanId = plan.meal_plan_id;
-    const shoppingListItemId = item.shopping_list_item_id;
-    const requestId = ++shoppingMutationRequestId.current;
-    const controller = new AbortController();
-    shoppingMutationController.current?.abort();
-    shoppingMutationController.current = controller;
-    setUpdatingItemId(item.shopping_list_item_id);
-    setShoppingMutationError(undefined);
-    void updateShoppingItemPurchased(mealPlanId, shoppingListItemId, nextPurchased, controller.signal)
-      .then((value) => {
-        if (controller.signal.aborted || requestId !== shoppingMutationRequestId.current) return;
-        onShoppingListChange(value);
-      })
-      .catch((cause) => {
-        if (controller.signal.aborted || isAbortError(cause) || requestId !== shoppingMutationRequestId.current) return;
-        setShoppingMutationError(planningErrorMessage(cause, '购物项更新失败，请重试。'));
-      })
-      .finally(() => {
-        if (requestId === shoppingMutationRequestId.current && shoppingMutationController.current === controller) {
-          shoppingMutationController.current = undefined;
-          setUpdatingItemId(undefined);
-        }
-      });
-  };
 
   const toggleFixtureShoppingItem = (itemKey: string, checked: boolean) => {
     // Fixture 购物清单只维护当前页面的勾选状态，不伪造真实购物清单接口结果。
@@ -739,9 +697,9 @@ function PlanSidebar({
                     <Checkbox
                       aria-label={label}
                       checked={Boolean(item.purchased)}
-                      disabled={!item.shopping_list_item_id || Boolean(updatingItemId)}
+                      disabled={!item.shopping_list_item_id || Boolean(updatingShoppingItemId)}
                       className={styles.shoppingCheckbox}
-                      onCheckedChange={() => toggleShoppingItem(item)}
+                      onCheckedChange={() => onToggleShoppingItem?.(item)}
                     />
                     <span>{label}</span>
                   </div>
@@ -794,6 +752,8 @@ export function PlanningPage() {
   const [realShoppingLoading, setRealShoppingLoading] = useState(false);
   const [realShoppingError, setRealShoppingError] = useState<string>();
   const [creatingShoppingList, setCreatingShoppingList] = useState(false);
+  const [updatingShoppingItemId, setUpdatingShoppingItemId] = useState<string>();
+  const [shoppingMutationError, setShoppingMutationError] = useState<string>();
   const [realProgress, setRealProgress] = useState<MealPlanProgress>();
   const [realProgressError, setRealProgressError] = useState<string>();
   const [realDraft, setRealDraft] = useState<MealPlanDraft>(initialMealPlanDraft);
@@ -812,6 +772,8 @@ export function PlanningPage() {
   const progressRequestId = useRef(0);
   const shoppingActionRequestId = useRef(0);
   const shoppingActionController = useRef<AbortController>();
+  const shoppingItemRequestId = useRef(0);
+  const shoppingItemController = useRef<AbortController>();
   const planActionRequestId = useRef(0);
   const planActionController = useRef<AbortController>();
   const submitPlanRequestId = useRef(0);
@@ -828,6 +790,9 @@ export function PlanningPage() {
       shoppingActionRequestId.current += 1;
       shoppingActionController.current?.abort();
       shoppingActionController.current = undefined;
+      shoppingItemRequestId.current += 1;
+      shoppingItemController.current?.abort();
+      shoppingItemController.current = undefined;
       planActionRequestId.current += 1;
       planActionController.current?.abort();
       planActionController.current = undefined;
@@ -1001,6 +966,21 @@ export function PlanningPage() {
     };
   }, [activePlanId, selectedPlan?.deleted, selectedPlan?.status]);
 
+  useEffect(() => {
+    // 计划切换后，上一份购物项更新不能写回当前计划。
+    shoppingItemRequestId.current += 1;
+    shoppingItemController.current?.abort();
+    shoppingItemController.current = undefined;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setUpdatingShoppingItemId(undefined);
+    setShoppingMutationError(undefined);
+    return () => {
+      shoppingItemRequestId.current += 1;
+      shoppingItemController.current?.abort();
+      shoppingItemController.current = undefined;
+    };
+  }, [activePlanId, selectedPlan?.deleted, selectedPlan?.status]);
+
   const isFigmaFixture = !isRealMode && (isFigmaFixtureState(requestedView) || view !== 'default');
   // 所有 Figma fixture 状态页都复用完整工作区侧栏，保证状态切换不改变壳层结构。
 
@@ -1162,6 +1142,7 @@ export function PlanningPage() {
     shoppingActionController.current = controller;
     setCreatingShoppingList(true);
     setRealShoppingError(undefined);
+    setShoppingMutationError(undefined);
     // 手动刷新期间不继续展示上一份可能已经过期的清单。
     setRealShoppingList(undefined);
     try {
@@ -1177,6 +1158,52 @@ export function PlanningPage() {
         setCreatingShoppingList(false);
       }
     }
+  };
+
+  const toggleRealShoppingItem = (item: ShoppingListItem) => {
+    if (
+      !selectedPlan ||
+      selectedPlan.deleted ||
+      selectedPlan.status !== 'saved' ||
+      !item.shopping_list_item_id ||
+      updatingShoppingItemId
+    )
+      return;
+    const mealPlanId = selectedPlan.meal_plan_id;
+    const shoppingListItemId = item.shopping_list_item_id;
+    const requestId = ++shoppingItemRequestId.current;
+    const controller = new AbortController();
+    shoppingItemController.current?.abort();
+    shoppingItemController.current = controller;
+    setUpdatingShoppingItemId(shoppingListItemId);
+    setShoppingMutationError(undefined);
+    void updateShoppingItemPurchased(mealPlanId, shoppingListItemId, !item.purchased, controller.signal)
+      .then((value) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== shoppingItemRequestId.current ||
+          selectedPlan.meal_plan_id !== mealPlanId
+        )
+          return;
+        setRealShoppingList(value);
+      })
+      .catch((error: unknown) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          isAbortError(error) ||
+          requestId !== shoppingItemRequestId.current
+        )
+          return;
+        setShoppingMutationError(planningErrorMessage(error, '购物项更新失败，请重试。'));
+      })
+      .finally(() => {
+        if (requestId === shoppingItemRequestId.current && shoppingItemController.current === controller) {
+          shoppingItemController.current = undefined;
+          setUpdatingShoppingItemId(undefined);
+        }
+      });
   };
 
   const submitRealPlan = async () => {
@@ -1240,6 +1267,15 @@ export function PlanningPage() {
         onRestorePlan={restoreRealPlan}
         actionId={planActionId}
         actionError={planActionError}
+        realMode={isRealMode}
+        realPlan={selectedPlan}
+        realShoppingList={realShoppingList}
+        shoppingLoading={realShoppingLoading}
+        shoppingError={realShoppingError ?? shoppingMutationError}
+        creatingShoppingList={creatingShoppingList}
+        updatingShoppingItemId={updatingShoppingItemId}
+        onCreateShoppingList={() => void createRealShoppingList()}
+        onToggleShoppingItem={toggleRealShoppingItem}
       />
     ) : view === 'wizard-step1' ||
       view === 'wizard-step2' ||
@@ -1264,6 +1300,15 @@ export function PlanningPage() {
         onRestorePlan={restoreRealPlan}
         actionId={planActionId}
         actionError={planActionError}
+        realMode={isRealMode}
+        realPlan={selectedPlan}
+        realShoppingList={realShoppingList}
+        shoppingLoading={realShoppingLoading}
+        shoppingError={realShoppingError ?? shoppingMutationError}
+        creatingShoppingList={creatingShoppingList}
+        updatingShoppingItemId={updatingShoppingItemId}
+        onCreateShoppingList={() => void createRealShoppingList()}
+        onToggleShoppingItem={toggleRealShoppingItem}
       />
     ) : view === 'empty' || realPlans.length === 0 ? (
       <PlanningFeedbackView kind="empty" onPrimary={() => navigate('/planning?state=wizard-step1')} />
@@ -1285,6 +1330,15 @@ export function PlanningPage() {
         onRestorePlan={restoreRealPlan}
         actionId={planActionId}
         actionError={planActionError}
+        realMode={isRealMode}
+        realPlan={selectedPlan}
+        realShoppingList={realShoppingList}
+        shoppingLoading={realShoppingLoading}
+        shoppingError={realShoppingError ?? shoppingMutationError}
+        creatingShoppingList={creatingShoppingList}
+        updatingShoppingItemId={updatingShoppingItemId}
+        onCreateShoppingList={() => void createRealShoppingList()}
+        onToggleShoppingItem={toggleRealShoppingItem}
       />
     ) : (
       <DefaultPlanningView
@@ -1332,10 +1386,12 @@ export function PlanningPage() {
             plan={isRealMode ? selectedPlan : undefined}
             shoppingList={isRealMode ? realShoppingList : undefined}
             shoppingLoading={isRealMode ? realShoppingLoading : false}
-            onShoppingListChange={isRealMode ? setRealShoppingList : undefined}
             onCreateShoppingList={isRealMode ? () => void createRealShoppingList() : undefined}
             creatingShoppingList={isRealMode ? creatingShoppingList : false}
             shoppingError={isRealMode ? realShoppingError : undefined}
+            shoppingMutationError={isRealMode ? shoppingMutationError : undefined}
+            updatingShoppingItemId={isRealMode ? updatingShoppingItemId : undefined}
+            onToggleShoppingItem={isRealMode ? toggleRealShoppingItem : undefined}
           />
         ) : undefined
       }

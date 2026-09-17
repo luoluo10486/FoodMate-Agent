@@ -3,6 +3,7 @@ import {
   Check,
   CircleAlert,
   Download,
+  Info,
   Menu,
   Pencil,
   Plus,
@@ -32,7 +33,7 @@ import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MealPlan, MealPlanDraft } from '../../services/planningService';
+import type { MealPlan, MealPlanDraft, ShoppingList, ShoppingListItem } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -1181,6 +1182,143 @@ function ShoppingListView() {
   );
 }
 
+function RealShoppingListView({
+  plan,
+  shoppingList,
+  shoppingLoading = false,
+  shoppingError,
+  creatingShoppingList = false,
+  updatingItemId,
+  onCreateShoppingList,
+  onToggleShoppingItem,
+  onNavigate,
+}: {
+  plan?: MealPlan;
+  shoppingList?: ShoppingList;
+  shoppingLoading?: boolean;
+  shoppingError?: string;
+  creatingShoppingList?: boolean;
+  updatingItemId?: string;
+  onCreateShoppingList?: () => void;
+  onToggleShoppingItem?: (item: ShoppingListItem) => void;
+  onNavigate: NavigateToView;
+}) {
+  const items = shoppingList?.items ?? [];
+  const purchasedCount = items.filter((item) => item.purchased).length;
+  const purchasePercent = items.length ? Math.round((purchasedCount / items.length) * 100) : 0;
+  const planName = plan?.plan_name?.trim() || '当前餐食计划';
+
+  return (
+    <div className={`${styles.flowPage} ${styles.shoppingPage} ${styles.interPage}`}>
+      <header className={styles.shoppingHeader}>
+        <div>
+          <h1>{planName} - 购物清单</h1>
+          <p>清单数据来自已保存计划，勾选结果会通过服务端保存。</p>
+        </div>
+        <div className={styles.purchaseProgress}>
+          <div>
+            <strong>采购进度</strong>
+            <span>
+              已买 {purchasedCount} / {items.length} 项
+            </span>
+          </div>
+          <div className={styles.progressTrack} aria-label={`采购进度 ${purchasePercent}%`}>
+            <span style={{ width: `${purchasePercent}%` }} />
+          </div>
+        </div>
+        {plan && onCreateShoppingList ? (
+          <FlowButton
+            variant="outline"
+            disabled={shoppingLoading || creatingShoppingList}
+            onClick={onCreateShoppingList}
+          >
+            {creatingShoppingList ? '生成中...' : '刷新清单'}
+          </FlowButton>
+        ) : null}
+      </header>
+
+      {shoppingError ? (
+        <p className={styles.toolbarNotice} role="alert">
+          {shoppingError}
+        </p>
+      ) : null}
+      {shoppingLoading ? <p className={styles.toolbarNotice}>正在读取购物清单...</p> : null}
+      {!shoppingLoading && !shoppingError && !plan ? (
+        <section className={styles.wizardCard} aria-label="暂无可用餐食计划">
+          <Info aria-hidden="true" />
+          <h2>暂无可用餐食计划</h2>
+          <p>请先创建并保存一份餐食计划，再生成购物清单。</p>
+        </section>
+      ) : null}
+      {!shoppingLoading && !shoppingError && plan && !items.length ? (
+        <section className={styles.wizardCard} aria-label="暂无购物清单">
+          <Info aria-hidden="true" />
+          <h2>当前计划暂无购物清单</h2>
+          <p>点击“刷新清单”请求服务端生成当前计划的购物清单。</p>
+        </section>
+      ) : null}
+      {!shoppingLoading && items.length ? (
+        <section className={styles.shoppingGrid} aria-label="服务端购物清单">
+          <section className={styles.shoppingCategory}>
+            <h2 className={styles.categorygreen}>全部食材</h2>
+            <div className={styles.shoppingItemsFlow}>
+              {items.map((item, index) => {
+                const name = item.name?.trim() || '未命名食材';
+                const detail = [item.amount, item.unit].filter((value) => value != null && value !== '').join('');
+                const label = detail ? `${name} (${detail})` : name;
+                return (
+                  <Checkbox
+                    aria-label={label}
+                    checked={Boolean(item.purchased)}
+                    className={styles.shoppingRow}
+                    disabled={!item.shopping_list_item_id || Boolean(updatingItemId)}
+                    key={item.shopping_list_item_id ?? `${label}-${index}`}
+                    onCheckedChange={() => onToggleShoppingItem?.(item)}
+                  >
+                    <span className={styles.shoppingCopy}>
+                      <strong>{name}</strong>
+                      {detail ? <small>{detail}</small> : null}
+                    </span>
+                    <em className={`${styles.itemStatus} ${item.purchased ? styles.itemOwned : styles.itemPending}`}>
+                      {item.purchased ? '已买' : '待买'}
+                    </em>
+                  </Checkbox>
+                );
+              })}
+            </div>
+          </section>
+        </section>
+      ) : null}
+
+      <footer className={styles.shoppingToolbar}>
+        <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+          返回计划
+        </FlowButton>
+      </footer>
+    </div>
+  );
+}
+
+function RealPlanningStateView({ view, onNavigate }: { view: 'conflict' | 'generating'; onNavigate: NavigateToView }) {
+  const isConflict = view === 'conflict';
+  return (
+    <div className={`${styles.flowPage} ${styles.interPage}`}>
+      <section className={styles.wizardCard} aria-label={isConflict ? '计划冲突处理' : '计划生成状态'}>
+        <Info aria-hidden="true" />
+        <h1>{isConflict ? '计划约束需要由 Agent 确认' : '计划生成由 Chat Agent 处理'}</h1>
+        <p>
+          {isConflict
+            ? '真实模式下，冲突内容和可选解决方案必须来自服务端 AgentRun；此入口不展示静态冲突或替换结果。'
+            : '真实模式下，生成进度、失败原因和最终计划由当前 Chat AgentRun 返回；此入口不伪造本地进度。'}
+        </p>
+        <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+          返回计划
+        </FlowButton>
+      </section>
+    </div>
+  );
+}
+
 function ShoppingRow({
   item,
   checked,
@@ -1253,6 +1391,15 @@ export function MealPlanningFlow({
   onRestorePlan,
   actionId,
   actionError,
+  realMode = false,
+  realPlan,
+  realShoppingList,
+  shoppingLoading,
+  shoppingError,
+  creatingShoppingList,
+  updatingShoppingItemId,
+  onCreateShoppingList,
+  onToggleShoppingItem,
 }: {
   view: MealPlanningFlowView;
   onNavigate: NavigateToView;
@@ -1270,6 +1417,15 @@ export function MealPlanningFlow({
   onRestorePlan?: (plan: MealPlan) => Promise<void>;
   actionId?: string;
   actionError?: string;
+  realMode?: boolean;
+  realPlan?: MealPlan;
+  realShoppingList?: ShoppingList;
+  shoppingLoading?: boolean;
+  shoppingError?: string;
+  creatingShoppingList?: boolean;
+  updatingShoppingItemId?: string;
+  onCreateShoppingList?: () => void;
+  onToggleShoppingItem?: (item: ShoppingListItem) => void;
 }) {
   if (view === 'list')
     return (
@@ -1300,6 +1456,22 @@ export function MealPlanningFlow({
         />
       );
   }
+  if (realMode && view === 'shopping-list')
+    return (
+      <RealShoppingListView
+        plan={realPlan}
+        shoppingList={realShoppingList}
+        shoppingLoading={shoppingLoading}
+        shoppingError={shoppingError}
+        creatingShoppingList={creatingShoppingList}
+        updatingItemId={updatingShoppingItemId}
+        onCreateShoppingList={onCreateShoppingList}
+        onToggleShoppingItem={onToggleShoppingItem}
+        onNavigate={onNavigate}
+      />
+    );
+  if (realMode && (view === 'conflict' || view === 'generating'))
+    return <RealPlanningStateView view={view} onNavigate={onNavigate} />;
   if (view === 'wizard-step1') return <WizardStepOne onNavigate={onNavigate} />;
   if (view === 'wizard-step2') return <WizardStepTwo onNavigate={onNavigate} />;
   if (view === 'wizard-step3') return <WizardStepThree onNavigate={onNavigate} />;

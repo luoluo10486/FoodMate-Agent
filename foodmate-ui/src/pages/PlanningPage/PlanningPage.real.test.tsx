@@ -267,6 +267,44 @@ describe('PlanningPage real mode', () => {
     expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeChecked();
   });
 
+  it('renders the real shopping-list route from the server without fixture items', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadShoppingList).mockResolvedValue({
+      shopping_list_id: '901',
+      meal_plan_id: '701',
+      items: [{ shopping_list_item_id: 'item-1', name: '服务端鸡胸肉', amount: 600, unit: 'g', purchased: false }],
+      status: 'generated',
+      created_at: '2026-08-22T12:00:00Z',
+      updated_at: '2026-08-22T12:00:00Z',
+    });
+    renderPage('/planning?state=shopping-list');
+
+    expect(await screen.findByRole('heading', { name: '服务端增肌计划 - 购物清单' })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeInTheDocument();
+    expect(screen.queryByText('野生三文鱼')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('checkbox', { name: '服务端鸡胸肉 (600g)' }));
+    await waitFor(() =>
+      expect(updateShoppingItemPurchased).toHaveBeenCalledWith('701', 'item-1', true, expect.any(AbortSignal)),
+    );
+  });
+
+  it('does not expose fixture conflict content in real mode', async () => {
+    renderPage('/planning?state=conflict');
+
+    expect(await screen.findByRole('heading', { name: '计划约束需要由 Agent 确认' })).toBeInTheDocument();
+    expect(screen.queryByText('冲突 1：蛋白质贡献超出')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '忽略冲突（保留三文鱼套餐）' })).not.toBeInTheDocument();
+  });
+
+  it('does not expose fixture progress in real generating mode', async () => {
+    renderPage('/planning?state=generating');
+
+    expect(await screen.findByRole('heading', { name: '计划生成由 Chat Agent 处理' })).toBeInTheDocument();
+    expect(screen.queryByText('60%')).not.toBeInTheDocument();
+    expect(screen.queryByText('正在寻找最佳食材配比...')).not.toBeInTheDocument();
+  });
+
   it('lets an empty real account enter the create wizard', async () => {
     const user = userEvent.setup();
     vi.mocked(loadMealPlans).mockResolvedValue([]);
