@@ -152,7 +152,12 @@ describe('ChatPage 真实历史会话回放', () => {
     await waitFor(() =>
       expect(openAgentRunStream).toHaveBeenCalledWith('run-new', expect.any(Function), expect.anything()),
     );
-    expect(screen.getByPlaceholderText('追问或添加自定义指令...')).toHaveValue('');
+    expect(await screen.findByText('分析我的午餐')).toBeInTheDocument();
+    const nextComposer = screen.getByPlaceholderText('追问或添加自定义指令...');
+    expect(nextComposer).not.toBeDisabled();
+    expect(nextComposer).toHaveValue('');
+    await user.type(nextComposer, '继续分析');
+    expect(screen.getByRole('button', { name: '发送消息' })).toBeEnabled();
   });
 
   it('新会话首条消息失败时保留错误和输入，并允许在同一会话重试', async () => {

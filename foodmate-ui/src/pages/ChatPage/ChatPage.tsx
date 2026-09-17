@@ -3094,6 +3094,8 @@ function RealChatPage() {
     setMessageMutation(undefined);
     setMessageError(undefined);
     setMessageNotice(undefined);
+    // 会话切换后旧发送流程不再负责复位状态，避免新路由永久保留发送中状态。
+    setSending(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
     setError(navigationError);
     if (!sessionId) {
@@ -3216,6 +3218,8 @@ function RealChatPage() {
           setRetryAvailable(false);
           setRetrying(false);
           setRunStatus('completed');
+          // 终态可能在首次消息请求完成前回放；完成事件接管刷新时必须结束页面加载态。
+          setLoading(false);
           setCheckpointAvailable(false);
           setCheckpointRecovery(undefined);
           setApproval(undefined);
