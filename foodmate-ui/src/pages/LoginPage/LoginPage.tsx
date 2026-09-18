@@ -6,6 +6,7 @@ import { CustomEase } from 'gsap/CustomEase';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import { notify } from '../../lib/notice';
 import { isVisualQaEnabled } from '../../lib/visualQa';
 import { apiFieldError, ApiError, isAbortError } from '../../services/apiClient';
@@ -111,12 +112,14 @@ function mapLoginErrorState(error: unknown): Exclude<LoginState, 'default' | 'su
   return undefined;
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+function Field({ label, htmlFor, children }: { label: string; htmlFor: string; children: React.ReactNode }) {
   return (
-    <label className={styles.field}>
-      <span className={styles.fieldLabel}>{label}</span>
+    <div className={styles.field}>
+      <Label className={styles.fieldLabel} htmlFor={htmlFor}>
+        {label}
+      </Label>
       {children}
-    </label>
+    </div>
   );
 }
 
@@ -338,9 +341,10 @@ export function LoginPage() {
             </div>
           ) : null}
           <div className={styles.loginFields} data-login-motion="fields">
-            <Field label="">
+            <Field htmlFor="login-username" label="邮箱地址">
               <Input
                 className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.username ? styles.figmaInputError : ''}`}
+                id="login-username"
                 name="username"
                 autoComplete="username"
                 placeholder={
@@ -374,9 +378,10 @@ export function LoginPage() {
                 <span className={styles.loginFieldError}>请输入有效的邮箱地址</span>
               ) : null}
             </Field>
-            <Field label="">
+            <Field htmlFor="login-password" label="密码">
               <Input
                 className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.password ? styles.figmaInputError : ''}`}
+                id="login-password"
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"

@@ -1,6 +1,7 @@
 import type { ChangeEvent, CSSProperties, ReactNode } from 'react';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
 import styles from '../LoginPage/LoginPage.module.css';
 import { authShellFigmaTokens } from './authVisualTokens';
 
@@ -138,10 +139,13 @@ export function AuthField({
   const errorId = `${name}-error`;
 
   return (
-    <label className={styles.authField}>
-      <span className={styles.authFieldLabel}>{label}</span>
+    <div className={styles.authField}>
+      <Label className={styles.authFieldLabel} htmlFor={name}>
+        {label}
+      </Label>
       <Input
         className={styles.authInput}
+        id={name}
         name={name}
         type={type}
         autoComplete={autoComplete}
@@ -158,7 +162,7 @@ export function AuthField({
           {error}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }
 
@@ -192,10 +196,13 @@ export function PasswordField({
   const errorId = `${name}-error`;
 
   return (
-    <label className={styles.authField}>
-      <span className={styles.authFieldLabel}>{label}</span>
+    <div className={styles.authField}>
+      <Label className={styles.authFieldLabel} htmlFor={name}>
+        {label}
+      </Label>
       <Input
         className={styles.authInput}
+        id={name}
         name={name}
         type={show ? 'text' : 'password'}
         autoComplete={autoComplete}
@@ -224,7 +231,7 @@ export function PasswordField({
           {error}
         </span>
       ) : null}
-    </label>
+    </div>
   );
 }
 

@@ -16,6 +16,21 @@
 - [x] 代码门禁只证明当前前端可检查、可构建和接口映射完整，不把它扩展为 Figma 像素级 `PASS`。
 - [ ] 本轮不重复运行全量 Vitest，不执行 105 个画板 PNG/diff 或花瓣像素对比；历史 `DIFF_REVIEW` 聚合保持不变。
 
+## 1.1.55 Auth 页面组 shadcn Label 语义迁移（非像素验收，2026-09-18）
+
+本节记录 Auth 表单控件语义迁移。Figma 登录节点 `647:214` 及其动效上下文继续作为颜色、字体、尺寸、间距和交互意图来源；本节不重新生成 PNG/diff，也不要求页面像素级一比一。
+
+| 页面组 | Figma 节点 | 浏览器入口 | 实际证据 | 结论 |
+|---|---|---|---|---|
+| Login | `647:214` | `/login?visual-qa=1` | 邮箱地址、密码字段通过显式 Label 获得正确控件名称；显示密码按钮保持独立可操作 | 代表语义复核通过 |
+| Register | `680:216` | `/register?visual-qa=1` | 用户名、邮箱地址、密码、确认密码字段均具有正确控件名称；密码按钮保持独立可操作 | 代表语义复核通过 |
+
+- [x] 新增共享 `Label` primitive；`AuthField`、`PasswordField` 和 Login 字段使用 `htmlFor`/`id` 显式关联。
+- [x] 认证字段不再以 `<label>` 包裹密码切换按钮；既有 Figma CSS、导出 SVG 图标、真实认证 service 和 Fixture 状态没有改变。
+- [x] Auth 与 UI primitive 定向测试 `2` 个文件、`44/44` 通过；TypeScript、受影响文件 ESLint、Prettier、浏览器无障碍树和 `git diff --check` 通过。
+- [x] 本批次没有新增 PNG、diff JSON 或像素级 `PASS`；历史 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH` 聚合保持不变。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
 ## 1.1.54 Knowledge、Profile、Admin 与 Chat 代表路由复核（非像素验收，2026-09-18）
 
 | 页面组 | 浏览器路由 | 视口 / DPR | 实际证据 | 结论 |

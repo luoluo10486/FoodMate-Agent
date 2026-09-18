@@ -6,6 +6,7 @@ import { Badge } from './badge';
 import { Button } from './button';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from './dialog';
 import { Input } from './input';
+import { Label } from './label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './select';
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from './sheet';
 import { Table, TableBody, TableCell, TableCaption, TableHead, TableHeader, TableRow } from './table';
@@ -74,6 +75,18 @@ describe('FoodMate UI primitives', () => {
 
     expect(screen.getByRole('textbox', { name: '邮箱' })).toHaveAttribute('aria-invalid', 'true');
     expect(screen.getByRole('textbox', { name: '备注' })).toBeEnabled();
+  });
+
+  it('associates the shared Label primitive with its form control', () => {
+    render(
+      <div>
+        <Label htmlFor="label-email">邮箱地址</Label>
+        <Input id="label-email" />
+      </div>,
+    );
+
+    expect(screen.getByRole('textbox', { name: '邮箱地址' })).toBeEnabled();
+    expect(screen.getByText('邮箱地址')).toHaveClass('font-medium');
   });
 
   it('opens and closes Dialog with keyboard escape', async () => {
