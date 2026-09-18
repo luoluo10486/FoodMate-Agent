@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -9,11 +9,11 @@ import {
   History,
   MoreHorizontal,
   Monitor,
+  RefreshCw,
   Search,
   ShieldCheck,
   Utensils,
 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { DataTable, type TableColumnProps } from '@/components/ui/data-table';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import styles from '../AdminPage.module.css';
+import { isAbortError } from '../../../services/apiClient';
 import { AdminOnlyNotice } from './AdminComponents';
 import {
   type UserBusinessSessionRow,
@@ -35,15 +36,15 @@ import {
   adminUserBusinessSessionRows,
   adminUserOperationHistoryRows,
   adminUserSessionRows,
-  canAccessAdmin,
-  canManage,
   sessionColumns,
   statusTag,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import {
   loadAdminUserDetail,
   loadAdminUsersPage,
+  resetAdminUserCredentials,
   revokeAdminUserSessions,
   type AdminUserDetail,
   updateAdminUserStatus,
@@ -60,7 +61,7 @@ type AdminUserView = UserRow & {
   revision?: number;
 };
 
-// This fixture mirrors Figma node 801:215. Real mode continues to use the API response unchanged.
+// 该 Fixture 对应 Figma 节点 801:215；真实模式继续使用 API 返回结果。
 const figmaUserRows: AdminUserView[] = [
   {
     key: 'figma-user-098a1',
@@ -187,12 +188,24 @@ const operationHistoryColumns: TableColumnProps<UserOperationHistoryRow>[] = [
   { title: '时间', dataIndex: 'createdAt' },
 ];
 
-export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+export function UsersSection({
+  onAction,
+  figmaFixture = false,
+  refreshNonce = 0,
+}: {
+  onAction: (payload: AdminActionPayload) => void;
+  figmaFixture?: boolean;
+  refreshNonce?: number;
+}) {
+  const { canAccess, canManage } = useAdminAccess();
+  const isFigmaFixture = figmaFixture && isMockMode;
   const [selectedUser, setSelectedUser] = useState<AdminUserView | undefined>(
     isMockMode ? figmaUserRows[0] : undefined,
   );
   const [users, setUsers] = useState<AdminUserView[]>(isMockMode ? figmaUserRows : []);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(!isMockMode);
+  const [retryNonce, setRetryNonce] = useState(0);
   const [query, setQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('active');
@@ -203,60 +216,86 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
   const [selectedDetail, setSelectedDetail] = useState<AdminUserDetail>();
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState('');
+  const [detailRetryNonce, setDetailRetryNonce] = useState(0);
+  const listRequestIdRef = useRef(0);
+  const detailRequestIdRef = useRef(0);
   const selectedUserId = selectedUser?.userId;
+  const displayedTotalUsers = isFigmaFixture ? 1284 : totalUsers;
 
   useEffect(() => {
     if (isMockMode) return;
-    let active = true;
-    loadAdminUsersPage({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      role: roleFilter,
-      status: filtersChanged ? statusFilter : undefined,
-    })
+    const requestId = ++listRequestIdRef.current;
+    const controller = new AbortController();
+    // 列表查询由当前 effect 独占，筛选或刷新时取消上一条请求。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setLoadError('');
+    loadAdminUsersPage(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        role: roleFilter,
+        status: filtersChanged ? statusFilter : undefined,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
-        setLoadError('');
+        if (controller.signal.aborted || requestId !== listRequestIdRef.current) return;
         const items = result.items as AdminUserView[];
         setUsers(items);
         setTotalUsers(result.total);
         setSelectedUser(items[0]);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== listRequestIdRef.current) return;
         setUsers([]);
         setTotalUsers(0);
         setSelectedUser(undefined);
         setLoadError(error instanceof Error ? error.message : '用户列表加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === listRequestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      listRequestIdRef.current += 1;
+      controller.abort();
     };
-  }, [filtersChanged, page, query, roleFilter, statusFilter]);
+  }, [filtersChanged, page, query, refreshNonce, retryNonce, roleFilter, statusFilter]);
 
   useEffect(() => {
-    if (isMockMode || !selectedUserId) return;
-    let active = true;
+    const requestId = ++detailRequestIdRef.current;
+    if (isMockMode || !selectedUserId) {
+      // 用户列表为空或切换到 Fixture 时不保留上一条详情请求状态。
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setDetailLoading(false);
+      setDetailError('');
+      setSelectedDetail(undefined);
+      return;
+    }
+    const controller = new AbortController();
     // 详情单独加载，避免用户列表接口被迫携带会话和审计明细。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setDetailLoading(true);
     setDetailError('');
     setSelectedDetail(undefined);
-    loadAdminUserDetail(selectedUserId)
+    loadAdminUserDetail(selectedUserId, controller.signal)
       .then((detail) => {
-        if (active) setSelectedDetail(detail);
+        if (controller.signal.aborted || requestId !== detailRequestIdRef.current) return;
+        setSelectedDetail(detail);
       })
       .catch((error) => {
-        if (active) setDetailError(error instanceof Error ? error.message : '用户详情加载失败');
+        if (controller.signal.aborted || isAbortError(error) || requestId !== detailRequestIdRef.current) return;
+        setSelectedDetail(undefined);
+        setDetailError(error instanceof Error ? error.message : '用户详情加载失败');
       })
       .finally(() => {
-        if (active) setDetailLoading(false);
+        if (!controller.signal.aborted && requestId === detailRequestIdRef.current) setDetailLoading(false);
       });
     return () => {
-      active = false;
+      detailRequestIdRef.current += 1;
+      controller.abort();
     };
-  }, [selectedUserId]);
+  }, [detailRetryNonce, refreshNonce, selectedUserId]);
 
   const visibleUsers = useMemo(() => {
     if (!isMockMode) return users;
@@ -270,7 +309,7 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
     });
   }, [filtersChanged, query, roleFilter, statusFilter, users]);
 
-  if (!canAccessAdmin) return <AdminOnlyNotice title="无权访问用户管理" />;
+  if (!canAccess) return <AdminOnlyNotice title="无权访问用户管理" />;
 
   const updateFilter = (setter: (value: string) => void, value: string) => {
     setter(value);
@@ -284,10 +323,12 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetLabel: record.userId,
       targetType: 'user',
       targetId: record.userId,
-      execute: async () => {
-        await updateAdminUserStatus(record.userId, status, record.revision ?? 1);
+      execute: async (signal) => {
+        await updateAdminUserStatus(record.userId, status, record.revision ?? 1, signal);
       },
       onApply: () => {
+        // 真实模式由 refreshNonce 触发服务端回读，不能直接修改本地 Fixture 数据。
+        if (!isMockMode) return;
         setUsers((current) =>
           current.map((user) =>
             user.userId === record.userId
@@ -305,15 +346,29 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
       targetLabel: record.userId,
       targetType: 'user_session',
       targetId: record.userId,
-      execute: async () => {
-        await revokeAdminUserSessions(record.userId, record.revision ?? 1);
+      execute: async (signal) => {
+        await revokeAdminUserSessions(record.userId, record.revision ?? 1, signal);
       },
       onApply: () => {
+        // 真实模式的会话状态必须来自用户详情接口，避免污染共享 Fixture 数组。
+        if (!isMockMode) return;
         adminUserSessionRows
           .filter((session) => session.userId === record.userId)
           .forEach((session) => {
             session.status = 'revoked';
           });
+      },
+    });
+  };
+
+  const resetCredentials = (record: AdminUserView) => {
+    onAction({
+      action: '重置凭证',
+      targetLabel: record.userId,
+      targetType: 'user_credentials',
+      targetId: record.userId,
+      execute: async (signal) => {
+        await resetAdminUserCredentials(record.userId, record.revision ?? 1, signal);
       },
     });
   };
@@ -383,7 +438,15 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
           </Button>
         </div>
 
-        {loadError ? <Badge variant="destructive">{loadError}</Badge> : null}
+        {loadError ? (
+          <div className={styles.auditError} role="alert">
+            <span>{loadError}</span>
+            <Button variant="outline" size="sm" disabled={loading} onClick={() => setRetryNonce((value) => value + 1)}>
+              <RefreshCw aria-hidden="true" />
+              重试
+            </Button>
+          </div>
+        ) : null}
         {!canManage ? (
           <div className={styles.readOnlyNotice} role="status">
             <ShieldCheck aria-hidden="true" />
@@ -413,34 +476,59 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
               onRevoke={() => revokeSessions(user)}
             />
           ))}
-          {!visibleUsers.length ? <div className={styles.usersTableEmpty}>暂无匹配用户</div> : null}
+          {!visibleUsers.length ? (
+            <div className={styles.usersTableEmpty}>{loading ? '正在加载用户列表...' : '暂无匹配用户'}</div>
+          ) : null}
         </div>
 
         <div className={styles.usersPagination}>
           <span>
-            显示第 {totalUsers === 0 ? 0 : (page - 1) * pageSize + 1} 到 {Math.min(page * pageSize, totalUsers)} 条，共{' '}
-            {totalUsers.toLocaleString('zh-CN')} 条用户
+            {isFigmaFixture
+              ? 'Showing 1-4 of 1,284 users'
+              : `显示第 ${displayedTotalUsers === 0 ? 0 : (page - 1) * pageSize + 1} 到 ${Math.min(page * pageSize, displayedTotalUsers)} 条，共 ${displayedTotalUsers.toLocaleString('zh-CN')} 条用户`}
           </span>
           <div>
             <Button
               variant="outline"
               size="sm"
               type="button"
-              disabled={page <= 1}
+              disabled={loading || page <= 1}
               aria-label="上一页"
               onClick={() => setPage((current) => Math.max(1, current - 1))}
             >
               上一页
             </Button>
-            <Button variant="outline" size="sm" className={styles.usersPageActive} type="button" aria-current="page">
-              {page}
+            <Button
+              variant="outline"
+              size="sm"
+              className={page === 1 ? styles.usersPageActive : undefined}
+              type="button"
+              aria-current={page === 1 ? 'page' : undefined}
+              onClick={() => setPage(1)}
+            >
+              1
             </Button>
+            {isFigmaFixture ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className={page === 2 ? styles.usersPageActive : undefined}
+                type="button"
+                aria-label="第 2 页"
+                aria-current={page === 2 ? 'page' : undefined}
+                onClick={() => setPage(2)}
+              >
+                2
+              </Button>
+            ) : null}
             <Button
               variant="outline"
               size="sm"
               type="button"
-              disabled={page >= Math.max(1, Math.ceil(totalUsers / pageSize))}
-              onClick={() => setPage((current) => Math.min(Math.max(1, Math.ceil(totalUsers / pageSize)), current + 1))}
+              disabled={loading || page >= Math.max(1, Math.ceil(displayedTotalUsers / pageSize))}
+              onClick={() =>
+                setPage((current) => Math.min(Math.max(1, Math.ceil(displayedTotalUsers / pageSize)), current + 1))
+              }
             >
               下一页
             </Button>
@@ -455,7 +543,10 @@ export function UsersSection({ onAction }: { onAction: (payload: AdminActionPayl
             detail={selectedDetail}
             detailLoading={detailLoading}
             detailError={detailError}
+            figmaFixture={isFigmaFixture}
+            onRetryDetail={() => setDetailRetryNonce((value) => value + 1)}
             onRevoke={() => revokeSessions(selectedUser)}
+            onResetCredentials={() => resetCredentials(selectedUser)}
           />
         ) : (
           <Card className={styles.userDetailCard}>
@@ -591,14 +682,21 @@ function UserDetailCard({
   detail,
   detailLoading,
   detailError,
+  figmaFixture,
+  onRetryDetail,
   onRevoke,
+  onResetCredentials,
 }: {
   user: AdminUserView;
   detail?: AdminUserDetail;
   detailLoading: boolean;
   detailError: string;
+  figmaFixture: boolean;
+  onRetryDetail: () => void;
   onRevoke: () => void;
+  onResetCredentials: () => void;
 }) {
+  const { canManage } = useAdminAccess();
   const profile = detail?.profile;
   const sessions = isMockMode
     ? adminUserSessionRows.filter((item) => item.userId === user.userId)
@@ -636,6 +734,7 @@ function UserDetailCard({
   const avatarSource = resolveAvatarUrl(user.avatarUrl, profile?.gender || user.gender);
   // Figma 用户详情使用登记的默认头像；真实用户详情仍允许展示后端上传头像。
   const isFixtureUser = isMockMode || user.key.startsWith('figma-');
+  const canResetCredentials = isMockMode || canManage;
 
   return (
     <Card className={styles.userDetailCard}>
@@ -676,9 +775,9 @@ function UserDetailCard({
         <TabsList className={styles.userDetailTabsList} aria-label="用户详情分区">
           <TabsTrigger value="profile">资料</TabsTrigger>
           <TabsTrigger value="diet">饮食</TabsTrigger>
-          <TabsTrigger value="login-sessions">登录会话</TabsTrigger>
+          <TabsTrigger value="login-sessions">{figmaFixture ? '会话' : '登录会话'}</TabsTrigger>
           <TabsTrigger value="history">历史</TabsTrigger>
-          <TabsTrigger value="business-sessions">业务会话</TabsTrigger>
+          {!figmaFixture ? <TabsTrigger value="business-sessions">业务会话</TabsTrigger> : null}
         </TabsList>
         <TabsContent value="profile" className={styles.userDetailPanel}>
           <DetailGrid
@@ -722,11 +821,12 @@ function UserDetailCard({
           />
         </TabsContent>
         <TabsContent value="login-sessions" className={styles.userDetailPanel}>
-          <DetailSectionHeading icon={<Monitor aria-hidden="true" />} title="登录会话" />
+          <DetailSectionHeading icon={<Monitor aria-hidden="true" />} title={figmaFixture ? '会话' : '登录会话'} />
           <DetailTableState
             isMockMode={isMockMode}
             loading={detailLoading}
             error={detailError}
+            onRetry={onRetryDetail}
             hasData={sessions.length > 0}
           >
             <DataTable columns={sessionColumns} data={sessions} />
@@ -738,50 +838,66 @@ function UserDetailCard({
             isMockMode={isMockMode}
             loading={detailLoading}
             error={detailError}
+            onRetry={onRetryDetail}
             hasData={operationHistory.length > 0}
           >
             <DataTable columns={operationHistoryColumns} data={operationHistory} />
           </DetailTableState>
         </TabsContent>
-        <TabsContent value="business-sessions" className={styles.userDetailPanel}>
-          <DetailSectionHeading icon={<Utensils aria-hidden="true" />} title="业务会话" />
-          <DetailTableState
-            isMockMode={isMockMode}
-            loading={detailLoading}
-            error={detailError}
-            hasData={businessSessions.length > 0}
-          >
-            <DataTable columns={businessSessionColumns} data={businessSessions} />
-          </DetailTableState>
-        </TabsContent>
+        {!figmaFixture ? (
+          <TabsContent value="business-sessions" className={styles.userDetailPanel}>
+            <DetailSectionHeading icon={<Utensils aria-hidden="true" />} title="业务会话" />
+            <DetailTableState
+              isMockMode={isMockMode}
+              loading={detailLoading}
+              error={detailError}
+              onRetry={onRetryDetail}
+              hasData={businessSessions.length > 0}
+            >
+              <DataTable columns={businessSessionColumns} data={businessSessions} />
+            </DetailTableState>
+          </TabsContent>
+        ) : null}
       </Tabs>
       <div className={styles.userDetailActions}>
         <Button
           variant="outline"
           className={styles.userCredentialButton}
-          onClick={() =>
-            window.dispatchEvent(
-              new CustomEvent('foodmate:admin-notice', {
-                detail: { message: '重置凭证接口尚未接入，未执行任何操作。' },
-              }),
-            )
+          type="button"
+          disabled={!canResetCredentials}
+          aria-describedby={!canResetCredentials ? 'user-credential-reset-hint' : undefined}
+          title={!canResetCredentials ? '当前账号没有凭证重置权限' : undefined}
+          onClick={
+            isMockMode
+              ? () =>
+                  window.dispatchEvent(
+                    new CustomEvent('foodmate:admin-notice', { detail: { message: 'Fixture 仅展示凭证重置入口。' } }),
+                  )
+              : onResetCredentials
           }
         >
           重置凭证
         </Button>
+        {!canResetCredentials ? (
+          <span id="user-credential-reset-hint" className={styles.userCredentialHint}>
+            当前账号没有凭证重置权限
+          </span>
+        ) : null}
         <Button variant="outline" className={styles.userRevokeButton} disabled={!canManage} onClick={onRevoke}>
           撤销所有会话
         </Button>
       </div>
-      <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
-        <h2>用户详情 Tab</h2>
-        <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
-        <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
-        <p className={styles.userDetailGuidanceDanger}>
-          禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
-        </p>
-        <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
-      </aside>
+      {!figmaFixture ? (
+        <aside className={styles.userDetailGuidance} aria-label="用户详情 Tab">
+          <h2>用户详情 Tab</h2>
+          <p>资料 · 饮食画像 · 登录会话 · 业务会话 · 操作历史</p>
+          <p>资料字段：注册时间 · 最近登录 · 账号状态 · 角色 · 活跃会话数</p>
+          <p className={styles.userDetailGuidanceDanger}>
+            禁用 / 锁定前显示影响：撤销会话、停止新运行、保留审计记录；admin 需二次确认。
+          </p>
+          <p className={styles.userDetailGuidanceMuted}>operator：只读；无启用、禁用、锁定和撤销全部会话权限。</p>
+        </aside>
+      ) : null}
     </Card>
   );
 }
@@ -812,18 +928,30 @@ function DetailTableState({
   isMockMode: mockMode,
   loading,
   error,
+  onRetry,
   hasData,
   children,
 }: {
   isMockMode: boolean;
   loading: boolean;
   error: string;
+  onRetry: () => void;
   hasData: boolean;
   children: ReactNode;
 }) {
   if (hasData) return children;
   if (loading) return <div className={styles.detailEmptyState}>正在加载详情...</div>;
-  if (error) return <div className={styles.detailEmptyState}>{error}</div>;
+  if (error) {
+    return (
+      <div className={styles.detailEmptyState} role="alert">
+        <span>{error}</span>
+        <Button variant="outline" size="sm" onClick={onRetry}>
+          <RefreshCw aria-hidden="true" />
+          重试
+        </Button>
+      </div>
+    );
+  }
   return (
     <div className={styles.detailEmptyState} role="status">
       <span>{mockMode ? '暂无记录' : '暂无记录'}</span>

@@ -90,7 +90,7 @@ describe('admin access matrix', () => {
       canAccess: true,
       canManage: false,
       canViewUserDetails: true,
-      canViewAudit: false,
+      canViewAudit: true,
       canRestoreResources: false,
     });
     expect(resolveAdminAccess('authenticated', 'admin')).toMatchObject({

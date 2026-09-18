@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.foodmate.application.account.port.out.UserAccountRepository;
 import com.foodmate.application.account.port.out.UserAccountRepository.RefreshTokenRow;
 import com.foodmate.application.account.service.UserAccountService;
+import com.foodmate.application.account.service.UserAccountService.AdminPasswordReset;
 import com.foodmate.application.account.service.UserAccountService.AdminUserView;
 import com.foodmate.application.account.service.UserAccountService.AuthResult;
 import com.foodmate.application.account.service.UserAccountService.AuthSessionView;
@@ -69,6 +70,7 @@ public class UserAccountServiceImpl implements UserAccountService {
     private final Map<Long, ProfileRecord> profiles = new HashMap<>();
     private final Map<Long, SessionRecord> sessions = new HashMap<>();
     private final Map<Long, List<MessageRecord>> messages = new HashMap<>();
+    private final Map<String, PasswordResetRecord> passwordResetTokens = new HashMap<>();
 
     public UserAccountServiceImpl(
             ObjectProvider<UserAccountRepository> storeProvider,
@@ -256,9 +258,22 @@ public class UserAccountServiceImpl implements UserAccountService {
     }
 
     public synchronized List<AuthSessionView> listAuthSessions(long userId) {
-        if (store != null) return store.authSessions(userId);
+        return listAuthSessions(userId, null);
+    }
+
+    public synchronized List<AuthSessionView> listAuthSessions(
+            long userId, String currentSessionToken) {
+        String currentSessionHash =
+                currentSessionToken == null || currentSessionToken.isBlank()
+                        ? null
+                        : sha256(currentSessionToken);
+        if (store != null) return store.authSessions(userId, currentSessionHash);
         return authSessions.values().stream()
-                .filter(s -> s.userId() == userId)
+                .filter(
+                        s ->
+                                s.userId() == userId
+                                        && s.revokedAt() == null
+                                        && s.expiresAt().isAfter(Instant.now()))
                 .map(
                         s ->
                                 new AuthSessionView(
@@ -269,7 +284,9 @@ public class UserAccountServiceImpl implements UserAccountService {
                                         s.expiresAt(),
                                         null,
                                         null,
-                                        s.revokedAt()))
+                                        s.revokedAt(),
+                                        currentSessionHash != null
+                                                && currentSessionHash.equals(s.sessionTokenHash())))
                 .toList();
     }
 
@@ -338,13 +355,26 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     public synchronized String createPasswordResetToken(String email) {
         UserRecord user = findUser(email).orElse(null);
+        if (user == null) return randomToken();
+        return createAdminPasswordReset(user.userId()).token();
+    }
+
+    @Transactional
+    public synchronized AdminPasswordReset createAdminPasswordReset(long userId) {
+        UserRecord user = getUser(userId).orElseThrow(() -> notFound("user not found"));
+        requireText(user.email(), "email");
         String raw = randomToken();
-        if (user != null && store != null) {
+        String tokenHash = sha256(raw);
+        Instant expiresAt = Instant.now().plusSeconds(900);
+        if (store != null) {
             store.expireResetTokens(user.userId());
-            store.insertResetToken(
-                    ids.nextId(), user.userId(), sha256(raw), Instant.now().plusSeconds(900));
+            store.insertResetToken(ids.nextId(), user.userId(), tokenHash, expiresAt);
+        } else {
+            passwordResetTokens.entrySet().removeIf(entry -> entry.getValue().userId() == userId);
+            passwordResetTokens.put(
+                    tokenHash, new PasswordResetRecord(user.userId(), expiresAt, null));
         }
-        return raw;
+        return new AdminPasswordReset(user.userId(), user.email(), raw);
     }
 
     @Transactional
@@ -352,12 +382,29 @@ public class UserAccountServiceImpl implements UserAccountService {
         Long userId = null;
         try {
             validatePassword(newPassword);
-            if (store == null) throw notFound("password reset is unavailable");
             String hash = sha256(token);
-            userId = store.resetTokenUser(hash);
+            userId = store == null ? resetTokenUserInMemory(hash) : store.resetTokenUser(hash);
             if (userId == null) throw notFound("invalid or expired reset token");
-            store.changePassword(userId, hashPassword(newPassword));
-            store.consumeResetToken(hash);
+            if (store != null) {
+                store.changePassword(userId, hashPassword(newPassword));
+                store.consumeResetToken(hash);
+            } else {
+                UserRecord user = getUser(userId).orElseThrow(UserAccountServiceImpl::authRequired);
+                users.put(
+                        userId,
+                        new UserRecord(
+                                user.userId(),
+                                user.username(),
+                                user.email(),
+                                hashPassword(newPassword),
+                                user.nickname(),
+                                user.role(),
+                                user.status()));
+                PasswordResetRecord reset = passwordResetTokens.get(hash);
+                passwordResetTokens.put(
+                        hash,
+                        new PasswordResetRecord(reset.userId(), reset.expiresAt(), Instant.now()));
+            }
             revokeAllAuthSessions(userId);
             audit(userId, "user", Long.toString(userId), "user.password.change");
         } catch (RuntimeException exception) {
@@ -502,8 +549,11 @@ public class UserAccountServiceImpl implements UserAccountService {
                                                                 .contains(q.toLowerCase())))
                         .sorted(
                                 Comparator.comparing(
-                                        SessionRecord::lastMessageAt,
-                                        Comparator.nullsLast(Comparator.reverseOrder())))
+                                                SessionRecord::lastMessageAt,
+                                                Comparator.nullsLast(Comparator.reverseOrder()))
+                                        .thenComparing(
+                                                SessionRecord::sessionId,
+                                                Comparator.reverseOrder()))
                         .toList();
         int from = Math.min((safePage - 1) * safeSize, all.size());
         int to = Math.min(from + safeSize, all.size());
@@ -693,21 +743,58 @@ public class UserAccountServiceImpl implements UserAccountService {
         }
     }
 
-    public synchronized List<SearchResult> searchSessions(
+    public synchronized PageResult<SearchResult> searchSessions(
             long userId, String query, int page, int size) {
         String q = query == null ? "" : query.trim();
-        if (q.isBlank()) return List.of();
-        int safeSize = Math.min(100, Math.max(1, size)), offset = Math.max(0, page - 1) * safeSize;
-        if (store != null) return store.search(userId, q, safeSize, offset);
-        return sessions.values().stream()
-                .filter(
-                        s ->
-                                s.userId() == userId
-                                        && !SessionStatus.DELETED.code().equals(s.status())
-                                        && s.title().toLowerCase().contains(q.toLowerCase()))
-                .map(s -> new SearchResult(s.sessionId(), s.title(), s.title()))
-                .limit(safeSize)
-                .toList();
+        int safePage = Math.max(1, page);
+        int safeSize = Math.min(100, Math.max(1, size));
+        if (q.isBlank()) return new PageResult<>(List.of(), 0, safePage, safeSize);
+        int offset = (safePage - 1) * safeSize;
+        if (store != null) {
+            long total = store.countSearchSessions(userId, q);
+            return new PageResult<>(
+                    store.search(userId, q, safeSize, offset), total, safePage, safeSize);
+        }
+        String normalizedQuery = q.toLowerCase();
+        List<SearchResult> all =
+                sessions.values().stream()
+                        .filter(
+                                s -> {
+                                    if (s.userId() != userId
+                                            || SessionStatus.DELETED.code().equals(s.status()))
+                                        return false;
+                                    if (s.title().toLowerCase().contains(normalizedQuery))
+                                        return true;
+                                    return messages.getOrDefault(s.sessionId(), List.of()).stream()
+                                            .anyMatch(
+                                                    message ->
+                                                            message.content()
+                                                                    .toLowerCase()
+                                                                    .contains(normalizedQuery));
+                                })
+                        .sorted(
+                                Comparator.comparing(
+                                        SessionRecord::lastMessageAt,
+                                        Comparator.nullsLast(Comparator.reverseOrder())))
+                        .map(
+                                s -> {
+                                    String snippet =
+                                            messages.getOrDefault(s.sessionId(), List.of()).stream()
+                                                    .filter(
+                                                            message ->
+                                                                    message.content()
+                                                                            .toLowerCase()
+                                                                            .contains(
+                                                                                    normalizedQuery))
+                                                    .map(MessageRecord::content)
+                                                    .findFirst()
+                                                    .orElse(s.title());
+                                    return new SearchResult(s.sessionId(), s.title(), snippet);
+                                })
+                        .toList();
+        int from = Math.min(offset, all.size());
+        int to = Math.min(from + safeSize, all.size());
+        return new PageResult<>(all.subList(from, to), all.size(), safePage, safeSize);
     }
 
     public synchronized void archiveSession(long userId, long sessionId) {
@@ -940,6 +1027,13 @@ public class UserAccountServiceImpl implements UserAccountService {
                             Instant.now()));
     }
 
+    private Long resetTokenUserInMemory(String hash) {
+        PasswordResetRecord reset = passwordResetTokens.get(hash);
+        if (reset == null || reset.usedAt() != null || !reset.expiresAt().isAfter(Instant.now()))
+            return null;
+        return reset.userId();
+    }
+
     private String json(Object value) {
         try {
             return objectMapper.writeValueAsString(value);
@@ -1041,4 +1135,6 @@ public class UserAccountServiceImpl implements UserAccountService {
 
     private record RefreshTokenRecord(
             long refreshTokenId, long userId, Instant expiresAt, Instant revokedAt) {}
+
+    private record PasswordResetRecord(long userId, Instant expiresAt, Instant usedAt) {}
 }

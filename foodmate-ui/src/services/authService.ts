@@ -1,9 +1,9 @@
 import { mockAuthStatus, mockAuthUser, mockLoginDefaults, mockAuthScenarios } from '../mock/auth';
 import type { AuthUser, LoginFormValues } from '../mock/auth';
-import { resolveAvatarUrl } from '../lib/avatar';
+import { resolvePersistedAvatarUrl } from '../lib/avatar';
 import { apiRequest } from './apiClient';
 
-export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'forbidden';
+export type AuthStatus = 'anonymous' | 'authenticated' | 'expired' | 'disabled' | 'locked' | 'forbidden';
 type AuthResponse = {
   username: string;
   role: string;
@@ -22,30 +22,59 @@ type CurrentUserResponse = {
   avatar_url?: string;
 };
 
+const AUTH_USER_STORAGE_KEY = 'foodmate_auth_user';
+
+function notifyAuthChanged() {
+  if (typeof window !== 'undefined') window.dispatchEvent(new Event('foodmate:auth-changed'));
+}
+
+function persistAuthUser(user: AuthUser, notify = true) {
+  localStorage.setItem(AUTH_USER_STORAGE_KEY, JSON.stringify(user));
+  if (notify) notifyAuthChanged();
+}
+
 export function csrfToken(): string | undefined {
-  return document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
+  const cookie = document.cookie.split('; ').find((value) => value.startsWith('foodmate_csrf='));
+  return cookie?.slice('foodmate_csrf='.length);
+}
+
+function persistedAuthStatus(): AuthStatus {
+  const saved = localStorage.getItem(AUTH_USER_STORAGE_KEY);
+  if (!saved) return 'anonymous';
+  try {
+    const parsed: unknown = JSON.parse(saved);
+    if (!parsed || typeof parsed !== 'object') return 'expired';
+    const status = (parsed as { status?: unknown }).status;
+    if (status === 'active') return 'authenticated';
+    if (status === 'disabled') return 'disabled';
+    if (status === 'locked') return 'locked';
+    // 缺少明确状态的旧缓存不能作为已认证凭据使用。
+    return 'expired';
+  } catch {
+    localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+    return 'anonymous';
+  }
 }
 
 export function getAuthStatus(): AuthStatus {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthStatus;
-  return localStorage.getItem('foodmate_auth_user') ? 'authenticated' : 'anonymous';
+  return persistedAuthStatus();
 }
 
 export function getAuthUser(): AuthUser {
   if (import.meta.env.VITE_AGENT_MODE === 'real') {
-    const saved = localStorage.getItem('foodmate_auth_user');
+    const saved = localStorage.getItem(AUTH_USER_STORAGE_KEY);
     if (saved) {
-      const user = JSON.parse(saved) as AuthUser;
-      // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
-      const normalizedUser = { ...user, avatarUrl: resolveAvatarUrl(user.avatarUrl, user.gender) };
-      // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
-      if (normalizedUser.avatarUrl !== user.avatarUrl) {
-        localStorage.setItem('foodmate_auth_user', JSON.stringify(normalizedUser));
+      try {
+        const user = JSON.parse(saved) as AuthUser;
+        // 本地缓存可能来自旧版本 Fixture，读取时也必须经过统一头像解析层。
+        const normalizedUser = { ...user, avatarUrl: resolvePersistedAvatarUrl(user.avatarUrl, user.gender) };
+        // 归一化后回写缓存，避免旧人物地址在后续页面切换中再次进入头像参数。
+        if (normalizedUser.avatarUrl !== user.avatarUrl) persistAuthUser(normalizedUser, false);
+        return normalizedUser;
+      } catch {
+        localStorage.removeItem(AUTH_USER_STORAGE_KEY);
       }
-      return normalizedUser;
     }
   }
   return mockAuthUser;
@@ -62,14 +91,14 @@ function toAuthUser(data: AuthResponse | CurrentUserResponse): AuthUser {
     role: data.role as AuthUser['role'],
     status: 'status' in data ? data.status : 'active',
     gender,
-    avatarUrl: resolveAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, gender),
+    avatarUrl: resolvePersistedAvatarUrl('avatar_url' in data ? data.avatar_url : mockAuthUser.avatarUrl, gender),
   };
 }
 
-export async function loadCurrentUser(): Promise<AuthUser> {
+export async function loadCurrentUser(signal?: AbortSignal): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const user = toAuthUser(await apiRequest<CurrentUserResponse>('/api/users/me'));
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
+  const user = toAuthUser(await apiRequest<CurrentUserResponse>('/api/users/me', signal ? { signal } : {}));
+  persistAuthUser(user);
   return user;
 }
 
@@ -80,42 +109,52 @@ export function getAuthScenarios() {
   return mockAuthScenarios;
 }
 
-export async function login(credentials: LoginFormValues): Promise<AuthUser> {
+export async function login(credentials: LoginFormValues, signal?: AbortSignal): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const data = await apiRequest<AuthResponse>('/api/auth/login', {
+  await apiRequest<AuthResponse>('/api/auth/login', {
     method: 'POST',
+    signal,
     body: JSON.stringify({ username_or_email: credentials.username, password: credentials.password }),
   });
-  const user = toAuthUser(data);
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
-  return user;
+  // 登录响应只包含认证信息，必须再读取当前用户资料，避免把 Fixture 用户资料写入真实模式。
+  return loadCurrentUser(signal);
 }
 
-export async function register(credentials: { username: string; email: string; password: string }): Promise<AuthUser> {
+export async function register(
+  credentials: { username: string; email: string; password: string },
+  signal?: AbortSignal,
+): Promise<AuthUser> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return mockAuthUser;
-  const data = await apiRequest<AuthResponse>('/api/auth/register', {
+  await apiRequest<AuthResponse>('/api/auth/register', {
     method: 'POST',
+    signal,
     body: JSON.stringify(credentials),
   });
-  const user = toAuthUser(data);
-  localStorage.setItem('foodmate_auth_user', JSON.stringify(user));
-  return user;
+  // 注册响应同样不包含完整资料，统一通过当前用户接口建立真实缓存。
+  return loadCurrentUser(signal);
 }
 
-export async function logout(): Promise<void> {
-  if (import.meta.env.VITE_AGENT_MODE === 'real') await apiRequest<void>('/api/auth/logout', { method: 'POST' });
-  localStorage.removeItem('foodmate_auth_user');
+export async function logout(options: { skipRemote?: boolean; signal?: AbortSignal } = {}): Promise<void> {
+  if (import.meta.env.VITE_AGENT_MODE === 'real' && !options.skipRemote)
+    await apiRequest<void>('/api/auth/logout', { method: 'POST', signal: options.signal });
+  localStorage.removeItem(AUTH_USER_STORAGE_KEY);
+  notifyAuthChanged();
 }
 
-export async function requestPasswordReset(email: string): Promise<void> {
+export async function requestPasswordReset(email: string, signal?: AbortSignal): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
-  await apiRequest<void>('/api/auth/password-reset/request', { method: 'POST', body: JSON.stringify({ email }) });
+  await apiRequest<void>('/api/auth/password-reset/request', {
+    method: 'POST',
+    signal,
+    body: JSON.stringify({ email }),
+  });
 }
 
-export async function confirmPasswordReset(token: string, newPassword: string): Promise<void> {
+export async function confirmPasswordReset(token: string, newPassword: string, signal?: AbortSignal): Promise<void> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return;
   await apiRequest<void>('/api/auth/password-reset/confirm', {
     method: 'POST',
+    signal,
     body: JSON.stringify({ token, new_password: newPassword }),
   });
 }

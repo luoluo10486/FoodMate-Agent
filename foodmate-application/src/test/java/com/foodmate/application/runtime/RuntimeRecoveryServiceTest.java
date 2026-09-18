@@ -1,6 +1,7 @@
 package com.foodmate.application.runtime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -8,6 +9,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository;
 import com.foodmate.application.runtime.port.out.RuntimeRecoveryRepository.CheckpointFact;
@@ -88,21 +90,21 @@ class RuntimeRecoveryServiceTest {
         String body = payload.getValue();
         assertEquals(
                 "d1",
-                new com.fasterxml.jackson.databind.ObjectMapper()
+                new ObjectMapper()
                         .readTree(body)
                         .path("recovery_context")
                         .path("previous_dispatch_id")
                         .asText());
         assertEquals(
                 1,
-                new com.fasterxml.jackson.databind.ObjectMapper()
+                new ObjectMapper()
                         .readTree(body)
                         .path("recovery_context")
                         .path("previous_attempt")
                         .asInt());
         assertEquals(
                 "inv-1",
-                new com.fasterxml.jackson.databind.ObjectMapper()
+                new ObjectMapper()
                         .readTree(body)
                         .path("recovery_context")
                         .path("completed_tool_results")
@@ -187,5 +189,155 @@ class RuntimeRecoveryServiceTest {
                                                 new RuntimeRecoveryService.RecoveryCommand(
                                                         7L, 1L, 1, "sha256:x", List.of())))
                         .code());
+    }
+
+    @Test
+    void nonRetryableFailedRunCannotBeRetried() {
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(store);
+        when(store.lockRun(1L, 7L))
+                .thenReturn(
+                        new RecoveryRun(
+                                "failed",
+                                9L,
+                                12L,
+                                "d1",
+                                1,
+                                3L,
+                                Instant.now().plusSeconds(60),
+                                2,
+                                "{\"run_id\":\"1\"}",
+                                false));
+
+        RuntimeRecoveryService service =
+                new RuntimeRecoveryServiceImpl(
+                        provider,
+                        Mockito.mock(IdGenerator.class),
+                        Mockito.mock(AgentAdmissionService.class),
+                        10);
+
+        assertEquals(
+                "RUNTIME_RETRY_NOT_ALLOWED",
+                assertThrows(
+                                com.foodmate.shared.runtime.RuntimeException.class,
+                                () -> service.retryFailedRun(7L, 1L))
+                        .code());
+    }
+
+    @Test
+    void retryableFailedRunWithoutCheckpointCreatesFreshAttempt() throws Exception {
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
+        AgentAdmissionService admission = Mockito.mock(AgentAdmissionService.class);
+        IdGenerator ids = Mockito.mock(IdGenerator.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(store);
+        when(ids.nextId()).thenReturn(100L, 101L);
+        when(admission.admit("1", 7L, 9L, 10))
+                .thenReturn(
+                        new AgentAdmissionService.Admission(
+                                AgentAdmissionService.State.ACTIVE, List.of()));
+        Instant deadline = Instant.now().plusSeconds(60);
+        when(store.lockRun(1L, 7L))
+                .thenReturn(
+                        new RecoveryRun(
+                                "failed",
+                                9L,
+                                12L,
+                                "d1",
+                                1,
+                                3L,
+                                deadline,
+                                2,
+                                "{\"run_id\":\"1\",\"dispatch_id\":\"d1\",\"attempt\":1,\"request_id\":\"req-old\",\"deadline_at\":\""
+                                        + deadline
+                                        + "\"}",
+                                true));
+        when(store.latestCheckpoint(1L, "d1")).thenReturn(null);
+
+        RuntimeRecoveryService service =
+                new RuntimeRecoveryServiceImpl(provider, ids, admission, 10);
+        RuntimeRecoveryService.RecoveryResult result = service.retryFailedRun(7L, 1L);
+
+        assertEquals(2, result.attempt());
+        assertNotEquals("d1", result.dispatchId());
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(store)
+                .insertOutbox(
+                        anyLong(),
+                        anyLong(),
+                        anyLong(),
+                        any(),
+                        anyInt(),
+                        any(),
+                        anyLong(),
+                        payload.capture(),
+                        any());
+        ObjectMapper mapper = new ObjectMapper();
+        assertEquals(2, mapper.readTree(payload.getValue()).path("attempt").asInt());
+        assertNotEquals("req-old", mapper.readTree(payload.getValue()).path("request_id").asText());
+    }
+
+    @Test
+    void retryableFailedRunWithCheckpointReusesCompletedResults() throws Exception {
+        RuntimeRecoveryRepository store = Mockito.mock(RuntimeRecoveryRepository.class);
+        AgentAdmissionService admission = Mockito.mock(AgentAdmissionService.class);
+        IdGenerator ids = Mockito.mock(IdGenerator.class);
+        ObjectProvider<RuntimeRecoveryRepository> provider = Mockito.mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(store);
+        when(ids.nextId()).thenReturn(100L, 101L);
+        when(admission.admit("1", 7L, 9L, 10))
+                .thenReturn(
+                        new AgentAdmissionService.Admission(
+                                AgentAdmissionService.State.ACTIVE, List.of()));
+        Instant deadline = Instant.now().plusSeconds(60);
+        when(store.lockRun(1L, 7L))
+                .thenReturn(
+                        new RecoveryRun(
+                                "failed",
+                                9L,
+                                12L,
+                                "d1",
+                                1,
+                                3L,
+                                deadline,
+                                2,
+                                "{\"run_id\":\"1\",\"dispatch_id\":\"d1\",\"attempt\":1,\"deadline_at\":\""
+                                        + deadline
+                                        + "\"}",
+                                true));
+        when(store.latestCheckpoint(1L, "d1"))
+                .thenReturn(
+                        new CheckpointFact(4, "sha256:checkpoint", 2, "tool_wait", "[\"inv-1\"]"));
+        when(store.completedInvocationIds(1L)).thenReturn(List.of("inv-1"));
+        when(store.completedToolResults(1L))
+                .thenReturn(
+                        List.of(
+                                "{\"proposal_id\":\"p1\",\"invocation_id\":\"inv-1\",\"request_hash\":\"sha256:p1\",\"status\":\"succeeded\",\"rows\":[]}"));
+
+        RuntimeRecoveryService service =
+                new RuntimeRecoveryServiceImpl(provider, ids, admission, 10);
+        RuntimeRecoveryService.RecoveryResult result = service.retryFailedRun(7L, 1L);
+
+        assertEquals(2, result.attempt());
+        ArgumentCaptor<String> payload = ArgumentCaptor.forClass(String.class);
+        verify(store)
+                .insertOutbox(
+                        anyLong(),
+                        anyLong(),
+                        anyLong(),
+                        any(),
+                        anyInt(),
+                        any(),
+                        anyLong(),
+                        payload.capture(),
+                        any());
+        ObjectMapper mapper = new ObjectMapper();
+        var recovery = mapper.readTree(payload.getValue()).path("recovery_context");
+        assertEquals("d1", recovery.path("previous_dispatch_id").asText());
+        assertEquals("inv-1", recovery.path("completed_invocation_ids").get(0).asText());
+        assertEquals(
+                "succeeded",
+                recovery.path("completed_tool_results").get(0).path("status").asText());
     }
 }

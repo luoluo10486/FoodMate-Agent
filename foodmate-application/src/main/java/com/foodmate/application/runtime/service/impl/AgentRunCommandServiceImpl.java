@@ -11,6 +11,7 @@ import com.foodmate.application.runtime.admission.AgentAdmissionService;
 import com.foodmate.application.runtime.command.AgentRunBudgetDefaults;
 import com.foodmate.application.runtime.port.out.AgentRunCommandRepository;
 import com.foodmate.application.runtime.port.out.ModelGovernanceRepository.ModelGovernanceSnapshot;
+import com.foodmate.application.runtime.port.out.RuntimeClientPort;
 import com.foodmate.application.runtime.service.AgentRunCommandService;
 import com.foodmate.application.runtime.service.ModelGovernanceService;
 import com.foodmate.shared.conversation.enums.MessageRole;
@@ -41,6 +42,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
     private final AgentAdmissionService admission;
     private final SessionSummaryService summaries;
     private final ModelGovernanceService modelGovernance;
+    private final RuntimeClientPort runtimeClient;
+    private final boolean runtimeClientProviderConfigured;
     private final ObjectMapper mapper;
     private final OperationAuditService audit;
 
@@ -51,7 +54,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentRunBudgetDefaults budgetDefaults,
             AgentAdmissionService admission,
             SessionSummaryService summaries) {
-        this(store, ids, accounts, budgetDefaults, admission, summaries, null, null);
+        this(store, ids, accounts, budgetDefaults, admission, summaries, null, null, null);
     }
 
     public AgentRunCommandServiceImpl(
@@ -62,7 +65,28 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentAdmissionService admission,
             SessionSummaryService summaries,
             ObjectProvider<OperationAuditService> auditProvider) {
-        this(store, ids, accounts, budgetDefaults, admission, summaries, auditProvider, null);
+        this(store, ids, accounts, budgetDefaults, admission, summaries, auditProvider, null, null);
+    }
+
+    public AgentRunCommandServiceImpl(
+            ObjectProvider<AgentRunCommandRepository> store,
+            IdGenerator ids,
+            UserAccountService accounts,
+            AgentRunBudgetDefaults budgetDefaults,
+            AgentAdmissionService admission,
+            SessionSummaryService summaries,
+            ObjectProvider<OperationAuditService> auditProvider,
+            ObjectProvider<ModelGovernanceService> modelGovernanceProvider) {
+        this(
+                store,
+                ids,
+                accounts,
+                budgetDefaults,
+                admission,
+                summaries,
+                auditProvider,
+                modelGovernanceProvider,
+                null);
     }
 
     @Autowired
@@ -74,7 +98,8 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             AgentAdmissionService admission,
             SessionSummaryService summaries,
             ObjectProvider<OperationAuditService> auditProvider,
-            ObjectProvider<ModelGovernanceService> modelGovernanceProvider) {
+            ObjectProvider<ModelGovernanceService> modelGovernanceProvider,
+            ObjectProvider<RuntimeClientPort> runtimeClientProvider) {
         this.store = store.getIfAvailable();
         this.ids = ids;
         this.accounts = accounts;
@@ -84,6 +109,9 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
         this.audit = auditProvider == null ? null : auditProvider.getIfAvailable();
         this.modelGovernance =
                 modelGovernanceProvider == null ? null : modelGovernanceProvider.getIfAvailable();
+        this.runtimeClientProviderConfigured = runtimeClientProvider != null;
+        this.runtimeClient =
+                runtimeClientProvider == null ? null : runtimeClientProvider.getIfAvailable();
         this.mapper =
                 new ObjectMapper()
                         .findAndRegisterModules()
@@ -111,6 +139,7 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
             long userId, long sessionId, String content, String traceId) {
         Long runId = null;
         try {
+            requireRuntimeClient();
             runId = ids.nextId();
             String runIdText = Long.toString(runId);
             if (store == null) {
@@ -339,6 +368,13 @@ public class AgentRunCommandServiceImpl implements AgentRunCommandService {
                     Map.of("session_id", sessionId));
             throw exception;
         }
+    }
+
+    /** Runtime 派发能力缺失时必须在写入消息和运行记录前失败。 */
+    private void requireRuntimeClient() {
+        if (runtimeClientProviderConfigured && runtimeClient == null)
+            throw new com.foodmate.shared.runtime.RuntimeException(
+                    "RUNTIME_UNAVAILABLE", "Agent Runtime is not configured");
     }
 
     /** 根据当前用户意图缩小长期记忆范围，避免无关偏好污染 Agent Context。 */

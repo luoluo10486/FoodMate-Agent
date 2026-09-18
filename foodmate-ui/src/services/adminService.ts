@@ -17,7 +17,9 @@ import {
   adminUserOperationHistoryRows,
   adminUserSessionRows,
 } from '../mock/admin';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
 import { apiRequest } from './apiClient';
+import { openSseStream } from './sseStream';
 
 export type AdminDashboard = {
   overview_metrics: AdminMetricRow[];
@@ -56,6 +58,7 @@ type AdminRunResponse = {
   username: string;
   result_type?: string;
   error_code?: string;
+  degraded?: boolean;
   stage?: string;
   model?: string;
   created_at?: string;
@@ -138,6 +141,15 @@ type AdminUsageResponse = {
   latency_ms: number | null;
   status: string;
 };
+export type AdminQueryUsage = {
+  provider: string;
+  model: string;
+  scene: string;
+  tokens: string;
+  cost: number | string | null;
+  latency_ms: number | string | null;
+  status: string | null;
+};
 type AdminKnowledgeResponse = {
   document_id: number | null;
   title: string;
@@ -190,6 +202,7 @@ export type AdminRunRow = {
   sessionId?: string;
   resultType?: string;
   errorCode?: string;
+  degraded?: boolean;
   stage?: string;
   model?: string;
   createdAt?: string;
@@ -352,6 +365,7 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
       sessionId: row.session_id == null ? undefined : String(row.session_id),
       resultType: row.result_type || '-',
       errorCode: row.error_code || '-',
+      degraded: row.degraded === true,
       stage: row.stage || '-',
       model: row.model || '-',
       createdAt: row.created_at || '-',
@@ -453,9 +467,13 @@ function normalizeDashboard(data: AdminDashboardResponse): AdminDashboard {
   };
 }
 
-export async function loadAdminDashboard(): Promise<AdminDashboard> {
+function readRequestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
+
+export async function loadAdminDashboard(signal?: AbortSignal): Promise<AdminDashboard> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard'));
+  return normalizeDashboard(await apiRequest<AdminDashboardResponse>('/api/admin/dashboard', readRequestInit(signal)));
 }
 
 function normalizeToolRegistryRow(row: AdminToolRegistryResponse): AdminToolRegistryRow {
@@ -486,9 +504,12 @@ function normalizeToolRegistryRow(row: AdminToolRegistryResponse): AdminToolRegi
   };
 }
 
-export async function loadAdminToolRegistry(): Promise<AdminToolRegistryRow[]> {
+export async function loadAdminToolRegistry(signal?: AbortSignal): Promise<AdminToolRegistryRow[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const response = await apiRequest<{ tools: AdminToolRegistryResponse[] }>('/api/admin/tools/registry');
+  const response = await apiRequest<{ tools: AdminToolRegistryResponse[] }>(
+    '/api/admin/tools/registry',
+    readRequestInit(signal),
+  );
   return response.tools.map(normalizeToolRegistryRow);
 }
 
@@ -507,6 +528,9 @@ export type AdminQueryRun = {
   trace_id: string;
   duration_ms: number | string | null;
   actor_ref: string;
+  result_type?: string | null;
+  error_code?: string | null;
+  degraded?: boolean;
 };
 
 export type AdminQueryTrace = {
@@ -587,6 +611,9 @@ export type AdminQueryParams = {
   from?: string;
   action?: string;
   targetType?: string;
+  resultType?: string;
+  errorCode?: string;
+  degraded?: boolean;
   sort?: string;
   direction?: 'asc' | 'desc';
 };
@@ -598,7 +625,7 @@ export type AdminPageResult<T> = {
   size: number;
 };
 
-export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}) {
+export async function loadAdminQuery<T>(resource: string, params: AdminQueryParams = {}, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   const search = new URLSearchParams();
   search.set('page', String(params.page ?? 1));
@@ -611,17 +638,30 @@ export async function loadAdminQuery<T>(resource: string, params: AdminQueryPara
   if (params.from) search.set('from', params.from);
   if (params.action && params.action !== 'all') search.set('action', params.action);
   if (params.targetType && params.targetType !== 'all') search.set('target_type', params.targetType);
+  if (params.resultType && params.resultType !== 'all') search.set('result_type', params.resultType);
+  if (params.errorCode) search.set('error_code', params.errorCode);
+  if (params.degraded !== undefined) search.set('degraded', String(params.degraded));
   if (params.sort) search.set('sort', params.sort);
   if (params.direction) search.set('direction', params.direction);
-  return apiRequest<AdminOperationalQueryResponse<T>>(`/api/admin/queries/${resource}?${search.toString()}`);
+  return apiRequest<AdminOperationalQueryResponse<T>>(
+    `/api/admin/queries/${resource}?${search.toString()}`,
+    readRequestInit(signal),
+  );
 }
 
 /** 管理端知识库使用专用分页查询，避免把 dashboard 概览当成明细数据源。 */
-export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminKnowledgeRow>> {
-  const data = await loadAdminQuery<AdminKnowledgeResponse>('knowledge', {
-    size: 20,
-    ...params,
-  });
+export async function loadAdminKnowledge(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminKnowledgeRow>> {
+  const data = await loadAdminQuery<AdminKnowledgeResponse>(
+    'knowledge',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
   return {
     items: data.items.map(normalizeKnowledgeRow),
     total: data.total,
@@ -630,9 +670,42 @@ export async function loadAdminKnowledge(params: AdminQueryParams = {}): Promise
   };
 }
 
-export async function loadAdminTraceDetail(traceId: string): Promise<AdminTraceDetail> {
+/** 管理端模型用量使用独立分页查询，避免把概览 Fixture 或治理聚合数据当成明细来源。 */
+export async function loadAdminUsagePage(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminUsageRow>> {
+  const data = await loadAdminQuery<AdminQueryUsage>(
+    'usage',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
+  return {
+    items: data.items.map((row, index) => ({
+      key: `usage-${row.provider}-${row.model}-${index}`,
+      provider: row.provider || '-',
+      model: row.model || '-',
+      scene: row.scene || '-',
+      tokens: row.tokens || '-',
+      cost: text(row.cost),
+      latencyMs: numeric(row.latency_ms),
+      status: row.status || '-',
+    })),
+    total: data.total,
+    page: data.page,
+    size: data.size,
+  };
+}
+
+export async function loadAdminTraceDetail(traceId: string, signal?: AbortSignal): Promise<AdminTraceDetail> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminTraceDetail>(`/api/admin/queries/traces/${encodeURIComponent(traceId)}`);
+  return apiRequest<AdminTraceDetail>(
+    `/api/admin/queries/traces/${encodeURIComponent(traceId)}`,
+    readRequestInit(signal),
+  );
 }
 
 type AdminDeletedQueryItem = {
@@ -647,9 +720,10 @@ type AdminDeletedQueryItem = {
 
 export async function loadAdminDeletedResourcesPage(
   params: AdminQueryParams = {},
+  signal?: AbortSignal,
 ): Promise<AdminPageResult<AdminDeletedRow>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await loadAdminQuery<AdminDeletedQueryItem>('deleted', params);
+  const data = await loadAdminQuery<AdminDeletedQueryItem>('deleted', params, signal);
   return {
     items: data.items.map((row, index) => ({
       key: `deleted-${row.resource_id ?? index}`,
@@ -675,17 +749,178 @@ export async function loadAdminDeletedResources(): Promise<AdminDeletedRow[]> {
 
 export async function loadAdminOperationAuditsPage(
   params: AdminQueryParams = {},
+  signal?: AbortSignal,
 ): Promise<AdminPageResult<AdminOperationAuditResponse>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  const data = await loadAdminQuery<AdminOperationAuditResponse>('operation-audits', {
-    size: 20,
-    ...params,
-  });
+  const data = await loadAdminQuery<AdminOperationAuditResponse>(
+    'operation-audits',
+    {
+      size: 20,
+      ...params,
+    },
+    signal,
+  );
   return data;
 }
 
 export async function loadAdminOperationAudits(): Promise<AdminOperationAuditResponse[]> {
   return (await loadAdminOperationAuditsPage()).items;
+}
+
+export type AdminAuditReport = {
+  generated_at: string;
+  stale_threshold_minutes: number;
+  status: string;
+  checks: Array<{
+    code: string;
+    status: string;
+    pending_count: number;
+    failed_count: number;
+    oldest_at: string | null;
+    reason_codes: string[];
+  }>;
+};
+
+export async function loadAdminAuditReport(signal?: AbortSignal): Promise<AdminAuditReport> {
+  if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
+  return apiRequest<AdminAuditReport>('/api/admin/audit-reports/current', readRequestInit(signal));
+}
+
+export type AdminDlqReplayResult = {
+  replay_id: number;
+  dlq_id: number;
+  status: string;
+  original_message_id: string;
+};
+
+export async function replayAdminDlq(dlqId: number, signal?: AbortSignal): Promise<AdminDlqReplayResult> {
+  const digest = await sha256(`runtime.dlq.replay|${dlqId}||1`);
+  return adminWrite<AdminDlqReplayResult>(
+    `/api/admin/dlq/${encodeURIComponent(String(dlqId))}/replay`,
+    'POST',
+    { confirmed: true, confirmationDigest: digest },
+    'admin-dlq-replay',
+    signal,
+  );
+}
+
+export type RetentionPurgeResult = {
+  request_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  eligible_at: string;
+  task_count: number;
+};
+
+export type RetentionPurgePreflight = {
+  request_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  policy_found: boolean;
+  hard_delete_enabled: boolean;
+  resource_soft_deleted: boolean;
+  retention_elapsed: boolean;
+  legal_hold_clear: boolean;
+  task_contract_valid: boolean;
+  ready_to_execute: boolean;
+  tasks: Array<{
+    task_type: string;
+    status: string;
+    attempt_count: number;
+    last_error_code: string | null;
+  }>;
+  blockers: string[];
+};
+
+export type RetentionHoldResult = {
+  hold_id: number;
+  status: string;
+  resource_type: string;
+  resource_id: number;
+  reason_code: string;
+};
+
+export async function requestRetentionPurge(
+  resourceType: string,
+  resourceId: number,
+  signal?: AbortSignal,
+): Promise<RetentionPurgeResult> {
+  const digest = await sha256(`retention.purge|${resourceType}|${resourceId}|1`);
+  return adminWrite<RetentionPurgeResult>(
+    '/api/admin/data-retention/purge-requests',
+    'POST',
+    {
+      resource_type: resourceType,
+      resource_id: resourceId,
+      confirmed: true,
+      confirmation_digest: digest,
+    },
+    'retention-purge',
+    signal,
+  );
+}
+
+export async function loadRetentionPurge(requestId: number, signal?: AbortSignal): Promise<RetentionPurgeResult> {
+  return apiRequest<RetentionPurgeResult>(
+    `/api/admin/data-retention/purge-requests/${requestId}`,
+    readRequestInit(signal),
+  );
+}
+
+export async function loadRetentionPurgePreflight(
+  requestId: number,
+  signal?: AbortSignal,
+): Promise<RetentionPurgePreflight> {
+  return apiRequest<RetentionPurgePreflight>(
+    `/api/admin/data-retention/purge-requests/${requestId}/preflight`,
+    readRequestInit(signal),
+  );
+}
+
+export async function approveRetentionPurge(requestId: number, signal?: AbortSignal): Promise<RetentionPurgeResult> {
+  const digest = await sha256(`retention.approve|${requestId}|1`);
+  return adminWrite<RetentionPurgeResult>(
+    `/api/admin/data-retention/purge-requests/${requestId}/approve`,
+    'POST',
+    { confirmed: true, confirmation_digest: digest },
+    'retention-approve',
+    signal,
+  );
+}
+
+export async function placeRetentionHold(
+  resourceType: string,
+  resourceId: number,
+  reasonCode: string,
+  signal?: AbortSignal,
+): Promise<RetentionHoldResult> {
+  const digest = await sha256(`retention.hold|${resourceType}|${resourceId}|${reasonCode}|1`);
+  return adminWrite<RetentionHoldResult>(
+    '/api/admin/data-retention/holds',
+    'POST',
+    {
+      resource_type: resourceType,
+      resource_id: resourceId,
+      reason_code: reasonCode,
+      confirmed: true,
+      confirmation_digest: digest,
+    },
+    'retention-hold',
+    signal,
+  );
+}
+
+export async function releaseRetentionHold(holdId: number, signal?: AbortSignal): Promise<RetentionHoldResult> {
+  const digest = await sha256(`retention.release|${holdId}|1`);
+  return adminWrite<RetentionHoldResult>(
+    `/api/admin/data-retention/holds/${holdId}/release`,
+    'POST',
+    { confirmed: true, confirmation_digest: digest },
+    'retention-release',
+    signal,
+  );
 }
 
 export type AdminExportStatus = {
@@ -702,9 +937,11 @@ export async function requestAdminExport(
   resource: string,
   filters: { query?: string; status?: string; visibility?: string; sort?: string; direction?: 'asc' | 'desc' } = {},
   fields?: string[],
+  signal?: AbortSignal,
 ) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
   return apiRequest<{ export_job_id: number }>('/api/admin/exports', {
+    ...readRequestInit(signal),
     method: 'POST',
     headers: { 'Idempotency-Key': randomIdempotencyKey(`admin-export-${resource}`) },
     body: JSON.stringify({
@@ -715,14 +952,17 @@ export async function requestAdminExport(
   });
 }
 
-export async function loadAdminExportStatus(jobId: number) {
+export async function loadAdminExportStatus(jobId: number, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminExportStatus>(`/api/admin/exports/${jobId}`);
+  return apiRequest<AdminExportStatus>(`/api/admin/exports/${jobId}`, readRequestInit(signal));
 }
 
-export async function downloadAdminExport(jobId: number) {
+export async function downloadAdminExport(jobId: number, signal?: AbortSignal) {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<{ download_url: string }>(`/api/admin/exports/${jobId}/download`, { method: 'POST' });
+  return apiRequest<{ download_url: string }>(`/api/admin/exports/${jobId}/download`, {
+    ...readRequestInit(signal),
+    method: 'POST',
+  });
 }
 
 export type AdminUserRow = {
@@ -869,54 +1109,96 @@ type AdminQueryUser = {
   revision?: number;
 };
 
-export async function loadAdminUsersPage(params: AdminQueryParams = {}): Promise<AdminPageResult<AdminUserRow>> {
+export async function loadAdminUsersPage(
+  params: AdminQueryParams = {},
+  signal?: AbortSignal,
+): Promise<AdminPageResult<AdminUserRow>> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') {
     const items = adminUserRows as AdminUserRow[];
     return { items, total: items.length, page: 1, size: items.length };
   }
-  const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params });
+  const page = params.page ?? 1;
+  const size = params.size ?? 20;
+  const hasQueryFilter = [
+    params.query,
+    params.status,
+    params.visibility,
+    params.role,
+    params.resourceType,
+    params.from,
+    params.action,
+    params.targetType,
+    params.sort,
+    params.direction,
+  ].some((value) => Boolean(value && value !== 'all'));
+  if (page === 1 && !hasQueryFilter) {
+    // 默认用户页使用专用列表接口；发生筛选或翻页时再切换到分页查询接口。
+    const items = await loadAdminUsers(signal);
+    return { items: items.slice(0, size), total: items.length, page: 1, size };
+  }
+  const data = await loadAdminQuery<AdminQueryUser>('users', { size: 20, ...params }, signal);
   return { ...data, items: data.items.map(normalizeAdminUser) };
 }
 
-export async function loadAdminUsers(): Promise<AdminUserRow[]> {
+export async function loadAdminUsers(signal?: AbortSignal): Promise<AdminUserRow[]> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') return adminUserRows;
-  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users');
+  const data = await apiRequest<AdminUserResponse[]>('/api/admin/users', readRequestInit(signal));
   return data.map(normalizeAdminUser);
 }
 
-export async function loadAdminUserDetail(userId: string): Promise<AdminUserDetail> {
+export async function loadAdminUserDetail(userId: string, signal?: AbortSignal): Promise<AdminUserDetail> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real admin API is disabled');
-  return apiRequest<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(userId)}/detail`);
+  return apiRequest<AdminUserDetail>(`/api/admin/users/${encodeURIComponent(userId)}/detail`, readRequestInit(signal));
 }
 
-async function adminWrite<T>(path: string, method: string, payload?: object, idempotencyPrefix?: string): Promise<T> {
+async function adminWrite<T>(
+  path: string,
+  method: string,
+  payload?: object,
+  idempotencyPrefix?: string,
+  signal?: AbortSignal,
+): Promise<T> {
   return apiRequest<T>(path, {
     method,
     headers: idempotencyPrefix ? { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) } : undefined,
     body: payload === undefined ? undefined : JSON.stringify(payload),
+    signal,
   });
 }
 
-export async function updateAdminUserStatus(id: string, status: string, revision = 1) {
+export async function updateAdminUserStatus(id: string, status: string, revision = 1, signal?: AbortSignal) {
   const digest = await confirmationDigest('admin.user.status.update', id, status, revision);
   return adminWrite(
     `/api/admin/users/${encodeURIComponent(id)}/status`,
     'PATCH',
     { status, revision, confirmed: true, confirmationDigest: digest },
     'admin-user-status',
+    signal,
   );
 }
 
-export async function revokeAdminUserSessions(id: string, revision = 1) {
+export async function revokeAdminUserSessions(id: string, revision = 1, signal?: AbortSignal) {
   const digest = await confirmationDigest('admin.user.sessions.revoke_all', id, '', revision);
   return adminWrite(
     `/api/admin/users/${encodeURIComponent(id)}/sessions/revoke-all`,
     'POST',
     { revision, confirmed: true, confirmationDigest: digest },
     'admin-user-sessions',
+    signal,
   );
 }
-export async function updateAdminToolStatus(name: string, status: string, revision = 1) {
+
+export async function resetAdminUserCredentials(id: string, revision = 1, signal?: AbortSignal) {
+  const digest = await confirmationDigest('admin.user.credentials.reset', id, '', revision);
+  return adminWrite(
+    `/api/admin/users/${encodeURIComponent(id)}/credentials/reset`,
+    'POST',
+    { revision, confirmed: true, confirmationDigest: digest },
+    'admin-user-credentials-reset',
+    signal,
+  );
+}
+export async function updateAdminToolStatus(name: string, status: string, revision = 1, signal?: AbortSignal) {
   const action = 'admin.tool.status.update';
   const digest = await confirmationDigest(action, name, status, revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -924,11 +1206,12 @@ export async function updateAdminToolStatus(name: string, status: string, revisi
     'PATCH',
     { status, revision, confirmed: true, confirmationDigest: digest },
     'admin-tool-status',
+    signal,
   );
 }
-export const updateKnowledgeStatus = (id: string, status: string) =>
-  adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status });
-export async function restoreAdminResource(type: string, id: string, revision = 1) {
+export const updateKnowledgeStatus = (id: string, status: string, signal?: AbortSignal) =>
+  adminWrite(`/api/admin/knowledge/${encodeURIComponent(id)}/status`, 'PATCH', { status }, undefined, signal);
+export async function restoreAdminResource(type: string, id: string, revision = 1, signal?: AbortSignal) {
   const action = 'admin.resource.restore';
   const digest = await confirmationDigest(action, type, id, revision);
   return modelGovernanceWrite<ModelGovernanceMutation>(
@@ -936,30 +1219,18 @@ export async function restoreAdminResource(type: string, id: string, revision = 
     'POST',
     { revision, confirmed: true, confirmationDigest: digest },
     'admin-resource-restore',
+    signal,
   );
 }
 
-export async function uploadKnowledgeDocument(file: File) {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
+export async function uploadKnowledgeDocument(file: File, signal?: AbortSignal) {
   const form = new FormData();
   form.append('file', file);
-  const response = await fetch(`${baseUrl}/api/admin/knowledge`, {
+  return apiRequest<{ document_id: number }>('/api/admin/knowledge', {
     method: 'POST',
-    credentials: 'include',
-    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
     body: form,
+    signal,
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data: { document_id: number };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? 'Knowledge document upload failed');
-  return body.data;
 }
 
 export type KnowledgeUploadBatch = {
@@ -992,12 +1263,19 @@ export type KnowledgeBatchEvent = {
   payload: unknown;
 };
 
-export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise<{ batch_id: string }> {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')[1];
+export type KnowledgeBatchStreamOptions = {
+  lastEventId?: string;
+  signal?: AbortSignal;
+  maxAttempts?: number;
+  reconnectDelayMs?: number;
+  onStateChange?: (connection: AgentStreamConnection) => void;
+  onError?: (connection: AgentStreamConnection) => void;
+};
+
+export async function uploadKnowledgeBatch(
+  batch: KnowledgeUploadBatch,
+  signal?: AbortSignal,
+): Promise<{ batch_id: string }> {
   const form = new FormData();
   batch.files.forEach((file) => form.append('files', file));
   form.append('source_type', batch.sourceType);
@@ -1005,69 +1283,104 @@ export async function uploadKnowledgeBatch(batch: KnowledgeUploadBatch): Promise
   form.append('source_version', batch.sourceVersion);
   form.append('license_notice', batch.licenseNotice);
   form.append('idempotency_key', batch.idempotencyKey);
-  const response = await fetch(`${baseUrl}/api/admin/knowledge-documents/upload-batches`, {
+  return apiRequest<{ batch_id: string }>('/api/admin/knowledge-documents/upload-batches', {
     method: 'POST',
-    credentials: 'include',
-    headers: csrf ? { 'X-CSRF-Token': csrf } : {},
     body: form,
+    signal,
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data?: { batch_id: string };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '知识库批次上传失败');
-  return body.data;
 }
 
-export const loadKnowledgeBatch = (batchId: string) =>
-  apiRequest<KnowledgeBatchDetail>(`/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`);
-
-export function streamKnowledgeBatch(batchId: string, onEvent: (event: KnowledgeBatchEvent) => void): () => void {
-  const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-  const source = new EventSource(
-    `${baseUrl}/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
-    {
-      withCredentials: true,
-    },
+export const loadKnowledgeBatch = (batchId: string, signal?: AbortSignal) =>
+  apiRequest<KnowledgeBatchDetail>(
+    `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}`,
+    readRequestInit(signal),
   );
-  const eventTypes = [
-    'knowledge.index.indexed',
-    'knowledge.index.index_failed',
-    'knowledge.index.retry',
-    'knowledge.batch.progress',
-  ];
-  const listeners = eventTypes.map((eventType) => {
-    const listener = (message: Event) => {
-      const event = message as MessageEvent<string>;
-      let payload: unknown = event.data;
-      try {
-        payload = JSON.parse(event.data);
-      } catch {
-        // The server may return a safe textual error payload; progress refresh still remains authoritative.
-      }
-      onEvent({ event_id: event.lastEventId, event_type: eventType, payload });
-    };
-    source.addEventListener(eventType, listener);
-    return [eventType, listener] as const;
-  });
-  return () => {
-    listeners.forEach(([eventType, listener]) => source.removeEventListener(eventType, listener));
-    source.close();
-  };
+
+const knowledgeBatchEventTypes = [
+  'knowledge.index.indexed',
+  'knowledge.index.index_failed',
+  'knowledge.index.retry',
+  'knowledge.index.reindex',
+  'knowledge.batch.progress',
+] as const;
+
+function knowledgeBatchStringField(value: unknown, key: string) {
+  if (!value || typeof value !== 'object') return undefined;
+  const field = (value as Record<string, unknown>)[key];
+  return field === undefined || field === null ? undefined : String(field);
 }
-export const retryKnowledgeItem = (batchId: string, itemId: string) =>
+
+function isTerminalKnowledgeBatchEvent(eventType: string, payload: unknown) {
+  if (eventType !== 'knowledge.batch.progress') return false;
+  const status = knowledgeBatchStringField(payload, 'status')?.toLowerCase();
+  return status === 'completed' || status === 'partial_failed' || status === 'failed';
+}
+
+export function streamKnowledgeBatch(
+  batchId: string,
+  onEvent: (event: KnowledgeBatchEvent) => void,
+  options: KnowledgeBatchStreamOptions = {},
+): AgentStreamHandle {
+  return openSseStream<unknown>({
+    path: `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/events`,
+    eventTypes: knowledgeBatchEventTypes,
+    lastEventId: options.lastEventId,
+    signal: options.signal,
+    maxAttempts: options.maxAttempts,
+    reconnectDelayMs: options.reconnectDelayMs,
+    onStateChange: options.onStateChange,
+    onError: options.onError,
+    parseEvent: (message, registeredType) => {
+      let payload: unknown;
+      try {
+        payload = JSON.parse(message.data) as unknown;
+      } catch {
+        // 文本错误仍然保留为事件载荷，批次详情刷新负责提供权威状态。
+        payload = { message: message.data };
+      }
+      const eventType =
+        knowledgeBatchStringField(payload, 'event_type') ??
+        knowledgeBatchStringField(payload, 'eventType') ??
+        registeredType;
+      const eventIds = [
+        message.lastEventId,
+        knowledgeBatchStringField(payload, 'sse_event_id'),
+        knowledgeBatchStringField(payload, 'event_id'),
+      ].filter((eventId): eventId is string => Boolean(eventId));
+      const eventId = eventIds[0] ?? '';
+      return { payload, eventId, eventIds, eventType };
+    },
+    onEvent: (eventType, payload, eventId) => onEvent({ event_id: eventId, event_type: eventType, payload }),
+    isTerminal: isTerminalKnowledgeBatchEvent,
+  });
+}
+export const retryKnowledgeItem = (batchId: string, itemId: string, signal?: AbortSignal) =>
   adminWrite(
     `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/retry`,
     'POST',
+    undefined,
+    undefined,
+    signal,
+  );
+export const reindexKnowledgeItem = (batchId: string, itemId: string, signal?: AbortSignal) =>
+  adminWrite(
+    `/api/admin/knowledge-upload-batches/${encodeURIComponent(batchId)}/documents/${encodeURIComponent(itemId)}/reindex`,
+    'POST',
+    undefined,
+    undefined,
+    signal,
   );
 export const changeKnowledgeVisibility = (
   documentId: string,
   visibility: 'published' | 'disabled' | 'draft' | 'deleted',
+  signal?: AbortSignal,
 ) =>
   adminWrite(
     `/api/admin/knowledge-documents/${encodeURIComponent(documentId)}/${visibility === 'draft' ? 'restore' : visibility}`,
     'POST',
+    undefined,
+    undefined,
+    signal,
   );
 
 export type ModelGovernanceProvider = {
@@ -1161,10 +1474,39 @@ export type ModelGovernanceView = {
   usage: ModelGovernanceUsage[];
 };
 
-type ModelGovernanceMutation = {
+export type ModelGovernanceMutation = {
   changed: boolean;
   resource_id: number;
   version: string;
+  revision: number;
+};
+
+export type ModelGovernanceUsageQuery = {
+  from?: string;
+  to?: string;
+};
+
+export type CreateModelPriceRequest = {
+  providerCode: string;
+  modelName: string;
+  priceVersion: string;
+  inputPricePerMillion: number | string;
+  outputPricePerMillion: number | string;
+  currency: string;
+  effectiveAt: string;
+  revision: number;
+};
+
+export type CreateModelBudgetRequest = {
+  policyKey: string;
+  scene: string;
+  scopeType: string;
+  maxTotalTokens: number;
+  maxCostCny: number | string;
+  maxModelCalls: number;
+  maxStepRetries: number;
+  windowType: string;
+  policyVersion: string;
   revision: number;
 };
 
@@ -1184,20 +1526,36 @@ async function modelGovernanceWrite<T>(
   method: 'POST' | 'PATCH' | 'PUT',
   payload: object,
   idempotencyPrefix: string,
+  signal?: AbortSignal,
 ) {
   return apiRequest<T>(path, {
     method,
     headers: { 'Idempotency-Key': randomIdempotencyKey(idempotencyPrefix) },
     body: JSON.stringify(payload),
+    signal,
   });
 }
 
-export async function loadModelGovernance(): Promise<ModelGovernanceView> {
+export async function loadModelGovernance(
+  query: ModelGovernanceUsageQuery = {},
+  signal?: AbortSignal,
+): Promise<ModelGovernanceView> {
   if (import.meta.env.VITE_AGENT_MODE !== 'real') throw new Error('Real model governance API is disabled');
-  return apiRequest<ModelGovernanceView>('/api/admin/model-governance');
+  const search = new URLSearchParams();
+  if (query.from) search.set('from', query.from);
+  if (query.to) search.set('to', query.to);
+  const suffix = search.toString();
+  return apiRequest<ModelGovernanceView>(
+    `/api/admin/model-governance${suffix ? `?${suffix}` : ''}`,
+    readRequestInit(signal),
+  );
 }
 
-export async function updateModelProviderStatus(provider: ModelGovernanceProvider, status: string) {
+export async function updateModelProviderStatus(
+  provider: ModelGovernanceProvider,
+  status: string,
+  signal?: AbortSignal,
+) {
   const action = 'model.provider.status.update';
   const target = provider.provider_code;
   const digest = await confirmationDigest(action, target, status, provider.revision);
@@ -1206,10 +1564,11 @@ export async function updateModelProviderStatus(provider: ModelGovernanceProvide
     'PATCH',
     { status, revision: provider.revision, confirmed: true, confirmationDigest: digest },
     'model-provider-status',
+    signal,
   );
 }
 
-export async function updateModelCatalogStatus(model: ModelGovernanceModel, status: string) {
+export async function updateModelCatalogStatus(model: ModelGovernanceModel, status: string, signal?: AbortSignal) {
   const action = 'model.catalog.status.update';
   const target = String(model.model_id);
   const digest = await confirmationDigest(action, target, status, model.revision);
@@ -1218,10 +1577,11 @@ export async function updateModelCatalogStatus(model: ModelGovernanceModel, stat
     'PATCH',
     { status, revision: model.revision, confirmed: true, confirmationDigest: digest },
     'model-catalog-status',
+    signal,
   );
 }
 
-export async function updateModelRoute(route: ModelGovernanceRoute, status: string) {
+export async function updateModelRoute(route: ModelGovernanceRoute, status: string, signal?: AbortSignal) {
   const action = 'model.route.update';
   const target = String(route.route_id);
   const digest = await confirmationDigest(action, target, route.route_version, route.revision);
@@ -1245,7 +1605,67 @@ export async function updateModelRoute(route: ModelGovernanceRoute, status: stri
       confirmationDigest: digest,
     },
     'model-route-update',
+    signal,
   );
+}
+
+export async function createModelPrice(
+  request: CreateModelPriceRequest,
+  signal?: AbortSignal,
+): Promise<ModelGovernanceMutation> {
+  const target = `${request.providerCode.trim()}:${request.modelName.trim()}:${request.priceVersion.trim()}`;
+  const digest = await confirmationDigest('model.price.create', target, request.priceVersion, request.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    '/api/admin/model-governance/prices',
+    'POST',
+    {
+      providerCode: request.providerCode,
+      modelName: request.modelName,
+      priceVersion: request.priceVersion,
+      inputPricePerMillion: request.inputPricePerMillion,
+      outputPricePerMillion: request.outputPricePerMillion,
+      currency: request.currency,
+      effectiveAt: request.effectiveAt,
+      revision: request.revision,
+      confirmed: true,
+      confirmationDigest: digest,
+    },
+    'model-price-create',
+    signal,
+  );
+}
+
+export async function createModelBudget(
+  request: CreateModelBudgetRequest,
+  signal?: AbortSignal,
+): Promise<ModelGovernanceMutation> {
+  const target = `${request.policyKey.trim()}:${request.policyVersion.trim()}`;
+  const digest = await confirmationDigest('model.budget.create', target, request.policyVersion, request.revision);
+  return modelGovernanceWrite<ModelGovernanceMutation>(
+    '/api/admin/model-governance/budgets',
+    'POST',
+    {
+      policyKey: request.policyKey,
+      scene: request.scene,
+      scopeType: request.scopeType,
+      maxTotalTokens: request.maxTotalTokens,
+      maxCostCny: request.maxCostCny,
+      maxModelCalls: request.maxModelCalls,
+      maxStepRetries: request.maxStepRetries,
+      windowType: request.windowType,
+      policyVersion: request.policyVersion,
+      revision: request.revision,
+      confirmed: true,
+      confirmationDigest: digest,
+    },
+    'model-budget-create',
+    signal,
+  );
+}
+
+async function sha256(value: string) {
+  const bytes = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('');
 }
 
 export {

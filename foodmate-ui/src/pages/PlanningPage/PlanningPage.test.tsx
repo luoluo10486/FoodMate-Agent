@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it } from 'vitest';
 import { PlanningPage } from './PlanningPage';
+import styles from './PlanningPage.module.css';
 
 function LocationProbe() {
   const location = useLocation();
@@ -43,8 +44,8 @@ describe('PlanningPage', () => {
     expect(screen.getByRole('status')).toHaveTextContent('计划已保存');
   });
 
-  it('renders the Figma shell with session history', () => {
-    renderPage('/planning?state=v2');
+  it.each(['v2', 'figma-v2'])('renders the Figma shell with session history for state=%s', (state) => {
+    renderPage(`/planning?state=${state}`);
 
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
     expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
@@ -52,6 +53,17 @@ describe('PlanningPage', () => {
     expect(document.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(2);
     expect(document.querySelector('img[src="/assets/figma/workspace/planning/meal-planning.svg"]')).toBeInTheDocument();
     expect(screen.getByLabelText('餐食规划')).toHaveAttribute('data-figma-node-id', '640:974');
+  });
+
+  it.each(['v2', 'figma-v2'])('keeps the Figma schedule grid readable for state=%s', (state) => {
+    renderPage(`/planning?state=${state}`);
+
+    const planningMain = screen.getByLabelText('餐食规划');
+    const scheduleSection = screen.getByRole('heading', { name: '每周日程' }).closest('section');
+
+    expect(planningMain).toHaveClass(styles.figmaPlanMain);
+    expect(scheduleSection).toHaveClass(styles.scheduleSection);
+    expect(scheduleSection?.querySelector(`.${styles.scheduleGrid}`)).toBeInTheDocument();
   });
 
   it('keeps the account dock in the Figma planning fixture', () => {
@@ -62,14 +74,18 @@ describe('PlanningPage', () => {
     expect(screen.getByText('Anddy 的工作区')).toBeInTheDocument();
   });
 
-  it('keeps wizard fixtures aligned with the single-card Figma composition', () => {
-    const wizardStates = ['wizard-step1', 'wizard-step2', 'wizard-step3'] as const;
-    for (const state of wizardStates) {
+  it('keeps wizard fixtures aligned with the current Figma context panels', () => {
+    const wizardStates = [
+      ['wizard-step1', '草稿与必填校验', '977:3', '必填项 ✓ 已完成'],
+      ['wizard-step2', '约束已记录', '980:3', '过敏源：花生 · 甲壳类 · 乳制品'],
+      ['wizard-step3', '生成前检查', '981:3', '✓ 目标、日期、预算、过敏源均已确认'],
+    ] as const;
+    for (const [state, panelTitle, panelNodeId, panelCopy] of wizardStates) {
       const { unmount } = renderPage(`/planning?state=${state}`);
 
-      expect(screen.queryByText('草稿与必填校验')).not.toBeInTheDocument();
-      expect(screen.queryByText('约束已记录')).not.toBeInTheDocument();
-      expect(screen.queryByText('生成前检查')).not.toBeInTheDocument();
+      const contextPanel = screen.getByRole('complementary', { name: panelTitle });
+      expect(contextPanel).toHaveAttribute('data-figma-node-id', panelNodeId);
+      expect(contextPanel).toHaveTextContent(panelCopy);
       expect(document.querySelectorAll('img[data-avatar-source]')).toHaveLength(2);
       expect(
         [...document.querySelectorAll('img[data-avatar-source]')].every(

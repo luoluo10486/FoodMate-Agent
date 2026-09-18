@@ -1,8 +1,10 @@
 package com.foodmate.api.controller;
 
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -191,6 +193,105 @@ class P1AccountControllerTest {
     @Test
     void protectedEndpointRequiresSessionCookie() throws Exception {
         mockMvc.perform(get("/api/users/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error.code", is("AUTH_REQUIRED")));
+    }
+
+    @Test
+    void updatesProfileJsonFieldsAndAllowsClearingAllergens() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"profile-user\",\"email\":\"profile@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"profile-user\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+        var session = login.getCookie("foodmate_session");
+        var csrf = login.getCookie("foodmate_csrf");
+
+        mockMvc.perform(
+                        put("/api/users/me/profile")
+                                .cookie(session, csrf)
+                                .header("X-CSRF-Token", csrf.getValue())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"display_name\":\"Profile User\",\"allergens\":[\"花生\",\"乳糖\"],\"dislikes\":[\"香菜\"],\"preferred_units\":{\"weight\":\"g\",\"energy\":\"kcal\"}}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.allergens", is("[\"花生\",\"乳糖\"]")))
+                .andExpect(jsonPath("$.data.dislikes", is("[\"香菜\"]")))
+                .andExpect(
+                        jsonPath(
+                                "$.data.preferred_units",
+                                is("{\"weight\":\"g\",\"energy\":\"kcal\"}")));
+
+        mockMvc.perform(
+                        put("/api/users/me/profile")
+                                .cookie(session, csrf)
+                                .header("X-CSRF-Token", csrf.getValue())
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"allergens\":[],\"dislikes\":[]}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.allergens", is("[]")))
+                .andExpect(jsonPath("$.data.dislikes", is("[]")));
+    }
+
+    @Test
+    void marksThePresentedSessionAsCurrentInTheSessionList() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"session-user\",\"email\":\"session@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"session-user\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+
+        mockMvc.perform(get("/api/users/me/sessions").cookie(login.getCookie("foodmate_session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[?(@.current == true)]", hasSize(1)));
+    }
+
+    @Test
+    void revokingAllAuthSessionsAlsoInvalidatesTheCurrentSession() throws Exception {
+        mockMvc.perform(
+                        post("/api/auth/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(
+                                        "{\"username\":\"revoke-user\",\"email\":\"revoke@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+        var login =
+                mockMvc.perform(
+                                post("/api/auth/login")
+                                        .contentType(MediaType.APPLICATION_JSON)
+                                        .content(
+                                                "{\"username_or_email\":\"revoke-user\",\"password\":\"password123\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse();
+        var session = login.getCookie("foodmate_session");
+        var csrf = login.getCookie("foodmate_csrf");
+
+        mockMvc.perform(
+                        post("/api/users/me/sessions/revoke-all")
+                                .cookie(session, csrf)
+                                .header("X-CSRF-Token", csrf.getValue()))
+                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/users/me").cookie(session))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error.code", is("AUTH_REQUIRED")));
     }

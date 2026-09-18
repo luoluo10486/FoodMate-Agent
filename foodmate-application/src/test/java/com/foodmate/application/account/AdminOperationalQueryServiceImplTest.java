@@ -45,6 +45,92 @@ class AdminOperationalQueryServiceImplTest {
     }
 
     @Test
+    void usesValidDefaultSortForResourcesWithoutCreatedAt() {
+        when(store.traces(any())).thenReturn(List.of());
+        when(store.countTraces(any())).thenReturn(0L);
+        when(store.knowledge(any())).thenReturn(List.of());
+        when(store.countKnowledge(any())).thenReturn(0L);
+        when(store.deleted(any())).thenReturn(List.of());
+        when(store.countDeleted(any())).thenReturn(0L);
+        when(store.dlq(any())).thenReturn(List.of());
+        when(store.countDlq(any())).thenReturn(0L);
+
+        service.query(
+                "traces",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "knowledge",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "deleted",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+        service.query(
+                "dlq",
+                new AdminOperationalQueryService.Request(1, 20, null, null, null, null, null));
+
+        ArgumentCaptor<AdminOperationalQueryRepository.Query> query =
+                ArgumentCaptor.forClass(AdminOperationalQueryRepository.Query.class);
+        verify(store).traces(query.capture());
+        assertEquals("started_at", query.getValue().sort());
+        verify(store).knowledge(query.capture());
+        assertEquals("updated_at", query.getValue().sort());
+        verify(store).deleted(query.capture());
+        assertEquals("deleted_at", query.getValue().sort());
+        verify(store).dlq(query.capture());
+        assertEquals("first_seen_at", query.getValue().sort());
+    }
+
+    @Test
+    void forwardsRunResultFiltersAndMapsDegradedState() {
+        when(store.runs(any()))
+                .thenReturn(
+                        List.of(
+                                new AdminOperationalQueryRepository.RunRow(
+                                        42L,
+                                        7L,
+                                        "planning",
+                                        "completed",
+                                        "trace-42",
+                                        new BigDecimal("12.5"),
+                                        "user-42",
+                                        "safety_degraded",
+                                        "KNOWLEDGE_TIMEOUT")));
+        when(store.countRuns(any())).thenReturn(1L);
+
+        var result =
+                service.query(
+                        "runs",
+                        new AdminOperationalQueryService.Request(
+                                1,
+                                20,
+                                null,
+                                "completed",
+                                null,
+                                null,
+                                "desc",
+                                null,
+                                null,
+                                null,
+                                null,
+                                null,
+                                "safety_degraded",
+                                "TIMEOUT",
+                                true));
+
+        ArgumentCaptor<AdminOperationalQueryRepository.Query> query =
+                ArgumentCaptor.forClass(AdminOperationalQueryRepository.Query.class);
+        verify(store).runs(query.capture());
+        assertEquals("safety_degraded", query.getValue().resultType());
+        assertEquals("TIMEOUT", query.getValue().errorCode());
+        assertEquals(Boolean.TRUE, query.getValue().degraded());
+
+        var row = (AdminOperationalQueryService.Run) result.items().getFirst();
+        assertEquals("safety_degraded", row.resultType());
+        assertEquals("KNOWLEDGE_TIMEOUT", row.errorCode());
+        assertEquals(true, row.degraded());
+    }
+
+    @Test
     void forwardsUserRoleFilterWithoutExpandingUserQueryScope() {
         when(store.users(any())).thenReturn(List.of());
         when(store.countUsers(any())).thenReturn(0L);

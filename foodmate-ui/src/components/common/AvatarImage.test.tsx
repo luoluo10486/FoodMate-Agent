@@ -16,6 +16,7 @@ describe('AvatarImage', () => {
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-source', 'default-female');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-asset', '/assets/avatars/default-female.svg');
+    expect(container.querySelector('img')).toHaveAttribute('data-avatar-kind', 'person-default');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-registered', 'true');
   });
 
@@ -37,14 +38,27 @@ describe('AvatarImage', () => {
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-contract', 'registered-default-svg');
   });
 
-  it('falls back to the gender default for a persisted avatar address', () => {
+  it('keeps the gender default when a persisted avatar address lacks upload permission', () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
-    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" allowUploaded gender="女" alt="头像" />);
+    const { container } = render(<AvatarImage avatarUrl="/api/users/me/avatar" gender="女" alt="头像" />);
     const image = container.querySelector('img');
 
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-source', 'default-female');
     expect(image).toHaveAttribute('data-avatar-registered', 'true');
+  });
+
+  it('renders the trusted persisted avatar endpoint in real upload mode', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    const { container } = render(
+      <AvatarImage avatarUrl="/api/users/me/avatar" allowUploaded defaultOnly={false} gender="女" alt="头像" />,
+    );
+    const image = container.querySelector('img');
+
+    expect(image).toHaveAttribute('src', '/api/users/me/avatar');
+    expect(image).toHaveAttribute('data-avatar-kind', 'persisted-upload');
+    expect(image).toHaveAttribute('data-avatar-contract', 'trusted-upload');
+    expect(image).toHaveAttribute('data-avatar-registered', 'false');
   });
 
   it('keeps the registered default until a real temporary preview opts in', () => {
@@ -55,7 +69,15 @@ describe('AvatarImage', () => {
     expect(image).toHaveAttribute('src', '/assets/avatars/default-female.svg');
     expect(image).toHaveAttribute('data-avatar-policy', 'default-only');
 
-    rerender(<AvatarImage avatarUrl="blob:http://localhost/avatar-preview" allowUploaded gender="女" alt="头像" />);
+    rerender(
+      <AvatarImage
+        avatarUrl="blob:http://localhost/avatar-preview"
+        allowUploaded
+        defaultOnly={false}
+        gender="女"
+        alt="头像"
+      />,
+    );
     expect(container.querySelector('img')).toHaveAttribute('src', 'blob:http://localhost/avatar-preview');
     expect(container.querySelector('img')).toHaveAttribute('data-avatar-policy', 'uploaded-allowed');
   });
@@ -63,12 +85,19 @@ describe('AvatarImage', () => {
   it('only renders a temporary browser preview when the real upload flow opts in', () => {
     vi.stubEnv('VITE_AGENT_MODE', 'real');
     const { container } = render(
-      <AvatarImage avatarUrl="blob:http://localhost/avatar-preview" allowUploaded gender="女" alt="头像" />,
+      <AvatarImage
+        avatarUrl="blob:http://localhost/avatar-preview"
+        allowUploaded
+        defaultOnly={false}
+        gender="女"
+        alt="头像"
+      />,
     );
     const image = container.querySelector('img');
 
     expect(image).toHaveAttribute('src', 'blob:http://localhost/avatar-preview');
     expect(image).toHaveAttribute('data-avatar-source', 'uploaded');
+    expect(image).toHaveAttribute('data-avatar-kind', 'temporary-upload-preview');
     expect(image).toHaveAttribute('data-avatar-contract', 'trusted-upload');
     expect(image).toHaveAttribute('data-avatar-registered', 'false');
   });

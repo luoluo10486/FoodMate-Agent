@@ -27,6 +27,12 @@ describe('AdminPage overview', () => {
     expect(screen.getByText('$128.45')).toBeInTheDocument();
     expect(screen.getByText('显示第 1 到 6 条，共 12,480 条结果')).toBeInTheDocument();
     expect(screen.getAllByText('查看详情')).toHaveLength(6);
+    const detailLinks = screen.getAllByRole('link', { name: '查看详情' });
+    expect(detailLinks).toHaveLength(6);
+    expect(detailLinks.every((link) => link.matches('a[class*="overviewActionButton"]'))).toBe(true);
+    const overviewPills = Array.from(document.querySelectorAll('[class*="overviewPill"]'));
+    expect(overviewPills).toHaveLength(12);
+    expect(overviewPills.every((pill) => pill.tagName === 'DIV')).toBe(true);
     expect(screen.getByRole('button', { name: '复制 run_889a4' })).toBeInTheDocument();
 
     for (const label of [
@@ -41,10 +47,18 @@ describe('AdminPage overview', () => {
       '工具注册表',
       '删除资源',
       '操作审计',
+      '数据保留',
     ]) {
       expect(screen.getByRole('link', { name: label })).toBeInTheDocument();
     }
     expect(screen.queryByRole('link', { name: '模型治理' })).not.toBeInTheDocument();
+  });
+
+  it('renders the data retention route and highlights its navigation item', () => {
+    renderAdmin('/admin/data-retention');
+
+    expect(screen.getByText('数据保留治理')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '数据保留' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('does not render the Figma-only macOS window control dots', () => {
@@ -59,7 +73,7 @@ describe('AdminPage overview', () => {
     renderAdmin();
 
     const icons = Array.from(document.querySelectorAll<HTMLElement>('[data-figma-icon]'));
-    expect(icons).toHaveLength(11);
+    expect(icons).toHaveLength(12);
     expect(icons.map((icon) => icon.dataset.figmaIcon)).toEqual([
       'overview',
       'users',
@@ -71,6 +85,7 @@ describe('AdminPage overview', () => {
       'knowledge',
       'registry',
       'deleted',
+      'retention',
       'audit',
     ]);
     expect(
@@ -135,6 +150,31 @@ describe('AdminPage overview', () => {
     expect(screen.queryByText('run_552b1')).not.toBeInTheDocument();
   });
 
+  it('changes the fixture overview time filter without using an empty handler', async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+
+    await user.click(screen.getByRole('combobox', { name: '时间范围' }));
+    await user.click(screen.getByRole('option', { name: '近 7 天' }));
+
+    expect(screen.getByRole('combobox', { name: '时间范围' })).toHaveTextContent('近 7 天');
+  });
+
+  it('filters fixture overview rows by the selected time window', async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+
+    expect(screen.getByText('run_908d1')).toBeInTheDocument();
+    await user.click(screen.getByRole('combobox', { name: '时间范围' }));
+    await user.click(screen.getByRole('option', { name: '近 24h' }));
+
+    expect(screen.getByText('run_98218a')).toBeInTheDocument();
+    expect(screen.getByText('run_889a4')).toBeInTheDocument();
+    expect(screen.queryByText('run_552b1')).not.toBeInTheDocument();
+    expect(screen.queryByText('run_908d1')).not.toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: '查看详情' })).toHaveLength(3);
+  });
+
   it('highlights only the exact query route in the admin navigation', () => {
     const { unmount } = renderAdmin();
 
@@ -157,6 +197,15 @@ describe('AdminPage overview', () => {
     renderAdmin('/admin?view=audit&visual-qa=1');
 
     expect(screen.getByRole('link', { name: '操作审计' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('uses the Figma audit fixture identity and registered avatar', () => {
+    renderAdmin('/admin?view=audit&visual-qa=1');
+
+    expect(screen.getByText("Anddy's Lab")).toBeInTheDocument();
+    expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.body.textContent).not.toContain('&apos;');
   });
 
   it('maps admin visual fixture query states to their real sections', () => {
@@ -203,6 +252,24 @@ describe('AdminPage overview', () => {
     expect(closeButton).toHaveAttribute('data-figma-asset', 'admin-user-detail-close');
     expect(closeButton.querySelector('svg circle')).toBeInTheDocument();
     expect(document.querySelector('.userDetailAvatar img')).toHaveAttribute('src', '/assets/avatars/default-male.svg');
+    expect(document.querySelectorAll('img[data-avatar-registered="false"]')).toHaveLength(0);
+
+    const navigation = screen.getByRole('navigation', { name: '管理后台导航' });
+    expect(navigation.querySelectorAll('a')).toHaveLength(8);
+    expect(screen.getByRole('link', { name: '工具调用与 SQL' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '知识库' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '审计日志' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'SQL 审计' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Trace' })).not.toBeInTheDocument();
+
+    expect(screen.getAllByRole('tab')).toHaveLength(4);
+    expect(screen.getByRole('tab', { name: '会话' })).toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: '业务会话' })).not.toBeInTheDocument();
+    expect(screen.getByText('Showing 1-4 of 1,284 users')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '第 2 页' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: '用户详情 Tab' })).not.toBeInTheDocument();
+    expect(screen.getAllByText('Anddy 实验室')).toHaveLength(2);
+    expect(screen.queryByText("Anddy's Lab")).not.toBeInTheDocument();
   });
 
   it('limits operation-state fixtures to the four Figma registry rows', () => {

@@ -7,6 +7,7 @@ import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { FIXTURE_KNOWLEDGE_AVATARS } from '../../lib/avatar';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import { searchKnowledge, type KnowledgeCitation } from '../../services/knowledgeService';
 import type { SessionSummary } from '../../types/session';
 import styles from './KnowledgePage.module.css';
@@ -20,13 +21,18 @@ type KnowledgeResult = {
   source: string;
   updated: string;
   sourceTone: 'green' | 'blue' | 'purple';
-  topic: 'nutrition';
+  topic?: 'nutrition' | 'cooking';
   details: {
     sourceName: string;
     documentId: string;
     access: string;
     quote: string;
   };
+};
+
+type KnowledgeSearchError = {
+  message: string;
+  code?: string;
 };
 
 function toKnowledgeResult(citation: KnowledgeCitation): KnowledgeResult {
@@ -39,7 +45,6 @@ function toKnowledgeResult(citation: KnowledgeCitation): KnowledgeResult {
     source: `版本 ${version}`,
     updated: `章节 ${sectionPath}`,
     sourceTone: 'blue',
-    topic: 'nutrition',
     details: {
       sourceName: citation.title,
       documentId: `DOC ID: ${citation.document_id}`,
@@ -57,7 +62,7 @@ const knowledgeResults: KnowledgeResult[] = [
     source: 'NIH §4.2',
     updated: '2天前更新',
     sourceTone: 'blue',
-    topic: 'nutrition',
+    topic: 'cooking',
     details: {
       sourceName: 'NIH 研究实验室文献库',
       documentId: 'DOC ID: NIH-451992-B',
@@ -104,7 +109,14 @@ const topics = [
   { icon: '🥩', title: '氨基酸合成', count: '19 篇引用' },
 ];
 
-const filterOptions = ['全部主题', '营养素', '仅引用', '近90天'];
+const filterOptions = [
+  { key: 'all', label: '全部主题', fixtureSupported: true, realSupported: true },
+  { key: 'nutrition', label: '营养素', fixtureSupported: true, realSupported: false },
+  { key: 'citations', label: '仅引用', fixtureSupported: false, realSupported: false },
+  { key: 'recent', label: '近90天', fixtureSupported: false, realSupported: false },
+] as const;
+
+type KnowledgeFilterKey = (typeof filterOptions)[number]['key'];
 
 const figmaSidebarSessions: SessionSummary[] = [
   { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
@@ -128,12 +140,14 @@ export function KnowledgePage() {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [query, setQuery] = useState(searchParams.get('q') ?? '');
   const [selectedResultTitle, setSelectedResultTitle] = useState(knowledgeResults[0].title);
-  const [activeFilter, setActiveFilter] = useState('全部主题');
+  const [activeFilter, setActiveFilter] = useState<KnowledgeFilterKey>('all');
   const [remoteResults, setRemoteResults] = useState<KnowledgeResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string>();
+  const [searchError, setSearchError] = useState<KnowledgeSearchError>();
   const [hasSearched, setHasSearched] = useState(false);
   const initialQuery = useRef(searchParams.get('q') ?? '');
+  const searchRequestIdRef = useRef(0);
+  const searchControllerRef = useRef<AbortController>();
   const knowledgeState = getKnowledgeState(searchParams.get('state'));
   const displayedState: KnowledgeState = isRealMode
     ? searchError
@@ -154,7 +168,9 @@ export function KnowledgePage() {
   const visibleResults = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     const filterMatches = (item: KnowledgeResult) => {
-      if (activeFilter === '营养素') return item.topic === 'nutrition';
+      // 真实接口当前只接受 query，不能根据浏览器推断主题、引用类型或更新时间。
+      if (isRealMode || activeFilter === 'all') return true;
+      if (activeFilter === 'nutrition') return item.topic === 'nutrition';
       return true;
     };
 
@@ -180,30 +196,53 @@ export function KnowledgePage() {
   const executeRemoteSearch = useCallback(
     async (value: string) => {
       const normalizedQuery = value.trim();
+      searchControllerRef.current?.abort();
+      searchControllerRef.current = undefined;
+      const requestId = ++searchRequestIdRef.current;
       setSearchError(undefined);
       setHasSearched(Boolean(normalizedQuery));
       if (!normalizedQuery) {
         setRemoteResults([]);
         updateState('default');
+        setSearchLoading(false);
         return;
       }
+      const controller = new AbortController();
+      searchControllerRef.current = controller;
       setSearchLoading(true);
       try {
-        const citations = await searchKnowledge(normalizedQuery);
+        const citations = await searchKnowledge(normalizedQuery, controller.signal);
+        if (controller.signal.aborted || requestId !== searchRequestIdRef.current) return;
         const results = citations.map(toKnowledgeResult);
         setRemoteResults(results);
         setSelectedResultTitle(results[0]?.title ?? '');
         updateState('default');
       } catch (cause) {
+        if (controller.signal.aborted || requestId !== searchRequestIdRef.current || isAbortError(cause)) return;
         setRemoteResults([]);
         setSelectedResultTitle('');
-        setSearchError(cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试');
+        setSearchError(
+          cause instanceof ApiError
+            ? { message: cause.message, code: cause.code }
+            : { message: cause instanceof Error ? cause.message : '知识库检索失败，请稍后重试' },
+        );
       } finally {
-        setSearchLoading(false);
+        if (requestId === searchRequestIdRef.current) {
+          if (searchControllerRef.current === controller) searchControllerRef.current = undefined;
+          setSearchLoading(false);
+        }
       }
     },
     [updateState],
   );
+
+  useEffect(() => {
+    return () => {
+      searchRequestIdRef.current += 1;
+      searchControllerRef.current?.abort();
+      searchControllerRef.current = undefined;
+    };
+  }, []);
 
   useEffect(() => {
     if (!isRealMode || !initialQuery.current.trim()) return;
@@ -224,11 +263,15 @@ export function KnowledgePage() {
   };
 
   const clearFilters = () => {
+    searchRequestIdRef.current += 1;
+    searchControllerRef.current?.abort();
+    searchControllerRef.current = undefined;
     setQuery('');
-    setActiveFilter('全部主题');
+    setActiveFilter('all');
     setRemoteResults([]);
     setSearchError(undefined);
     setHasSearched(false);
+    setSearchLoading(false);
     setSearchParams(new URLSearchParams());
   };
 
@@ -251,7 +294,11 @@ export function KnowledgePage() {
         displayedState !== 'default' ? (
           <KnowledgeStateCard
             state={displayedState}
-            detail={isRealMode ? searchError : undefined}
+            detail={
+              isRealMode && searchError
+                ? `${searchError.code ? `错误码: ${searchError.code} · ` : ''}${searchError.message}`
+                : undefined
+            }
             onAction={
               displayedState === 'empty'
                 ? clearFilters
@@ -264,7 +311,7 @@ export function KnowledgePage() {
       }
     >
       <div
-        className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} ${isFigmaDefaultFixture ? styles.defaultFixture : ''} fm-enter`}
+        className={`${styles.page} ${isFigmaFixture ? styles.figmaFixture : ''} ${isFigmaFixture && displayedState !== 'default' ? styles.stateFixture : ''} ${isFigmaDefaultFixture ? styles.defaultFixture : ''} fm-enter`}
       >
         <main className={styles.resultsPanel} aria-label="知识库检索结果">
           <header className={styles.pageHeader}>
@@ -286,18 +333,25 @@ export function KnowledgePage() {
               />
             </form>
             <div className={styles.filters} aria-label="知识库筛选">
-              {filterOptions.map((filter) => (
-                <Button
-                  className={`${styles.filter} ${activeFilter === filter ? styles.filterActive : ''}`}
-                  key={filter}
-                  onClick={() => setActiveFilter(filter)}
-                  type="button"
-                  variant="outline"
-                  aria-pressed={activeFilter === filter}
-                >
-                  {filter}
-                </Button>
-              ))}
+              {filterOptions.map((filter) => {
+                const supported = isFigmaFixture ? filter.fixtureSupported : filter.realSupported;
+                return (
+                  <Button
+                    aria-disabled={!supported}
+                    className={`${styles.filter} ${activeFilter === filter.key ? styles.filterActive : ''}`}
+                    data-filter-supported={supported ? 'true' : 'false'}
+                    disabled={!supported}
+                    key={filter.key}
+                    onClick={() => setActiveFilter(filter.key)}
+                    type="button"
+                    variant="outline"
+                    aria-pressed={activeFilter === filter.key}
+                    title={supported ? undefined : '当前接口未提供此筛选字段'}
+                  >
+                    {filter.label}
+                  </Button>
+                );
+              })}
             </div>
           </header>
 

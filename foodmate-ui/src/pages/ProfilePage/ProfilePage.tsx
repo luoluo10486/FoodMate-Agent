@@ -14,7 +14,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { WorkspaceLayout } from '@/layouts/WorkspaceLayout/WorkspaceLayout';
@@ -32,6 +32,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { FigmaWorkspaceAsset } from '@/components/workspace/FigmaWorkspaceAsset';
@@ -39,6 +40,7 @@ import { AvatarImage } from '@/components/common/AvatarImage';
 import { cn } from '@/lib/utils';
 import { FIXTURE_PROFILE_AVATARS, resolveAvatarUrl } from '@/lib/avatar';
 import { getAuthUser, logout } from '@/services/authService';
+import { isAbortError } from '@/services/apiClient';
 import {
   changePassword,
   deleteAvatar,
@@ -61,7 +63,7 @@ import styles from './ProfilePage.module.css';
 
 type ProfileTab = 'basic' | 'memories' | 'security' | 'privacy';
 type AsyncState = 'idle' | 'submitting' | 'success' | 'failed';
-type ExportStatus = 'queued' | 'running' | 'completed' | 'failed' | 'expired';
+type ExportStatus = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'download_consumed';
 
 type ProfileForm = {
   displayName: string;
@@ -563,7 +565,20 @@ function profileFromApi(user: Profile, current: ProfileForm): ProfileForm {
 }
 
 function splitList(value: string): string[] {
-  return value
+  const trimmed = value.trim();
+  if (!trimmed) return [];
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    if (Array.isArray(parsed)) {
+      return parsed
+        .filter((item): item is string => typeof item === 'string')
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+  } catch {
+    // 兼容历史接口返回的逗号分隔文本。
+  }
+  return trimmed
     .split(/[、,，]/)
     .map((item) => item.trim())
     .filter(Boolean);
@@ -582,7 +597,26 @@ function statusLabel(status: AuthUser['status']) {
 }
 
 function exportStatusLabel(status: ExportStatus) {
-  return { queued: '排队中', running: '生成中', completed: '已完成', failed: '失败', expired: '已过期' }[status];
+  return {
+    queued: '排队中',
+    running: '生成中',
+    completed: '已完成',
+    failed: '失败',
+    expired: '已过期',
+    download_consumed: '已下载',
+  }[status];
+}
+
+function normalizeExportStatus(value?: string): ExportStatus {
+  const normalized = value?.trim().toLowerCase();
+  return normalized === 'queued' ||
+    normalized === 'running' ||
+    normalized === 'completed' ||
+    normalized === 'failed' ||
+    normalized === 'expired' ||
+    normalized === 'download_consumed'
+    ? normalized
+    : 'failed';
 }
 
 function stateIcon(state: AsyncState) {
@@ -619,11 +653,13 @@ function IconAction({
   children,
   onClick,
   danger = false,
+  disabled = false,
 }: {
   label: string;
   children: React.ReactNode;
   onClick: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }) {
   return (
     <Tooltip>
@@ -635,6 +671,7 @@ function IconAction({
           type="button"
           aria-label={label}
           onClick={onClick}
+          disabled={disabled}
         >
           {children}
         </Button>
@@ -662,26 +699,49 @@ function BasicTab({
   const [profileForm, setProfileForm] = useState(() => profileFromUser(authUser));
   const [savedForm, setSavedForm] = useState(() => profileFromUser(authUser));
   const [loading, setLoading] = useState(realMode);
+  const [loadError, setLoadError] = useState('');
+  const [reloadKey, setReloadKey] = useState(0);
   const [saving, setSaving] = useState(false);
   const [allergenDraft, setAllergenDraft] = useState('');
+  const mountedRef = useRef(true);
+  const profileMutationRef = useRef<AbortController>();
+  const avatarMutationRef = useRef<AbortController>();
+  const profileRequestRef = useRef(0);
+  const avatarRequestRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      profileRequestRef.current += 1;
+      avatarRequestRef.current += 1;
+      profileMutationRef.current?.abort();
+      avatarMutationRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!realMode) return;
     let cancelled = false;
-    getProfile()
+    const controller = new AbortController();
+    getProfile(controller.signal)
       .then((profile) => {
         if (cancelled) return;
         setProfileForm((current) => profileFromApi(profile, current));
         setSavedForm((current) => profileFromApi(profile, current));
       })
-      .catch(() => undefined)
+      .catch((error) => {
+        if (!cancelled && !isAbortError(error))
+          setLoadError(error instanceof Error ? error.message : '个人资料加载失败，请重试。');
+      })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [realMode]);
+  }, [realMode, reloadKey]);
 
   useEffect(
     () => () => {
@@ -714,6 +774,12 @@ function BasicTab({
     }
     if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
     const preview = URL.createObjectURL(file);
+    const rollbackPreview = avatarPreview.startsWith('blob:') ? '' : avatarPreview;
+    const rollbackFileName = rollbackPreview ? avatarFileName : '';
+    avatarMutationRef.current?.abort();
+    const requestId = ++avatarRequestRef.current;
+    const controller = new AbortController();
+    avatarMutationRef.current = controller;
     setAvatarPreview(preview);
     setAvatarFileName(file.name);
     setAvatarState(realMode ? 'submitting' : 'success');
@@ -721,54 +787,162 @@ function BasicTab({
       notice('头像已更新。', 'success');
       return;
     }
-    void uploadAvatar(file)
-      .then(() => {
+    void uploadAvatar(file, controller.signal)
+      .then((result) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          avatarMutationRef.current !== controller
+        )
+          return;
+        // 上传成功后使用后端返回的受信任地址，避免只保留临时 blob 预览。
+        setAvatarPreview(result.avatar_url || preview);
         setAvatarState('success');
         notice('头像已更新。', 'success');
       })
       .catch((error) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          isAbortError(error)
+        )
+          return;
+        setAvatarPreview(rollbackPreview);
+        setAvatarFileName(rollbackFileName);
         setAvatarState('failed');
         notice(error instanceof Error ? error.message : '头像上传失败。', 'error');
+      })
+      .finally(() => {
+        if (avatarMutationRef.current === controller) avatarMutationRef.current = undefined;
       });
   };
 
   const handleDeleteAvatar = () => {
-    if (avatarPreview.startsWith('blob:')) URL.revokeObjectURL(avatarPreview);
-    setAvatarPreview('');
-    setAvatarFileName('');
-    setAvatarState('idle');
-    if (realMode) {
-      void deleteAvatar()
-        .then(() => notice('头像已删除。', 'success'))
-        .catch(() => notice('头像删除失败，请重试。', 'error'));
-    } else notice('头像已删除。', 'success');
+    const previousPreview = avatarPreview;
+    const previousFileName = avatarFileName;
+    avatarMutationRef.current?.abort();
+    const requestId = ++avatarRequestRef.current;
+    setAvatarState(realMode ? 'submitting' : 'success');
+    if (!realMode) {
+      if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
+      setAvatarPreview('');
+      setAvatarFileName('');
+      notice('头像已删除。', 'success');
+      return;
+    }
+    const controller = new AbortController();
+    avatarMutationRef.current = controller;
+    void deleteAvatar(controller.signal)
+      .then(() => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          avatarMutationRef.current !== controller
+        )
+          return;
+        if (previousPreview.startsWith('blob:')) URL.revokeObjectURL(previousPreview);
+        setAvatarPreview('');
+        setAvatarFileName('');
+        setAvatarState('success');
+        notice('头像已删除。', 'success');
+      })
+      .catch((error) => {
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== avatarRequestRef.current ||
+          isAbortError(error)
+        )
+          return;
+        setAvatarPreview(previousPreview);
+        setAvatarFileName(previousFileName);
+        setAvatarState('failed');
+        notice(error instanceof Error ? error.message : '头像删除失败，请重试。', 'error');
+      })
+      .finally(() => {
+        if (avatarMutationRef.current === controller) avatarMutationRef.current = undefined;
+      });
   };
 
   const handleSave = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    profileMutationRef.current?.abort();
+    const requestId = ++profileRequestRef.current;
+    const controller = new AbortController();
+    profileMutationRef.current = controller;
+    const submittedForm = profileForm;
     setSaving(true);
+    const numberOrUndefined = (value: string) => (value.trim() ? Number(value) : undefined);
     const payload: ProfileUpdateRequest = {
-      display_name: profileForm.displayName,
-      gender: profileForm.gender || undefined,
-      height_cm: Number(profileForm.heightCm),
-      weight_kg: Number(profileForm.weightKg),
-      activity_level: profileForm.activityLevel,
-      diet_goal: profileForm.dietGoal,
-      calorie_target: Number(profileForm.calorieTarget),
-      protein_target: Number(profileForm.proteinTarget),
+      display_name: submittedForm.displayName,
+      gender: submittedForm.gender || undefined,
+      height_cm: numberOrUndefined(submittedForm.heightCm),
+      weight_kg: numberOrUndefined(submittedForm.weightKg),
+      activity_level: submittedForm.activityLevel,
+      diet_goal: submittedForm.dietGoal,
+      calorie_target: numberOrUndefined(submittedForm.calorieTarget),
+      protein_target: numberOrUndefined(submittedForm.proteinTarget),
+      allergens: submittedForm.allergens,
+      dislikes: submittedForm.dislikes,
     };
     try {
-      if (realMode) await updateProfile(payload);
-      setSavedForm(profileForm);
+      let nextForm = submittedForm;
+      if (realMode) {
+        await updateProfile(payload, controller.signal);
+        const savedProfile = await getProfile(controller.signal);
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== profileRequestRef.current ||
+          profileMutationRef.current !== controller
+        )
+          return;
+        nextForm = profileFromApi(savedProfile, submittedForm);
+      }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== profileRequestRef.current) return;
+      setProfileForm(nextForm);
+      setSavedForm(nextForm);
       notice('资料已保存。', 'success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== profileRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
       notice(error instanceof Error ? error.message : '资料保存失败，请重试。', 'error');
     } finally {
-      setSaving(false);
+      if (profileMutationRef.current === controller) {
+        profileMutationRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) setSaving(false);
+      }
     }
   };
 
   if (loading) return <div className={styles.loadingPanel}>正在加载个人资料...</div>;
+  if (loadError) {
+    return (
+      <div className={styles.errorPanel} role="alert">
+        <CircleAlert aria-hidden="true" />
+        <span>{loadError}</span>
+        <Button
+          variant="outline"
+          type="button"
+          onClick={() => {
+            setLoading(true);
+            setLoadError('');
+            setReloadKey((value) => value + 1);
+          }}
+        >
+          重试
+        </Button>
+      </div>
+    );
+  }
 
   // 头像统一经过运行时资源解析，避免历史 Figma 人物素材绕过默认资源策略。
   const avatarSource = resolveAvatarUrl(avatarPreview, profileForm.gender);
@@ -791,7 +965,7 @@ function BasicTab({
             </div>
           </div>
           <div className={styles.avatarActions}>
-            <input
+            <Input
               ref={inputRef}
               className={styles.hiddenInput}
               accept="image/jpeg,image/png,image/webp"
@@ -901,7 +1075,7 @@ function BasicTab({
                   value={profileForm.gender || 'unset'}
                   onValueChange={(value) => setField('gender', value === 'unset' ? '' : value)}
                 >
-                  <SelectTrigger className={styles.select} aria-label="性别（可选）">
+                  <SelectTrigger className={cn(styles.select, styles.figmaSelect)} aria-label="性别（可选）">
                     <SelectValue placeholder="未设置" />
                   </SelectTrigger>
                   <SelectContent>
@@ -927,7 +1101,7 @@ function BasicTab({
               </Field>
               <Field label="活动水平">
                 <Select value={profileForm.activityLevel} onValueChange={(value) => setField('activityLevel', value)}>
-                  <SelectTrigger className={styles.select} aria-label="活动水平">
+                  <SelectTrigger className={cn(styles.select, styles.figmaSelect)} aria-label="活动水平">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -1055,16 +1229,18 @@ function BasicTab({
                     }
                   }}
                 />
-                <Button
-                  className={styles.addButton}
-                  variant="ghost"
-                  size="icon"
-                  type="button"
-                  aria-label="添加过敏原"
-                  onClick={addAllergen}
-                >
-                  <Plus aria-hidden="true" />
-                </Button>
+                {figmaFixture ? null : (
+                  <Button
+                    className={styles.addButton}
+                    variant="ghost"
+                    size="icon"
+                    type="button"
+                    aria-label="添加过敏原"
+                    onClick={addAllergen}
+                  >
+                    <Plus aria-hidden="true" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>
@@ -1161,27 +1337,29 @@ function MemoriesTab({
         </p>
       </Card>
       <div className={styles.memoryToolbar}>
-        <div className={styles.filterGroup} role="tablist" aria-label="记忆状态">
-          {(
-            [
-              ['all', '全部 (24)'],
-              ['pending', '待确认 (3)'],
-              ['confirmed', '已确认 (21)'],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
-              variant="ghost"
-              type="button"
-              role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
+        <Tabs
+          className={styles.memoryFilters}
+          value={filter}
+          onValueChange={(value) => setFilter(value as typeof filter)}
+        >
+          <TabsList className={styles.filterGroup} aria-label="记忆状态">
+            {(
+              [
+                ['all', '全部 (24)'],
+                ['pending', '待确认 (3)'],
+                ['confirmed', '已确认 (21)'],
+              ] as const
+            ).map(([value, label]) => (
+              <TabsTrigger
+                key={value}
+                className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+                value={value}
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger className={styles.categorySelect} aria-label="记忆分类">
             <SelectValue />
@@ -1299,6 +1477,7 @@ function MemoriesTab({
 function MemoryRow({
   memory,
   figmaFixture = false,
+  disabled = false,
   onConfirm,
   onEdit,
   onDelete,
@@ -1306,6 +1485,7 @@ function MemoryRow({
 }: {
   memory: Memory;
   figmaFixture?: boolean;
+  disabled?: boolean;
   onConfirm: () => void;
   onEdit: () => void;
   onDelete: () => void;
@@ -1329,25 +1509,25 @@ function MemoryRow({
       <span className={styles.memoryTime}>{memory.relativeTime}</span>
       <div className={styles.memoryActions}>
         {needsAction ? (
-          <Button className={styles.confirmButton} type="button" size="sm" onClick={onConfirm}>
-            {isConflict ? '确认并替换' : '确认记忆'}
+          <Button className={styles.confirmButton} type="button" size="sm" onClick={onConfirm} disabled={disabled}>
+            {disabled ? '处理中...' : isConflict ? '确认并替换' : '确认记忆'}
           </Button>
         ) : null}
-        <IconAction label="查看来源会话" onClick={onSource}>
+        <IconAction label="查看来源会话" onClick={onSource} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryView" className={styles.figmaMemoryIcon} />
           ) : (
             <Eye aria-hidden="true" />
           )}
         </IconAction>
-        <IconAction label="编辑记忆" onClick={onEdit}>
+        <IconAction label="编辑记忆" onClick={onEdit} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryEdit" className={styles.figmaMemoryIcon} />
           ) : (
             <Edit3 aria-hidden="true" />
           )}
         </IconAction>
-        <IconAction label="删除记忆" danger onClick={onDelete}>
+        <IconAction label="删除记忆" danger onClick={onDelete} disabled={disabled}>
           {figmaFixture ? (
             <FigmaWorkspaceAsset variant="profile" name="memoryDelete" className={styles.figmaMemoryIcon} />
           ) : (
@@ -1363,42 +1543,86 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' });
   const [passwordState, setPasswordState] = useState<AsyncState>('idle');
-  const [sessions, setSessions] = useState<AuthSession[]>([
-    {
-      auth_session_id: 1,
-      device_id: 'current',
-      user_agent: 'MacBook Pro 16" · macOS',
-      ip_address: '192.168.1.42',
-      last_seen_at: 'Authorized 10:30 AM',
-      expires_at: '2026-09-01',
-    },
-    {
-      auth_session_id: 2,
-      device_id: 'iphone',
-      user_agent: 'iPhone 15 Pro · iOS App',
-      ip_address: '85.22.91.104',
-      last_seen_at: 'Authorized March 12',
-      expires_at: '2026-09-01',
-    },
-    {
-      auth_session_id: 3,
-      device_id: 'chrome',
-      user_agent: 'Google Chrome · Windows 11',
-      ip_address: '184.22.12.9',
-      last_seen_at: 'Authorized March 08',
-      expires_at: '2026-09-01',
-    },
-  ]);
+  const [sessions, setSessions] = useState<AuthSession[]>(
+    realMode
+      ? []
+      : [
+          {
+            auth_session_id: 1,
+            current: true,
+            user_agent: 'MacBook Pro 16" · macOS',
+            ip_address: '192.168.1.42',
+            last_seen_at: 'Authorized 10:30 AM',
+            expires_at: '2026-09-01',
+          },
+          {
+            auth_session_id: 2,
+            device_id: 'iphone',
+            user_agent: 'iPhone 15 Pro · iOS App',
+            ip_address: '85.22.91.104',
+            last_seen_at: 'Authorized March 12',
+            expires_at: '2026-09-01',
+          },
+          {
+            auth_session_id: 3,
+            device_id: 'chrome',
+            user_agent: 'Google Chrome · Windows 11',
+            ip_address: '184.22.12.9',
+            last_seen_at: 'Authorized March 08',
+            expires_at: '2026-09-01',
+          },
+        ],
+  );
   const [loadingSessions, setLoadingSessions] = useState(realMode);
+  const [sessionLoadError, setSessionLoadError] = useState('');
+  const [sessionReloadKey, setSessionReloadKey] = useState(0);
   const [logoutTarget, setLogoutTarget] = useState<'others' | AuthSession>();
+  const [logoutState, setLogoutState] = useState<AsyncState>('idle');
+  const sessionRequestRef = useRef(0);
+  const mountedRef = useRef(true);
+  const passwordMutationRef = useRef<AbortController>();
+  const logoutMutationRef = useRef<AbortController>();
+  const passwordRequestRef = useRef(0);
+  const logoutRequestRef = useRef(0);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      passwordRequestRef.current += 1;
+      logoutRequestRef.current += 1;
+      passwordMutationRef.current?.abort();
+      logoutMutationRef.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!realMode) return;
-    getAuthSessions()
-      .then(setSessions)
-      .catch(() => notice('设备会话加载失败，请刷新重试。', 'error'))
-      .finally(() => setLoadingSessions(false));
-  }, [realMode]);
+    const requestId = ++sessionRequestRef.current;
+    const controller = new AbortController();
+    const loadSessions = async () => {
+      setLoadingSessions(true);
+      setSessionLoadError('');
+      setSessions([]);
+      try {
+        const items = await getAuthSessions(controller.signal);
+        if (controller.signal.aborted || requestId !== sessionRequestRef.current) return;
+        setSessions(items);
+      } catch (error) {
+        if (controller.signal.aborted || requestId !== sessionRequestRef.current || isAbortError(error)) return;
+        setSessions([]);
+        const message = error instanceof Error ? error.message : '设备会话加载失败，请刷新重试。';
+        setSessionLoadError(message);
+        notice(message, 'error');
+      } finally {
+        if (!controller.signal.aborted && requestId === sessionRequestRef.current) setLoadingSessions(false);
+      }
+    };
+    void loadSessions();
+    return () => {
+      controller.abort();
+    };
+  }, [realMode, sessionReloadKey]);
 
   const submitPassword = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -1418,32 +1642,112 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     setPasswordState('submitting');
+    passwordMutationRef.current?.abort();
+    const requestId = ++passwordRequestRef.current;
+    const controller = new AbortController();
+    passwordMutationRef.current = controller;
     try {
-      if (realMode) await changePassword(passwords.current, passwords.next);
+      if (realMode) {
+        await changePassword(passwords.current, passwords.next, controller.signal);
+        if (
+          !mountedRef.current ||
+          controller.signal.aborted ||
+          requestId !== passwordRequestRef.current ||
+          passwordMutationRef.current !== controller
+        )
+          return;
+        // 修改密码会由后端撤销当前会话，不能再调用已经失效的远端登出接口。
+        await logout({ skipRemote: true, signal: controller.signal });
+        if (!mountedRef.current || controller.signal.aborted || requestId !== passwordRequestRef.current) return;
+        window.location.assign('/login');
+        return;
+      }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== passwordRequestRef.current) return;
       setPasswordState('success');
       setPasswords({ current: '', next: '', confirm: '' });
       notice('密码已更新，其他设备会话已按安全策略处理。', 'success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== passwordRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
       setPasswordState('failed');
       notice(error instanceof Error ? error.message : '密码更新失败，请重新填写。', 'error');
+    } finally {
+      if (passwordMutationRef.current === controller) {
+        passwordMutationRef.current = undefined;
+      }
     }
   };
 
   const confirmLogout = async () => {
+    if (!logoutTarget || logoutState === 'submitting') return;
+    setLogoutState('submitting');
+    logoutMutationRef.current?.abort();
+    const requestId = ++logoutRequestRef.current;
+    const controller = new AbortController();
+    logoutMutationRef.current = controller;
     try {
       if (logoutTarget === 'others') {
-        if (realMode) await revokeAllAuthSessions();
-        setSessions((items) => items.filter((item) => item.device_id === 'current'));
+        if (realMode) {
+          await revokeAllAuthSessions(controller.signal);
+          if (
+            !mountedRef.current ||
+            controller.signal.aborted ||
+            requestId !== logoutRequestRef.current ||
+            logoutMutationRef.current !== controller
+          )
+            return;
+          // 后端会同时撤销当前会话和刷新凭证，直接清理本地身份即可。
+          await logout({ skipRemote: true, signal: controller.signal });
+          if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
+          window.location.assign('/login');
+          return;
+        }
+        if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
+        setSessions((items) => items.filter((item) => item.current === true));
         notice('其他设备已退出，当前设备保持登录。', 'success');
       } else if (logoutTarget) {
-        if (realMode) await revokeAuthSession(logoutTarget.auth_session_id);
-        setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
-        notice('设备会话已退出。', 'success');
+        if (realMode) {
+          await revokeAuthSession(logoutTarget.auth_session_id, controller.signal);
+          if (
+            !mountedRef.current ||
+            controller.signal.aborted ||
+            requestId !== logoutRequestRef.current ||
+            logoutMutationRef.current !== controller
+          )
+            return;
+          // 个人会话撤销后重新读取服务端列表，避免本地删除掩盖后端状态。
+          setSessionReloadKey((value) => value + 1);
+          notice('设备会话已退出，正在刷新设备列表。', 'success');
+        } else {
+          setSessions((items) => items.filter((item) => item.auth_session_id !== logoutTarget.auth_session_id));
+          notice('设备会话已退出。', 'success');
+        }
+        if (!mountedRef.current || controller.signal.aborted || requestId !== logoutRequestRef.current) return;
       }
+      setLogoutState('success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== logoutRequestRef.current ||
+        isAbortError(error)
+      )
+        return;
+      setLogoutState('failed');
       notice(error instanceof Error ? error.message : '设备退出失败，请重试。', 'error');
     } finally {
-      setLogoutTarget(undefined);
+      if (logoutMutationRef.current === controller) {
+        logoutMutationRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) {
+          setLogoutTarget(undefined);
+          setLogoutState('idle');
+        }
+      }
     }
   };
 
@@ -1532,19 +1836,45 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
               type="button"
               onClick={() => setLogoutTarget('others')}
             >
-              退出其他设备
+              {realMode ? '退出全部设备' : '退出其他设备'}
             </Button>
           </div>
           {loadingSessions ? (
             <div className={styles.loadingPanel}>正在加载设备会话...</div>
+          ) : sessionLoadError ? (
+            <div className={styles.errorPanel} role="alert">
+              <CircleAlert aria-hidden="true" />
+              <span>{sessionLoadError}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                type="button"
+                onClick={() => {
+                  setLoadingSessions(true);
+                  setSessionLoadError('');
+                  setSessionReloadKey((value) => value + 1);
+                }}
+              >
+                重试
+              </Button>
+            </div>
+          ) : sessions.length === 0 ? (
+            <div className={styles.loadingPanel}>暂无活跃设备会话。</div>
           ) : (
             <div className={styles.sessionList}>
               {sessions.map((session) => (
-                <SessionRow key={session.auth_session_id} session={session} onLogout={() => setLogoutTarget(session)} />
+                <SessionRow
+                  key={session.auth_session_id}
+                  session={session}
+                  figmaFixture={figmaFixture}
+                  onLogout={() => setLogoutTarget(session)}
+                />
               ))}
             </div>
           )}
-          <StatusChip tone="blue">{Math.max(0, sessions.length - 1)} ACTIVE DEVICES</StatusChip>
+          <StatusChip tone="blue">
+            {sessions.filter((session) => session.current !== true).length} ACTIVE DEVICES
+          </StatusChip>
           <p className={styles.securityHint}>设备状态在每次登录后更新</p>
         </Card>
       </div>
@@ -1560,17 +1890,27 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           </Button>
         </div>
         <div className={styles.activityList}>
-          <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
-          <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
-          <ActivityRow
-            dot="green"
-            title="设备会话检查"
-            detail={`已检查 ${sessions.length} 台设备，未发现异常`}
-            status="正常"
-          />
+          {realMode ? (
+            <div className={styles.activityEmpty} role="status">
+              当前接口未提供安全活动历史。
+            </div>
+          ) : (
+            <>
+              <ActivityRow dot="green" title="密码更新" detail="今天 09:42 · 当前设备" status="已完成" />
+              <ActivityRow dot="blue" title="新设备登录" detail="iPhone 15 Pro · 3月12日" status="已验证" />
+              <ActivityRow
+                dot="green"
+                title="设备会话检查"
+                detail={`已检查 ${sessions.length} 台设备，未发现异常`}
+                status="正常"
+              />
+            </>
+          )}
         </div>
         <p className={styles.securityHint}>
-          设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。
+          {realMode
+            ? '设备详情包含创建时间 / 过期时间 / 当前状态；退出全部设备会使当前登录失效，并需要重新登录。'
+            : '设备详情包含创建时间 / 过期时间 / 当前状态；单设备退出需确认，退出全部设备时保留当前会话并二次确认。'}
         </p>
       </Card>
       <Dialog open={Boolean(logoutTarget)} onOpenChange={(open) => !open && setLogoutTarget(undefined)}>
@@ -1579,10 +1919,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             <div className={styles.dialogEyebrow}>
               <ShieldCheck aria-hidden="true" /> SECURITY · CONFIRM
             </div>
-            <DialogTitle>{logoutTarget === 'others' ? '退出其他设备？' : '退出此设备？'}</DialogTitle>
+            <DialogTitle>
+              {logoutTarget === 'others' ? (realMode ? '退出全部设备？' : '退出其他设备？') : '退出此设备？'}
+            </DialogTitle>
             <DialogDescription>
               {logoutTarget === 'others'
-                ? `这将退出除当前设备以外的 ${Math.max(0, sessions.length - 1)} 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。`
+                ? realMode
+                  ? '这将撤销当前账号的全部活跃会话和刷新凭证，操作完成后需要重新登录。最近的运行和审计记录不会被删除。'
+                  : `这将退出除当前设备以外的 ${Math.max(0, sessions.length - 1)} 个活跃会话。当前设备会保留登录状态，最近的运行和审计记录不会被删除。`
                 : '此设备的登录会话会立即失效，当前设备不会受到影响。'}
             </DialogDescription>
           </DialogHeader>
@@ -1593,9 +1937,14 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
             <Button variant="outline" type="button" onClick={() => setLogoutTarget(undefined)}>
               取消
             </Button>
-            <Button variant="destructive" type="button" onClick={() => void confirmLogout()}>
+            <Button
+              variant="destructive"
+              type="button"
+              disabled={logoutState === 'submitting'}
+              onClick={() => void confirmLogout()}
+            >
               <LogOut aria-hidden="true" />
-              确认退出
+              {logoutState === 'submitting' ? '正在退出...' : '确认退出'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1604,18 +1953,39 @@ function SecurityTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   );
 }
 
-function SessionRow({ session, onLogout }: { session: AuthSession; onLogout: () => void }) {
-  const current = session.device_id === 'current';
+function formatSessionLastSeen(value?: string) {
+  const normalized = value?.trim();
+  if (!normalized) return '最近活动未知';
+  const timestamp = Date.parse(normalized);
+  if (Number.isNaN(timestamp)) return normalized;
+  return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(timestamp);
+}
+
+function sessionActivityLabel(session: AuthSession, figmaFixture: boolean) {
+  if (session.current === true) return '当前在线';
+  if (figmaFixture) return session.device_id === 'iphone' ? 'Active 4 hours ago' : 'Active 3 days ago';
+  // 真实模式只展示后端提供的最近活动时间，不根据设备标识猜测活跃时长。
+  return `最近活动 ${formatSessionLastSeen(session.last_seen_at)}`;
+}
+
+function SessionRow({
+  session,
+  figmaFixture,
+  onLogout,
+}: {
+  session: AuthSession;
+  figmaFixture: boolean;
+  onLogout: () => void;
+}) {
+  const current = session.current === true;
   return (
     <div className={styles.sessionRow}>
       <div className={styles.sessionInfo}>
         <strong>{session.user_agent ?? '未知设备'}</strong>
         <span>
-          {session.ip_address ?? 'IP 未记录'} · {session.last_seen_at ?? '最近活动未知'}
+          {session.ip_address ?? 'IP 未记录'} · {formatSessionLastSeen(session.last_seen_at)}
         </span>
-        <small>
-          {current ? '当前在线' : session.device_id === 'iphone' ? 'Active 4 hours ago' : 'Active 3 days ago'}
-        </small>
+        <small>{sessionActivityLabel(session, figmaFixture)}</small>
       </div>
       {current ? (
         <StatusChip tone="green">当前设备</StatusChip>
@@ -1651,24 +2021,53 @@ function ActivityRow({
 
 function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const [exportRows, setExportRows] = useState(exportSeed);
+  const [exportRows, setExportRows] = useState(realMode ? [] : exportSeed);
   const [exportJobId, setExportJobId] = useState<number>();
   const [exportStatus, setExportStatus] = useState<ExportStatus>();
+  const [exportError, setExportError] = useState('');
   const [deletionOpen, setDeletionOpen] = useState(false);
   const [deletionPassword, setDeletionPassword] = useState('');
   const [deletionConfirmation, setDeletionConfirmation] = useState('');
   const [deletionState, setDeletionState] = useState<AsyncState>('idle');
   const pollRef = useRef<number>();
+  const exportGenerationRef = useRef(0);
+  const mountedRef = useRef(true);
+  const exportCreateRef = useRef<AbortController>();
+  const exportPollRef = useRef<AbortController>();
+  const exportDownloadRef = useRef<AbortController>();
+  const deletionRequestRef = useRef<AbortController>();
+  const pollBusyRef = useRef(false);
 
-  useEffect(
-    () => () => {
-      if (pollRef.current) window.clearInterval(pollRef.current);
-    },
-    [],
-  );
+  const stopPolling = useCallback(() => {
+    if (pollRef.current !== undefined) {
+      window.clearInterval(pollRef.current);
+      pollRef.current = undefined;
+    }
+    exportPollRef.current?.abort();
+    exportPollRef.current = undefined;
+    pollBusyRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      exportGenerationRef.current += 1;
+      stopPolling();
+      exportCreateRef.current?.abort();
+      exportDownloadRef.current?.abort();
+      deletionRequestRef.current?.abort();
+    };
+  }, [stopPolling]);
 
   const createExport = async () => {
+    const generation = exportGenerationRef.current + 1;
+    exportGenerationRef.current = generation;
+    // 新建任务前清理旧轮询，避免重复点击或失败重试产生多个状态请求。
+    exportCreateRef.current?.abort();
+    stopPolling();
     setExportStatus('queued');
+    setExportError('');
     if (!realMode) {
       setExportRows((rows) => [
         { id: `export-${Date.now()}`, date: '今天', status: 'queued', size: '生成中' },
@@ -1677,8 +2076,17 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       notice('数据导出已排队。', 'success');
       return;
     }
+    const controller = new AbortController();
+    exportCreateRef.current = controller;
     try {
-      const created = await requestDataExport();
+      const created = await requestDataExport(controller.signal);
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        generation !== exportGenerationRef.current ||
+        exportCreateRef.current !== controller
+      )
+        return;
       setExportJobId(created.export_job_id);
       setExportRows((rows) => [
         {
@@ -1690,29 +2098,66 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
         },
         ...rows,
       ]);
-      pollRef.current = window.setInterval(async () => {
+      const poll = async () => {
+        if (
+          pollBusyRef.current ||
+          !mountedRef.current ||
+          generation !== exportGenerationRef.current ||
+          controller.signal.aborted
+        )
+          return;
+        pollBusyRef.current = true;
+        const pollController = new AbortController();
+        exportPollRef.current = pollController;
         try {
-          const job = await getDataExport(created.export_job_id);
-          const status = job.status as ExportStatus;
+          const job = await getDataExport(created.export_job_id, pollController.signal);
+          if (
+            !mountedRef.current ||
+            pollController.signal.aborted ||
+            generation !== exportGenerationRef.current ||
+            exportPollRef.current !== pollController
+          )
+            return;
+          const status = job.download_consumed_at ? 'download_consumed' : normalizeExportStatus(job.status);
           setExportStatus(status);
           setExportRows((rows) =>
             rows.map((row) =>
               row.jobId === created.export_job_id
-                ? { ...row, status, size: status === 'completed' ? '142 MB' : row.size }
+                ? { ...row, status, size: status === 'completed' ? '后端未返回' : row.size }
                 : row,
             ),
           );
-          if (status === 'completed' || status === 'failed' || status === 'expired') {
-            if (pollRef.current) window.clearInterval(pollRef.current);
-          }
-        } catch {
-          if (pollRef.current) window.clearInterval(pollRef.current);
+          if (status === 'completed' || status === 'failed' || status === 'expired') stopPolling();
+        } catch (error) {
+          if (
+            !mountedRef.current ||
+            pollController.signal.aborted ||
+            generation !== exportGenerationRef.current ||
+            isAbortError(error)
+          )
+            return;
+          stopPolling();
           setExportStatus('failed');
+          setExportError(error instanceof Error ? error.message : '导出状态读取失败，请重新创建。');
+        } finally {
+          if (exportPollRef.current === pollController) exportPollRef.current = undefined;
+          pollBusyRef.current = false;
         }
-      }, 2000);
+      };
+      pollRef.current = window.setInterval(() => void poll(), 2000);
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        generation !== exportGenerationRef.current ||
+        isAbortError(error)
+      )
+        return;
       setExportStatus('failed');
+      setExportError(error instanceof Error ? error.message : '数据导出创建失败，请重试。');
       notice(error instanceof Error ? error.message : '数据导出创建失败，请重试。', 'error');
+    } finally {
+      if (exportCreateRef.current === controller) exportCreateRef.current = undefined;
     }
   };
 
@@ -1723,12 +2168,25 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     if (!row.jobId && !exportJobId) return;
+    exportDownloadRef.current?.abort();
+    const controller = new AbortController();
+    exportDownloadRef.current = controller;
     try {
-      const result = await downloadDataExport(row.jobId ?? exportJobId!);
+      const result = await downloadDataExport(row.jobId ?? exportJobId!, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted) return;
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
-      notice('导出归档已开始下载。', 'success');
+      const jobId = row.jobId ?? exportJobId!;
+      setExportStatus('download_consumed');
+      setExportRows((rows) =>
+        rows.map((item) => (item.jobId === jobId ? { ...item, status: 'download_consumed' } : item)),
+      );
+      notice('下载链接已生成，下载资格已消费一次。', 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
+      setExportError(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。');
       notice(error instanceof Error ? error.message : '下载链接已失效，请重新创建导出。', 'error');
+    } finally {
+      if (exportDownloadRef.current === controller) exportDownloadRef.current = undefined;
     }
   };
 
@@ -1738,19 +2196,29 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
       return;
     }
     setDeletionState('submitting');
+    deletionRequestRef.current?.abort();
+    const controller = new AbortController();
+    deletionRequestRef.current = controller;
     try {
       if (realMode) {
-        await requestAccountDeletion(deletionConfirmation, deletionPassword);
-        await logout();
+        await requestAccountDeletion(deletionConfirmation, deletionPassword, controller.signal);
+        if (!mountedRef.current || controller.signal.aborted) return;
+        // 注销请求会立即禁用账号并撤销全部会话，不能再调用已失效的远端登出接口。
+        await logout({ skipRemote: true, signal: controller.signal });
+        if (!mountedRef.current || controller.signal.aborted) return;
         window.location.href = '/login';
         return;
       }
+      if (!mountedRef.current || controller.signal.aborted) return;
       setDeletionState('success');
       setDeletionOpen(false);
       notice('注销请求已提交。', 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       setDeletionState('failed');
       notice(error instanceof Error ? error.message : '注销请求失败，请重新创建。', 'error');
+    } finally {
+      if (deletionRequestRef.current === controller) deletionRequestRef.current = undefined;
     }
   };
 
@@ -1772,12 +2240,26 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
           </Button>
         </div>
         {exportStatus && exportStatus !== 'completed' ? (
-          <div className={styles.exportProgress}>
-            {exportStatus === 'running' ? <Progress value={68} className={styles.progress} /> : null}
+          <div
+            className={styles.exportProgress}
+            aria-busy={realMode && (exportStatus === 'queued' || exportStatus === 'running')}
+            aria-live="polite"
+          >
+            {/* 真实接口只返回离散状态，不提供百分比；进度数值仅保留在 Fixture 预览中。 */}
+            {exportStatus === 'running' && !realMode ? <Progress value={68} className={styles.progress} /> : null}
             <span>
               {exportStatusLabel(exportStatus)} ·{' '}
               {exportStatus === 'queued' ? '预计等待 1-2 分钟' : '请稍候，完成后提供一次性下载入口'}
             </span>
+          </div>
+        ) : null}
+        {exportError ? (
+          <div className={styles.errorPanel} role="alert">
+            <CircleAlert aria-hidden="true" />
+            <span>{exportError}</span>
+            <Button variant="outline" size="sm" type="button" onClick={() => void createExport()}>
+              重新创建
+            </Button>
           </div>
         ) : null}
         <div className={styles.exportTable} role="table" aria-label="数据导出记录">
@@ -1795,9 +2277,11 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
                   tone={
                     row.status === 'completed'
                       ? 'green'
-                      : row.status === 'failed' || row.status === 'expired'
-                        ? 'red'
-                        : 'orange'
+                      : row.status === 'download_consumed'
+                        ? 'blue'
+                        : row.status === 'failed' || row.status === 'expired'
+                          ? 'red'
+                          : 'orange'
                   }
                 >
                   {exportStatusLabel(row.status)}
@@ -1835,6 +2319,8 @@ function PrivacyTab({ figmaFixture = false }: { figmaFixture?: boolean }) {
                     {!figmaFixture ? <RefreshCw aria-hidden="true" /> : null}
                     重新创建
                   </Button>
+                ) : row.status === 'download_consumed' ? (
+                  <span className={styles.mutedText}>下载资格已消费</span>
                 ) : (
                   <span className={styles.mutedText}>处理中</span>
                 )}
@@ -1936,10 +2422,17 @@ function RealMemoriesTab() {
   const navigate = useNavigate();
   const [memories, setMemories] = useState<Memory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [filter, setFilter] = useState<'all' | 'attention' | 'confirmed'>('all');
   const [deleting, setDeleting] = useState<Memory>();
   const [editing, setEditing] = useState<Memory>();
   const [editValue, setEditValue] = useState('');
+  const [activeMutationKey, setActiveMutationKey] = useState<string>();
+  const requestSeqRef = useRef(0);
+  const loadControllerRef = useRef<AbortController>();
+  const mutationControllersRef = useRef(new Set<AbortController>());
+  const activeMutationRef = useRef<string>();
+  const mountedRef = useRef(true);
 
   const attentionCount = memories.filter((memory) => memory.status !== 'confirmed').length;
   const conflictCount = memories.filter((memory) => memory.status === 'conflict').length;
@@ -1949,27 +2442,72 @@ function RealMemoriesTab() {
       filter === 'all' || (filter === 'confirmed' ? memory.status === 'confirmed' : memory.status !== 'confirmed'),
   );
 
-  const refresh = () => {
+  const refresh = useCallback(() => {
+    if (!mountedRef.current) return Promise.resolve();
+    loadControllerRef.current?.abort();
+    const requestId = ++requestSeqRef.current;
+    const controller = new AbortController();
+    loadControllerRef.current = controller;
     setLoading(true);
-    return loadMemories()
-      .then((items) => setMemories(items.map(toMemory)))
-      .catch((error) => notice(error instanceof Error ? error.message : 'Memory load failed.', 'error'))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    // Initial refresh is the subscription boundary for the real memory list.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    void refresh();
+    setLoadError('');
+    setMemories([]);
+    return loadMemories(controller.signal)
+      .then((items) => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        setMemories(items.map(toMemory));
+      })
+      .catch((error) => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        if (isAbortError(error)) return;
+        const message = error instanceof Error ? error.message : '记忆加载失败，请重试。';
+        setMemories([]);
+        setLoadError(message);
+        notice(message, 'error');
+      })
+      .finally(() => {
+        if (!mountedRef.current || controller.signal.aborted || requestId !== requestSeqRef.current) return;
+        setLoading(false);
+        if (loadControllerRef.current === controller) loadControllerRef.current = undefined;
+      });
   }, []);
 
-  const runMutation = async (action: () => Promise<unknown>, success: string) => {
+  useEffect(() => {
+    // 首次刷新是实时记忆列表的订阅边界。
+    mountedRef.current = true;
+    const mutationControllers = mutationControllersRef.current;
+    void refresh();
+    return () => {
+      mountedRef.current = false;
+      requestSeqRef.current += 1;
+      loadControllerRef.current?.abort();
+      loadControllerRef.current = undefined;
+      for (const controller of mutationControllers) controller.abort();
+      mutationControllers.clear();
+    };
+  }, [refresh]);
+
+  const runMutation = async (key: string, action: (signal: AbortSignal) => Promise<unknown>, success: string) => {
+    if (activeMutationRef.current) return;
+    // 记忆写操作统一串行执行，避免快速重复点击造成多个服务端写请求。
+    activeMutationRef.current = key;
+    setActiveMutationKey(key);
+    const controller = new AbortController();
+    mutationControllersRef.current.add(controller);
     try {
-      await action();
+      await action(controller.signal);
+      if (!mountedRef.current || controller.signal.aborted) return;
       await refresh();
+      if (!mountedRef.current || controller.signal.aborted) return;
       notice(success, 'success');
     } catch (error) {
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(error)) return;
       notice(error instanceof Error ? error.message : 'Memory operation failed.', 'error');
+    } finally {
+      mutationControllersRef.current.delete(controller);
+      if (activeMutationRef.current === key) {
+        activeMutationRef.current = undefined;
+        if (mountedRef.current) setActiveMutationKey(undefined);
+      }
     }
   };
 
@@ -1980,40 +2518,62 @@ function RealMemoriesTab() {
         <p>FoodMate 会将你在 Agent 对话中明确确认的偏好、限制和饮食模式保存为长期记忆。</p>
       </Card>
       <div className={styles.memoryToolbar}>
-        <div className={styles.filterGroup} role="tablist" aria-label="真实记忆状态">
-          {(
-            [
-              ['all', `全部 (${memories.length})`],
-              ['attention', `待处理 (${attentionCount})`],
-              ['confirmed', `已确认 (${confirmedCount})`],
-            ] as const
-          ).map(([value, label]) => (
-            <Button
-              key={value}
-              className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
-              variant="ghost"
-              type="button"
-              role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-            >
-              {label}
-            </Button>
-          ))}
+        <Tabs
+          className={styles.memoryFilters}
+          value={filter}
+          onValueChange={(value) => setFilter(value as typeof filter)}
+        >
+          <TabsList className={styles.filterGroup} aria-label="真实记忆状态">
+            {(
+              [
+                ['all', `全部 (${memories.length})`],
+                ['attention', `待处理 (${attentionCount})`],
+                ['confirmed', `已确认 (${confirmedCount})`],
+              ] as const
+            ).map(([value, label]) => (
+              <TabsTrigger
+                key={value}
+                className={cn(styles.filterButton, filter === value && styles.filterButtonActive)}
+                value={value}
+              >
+                {label}
+              </TabsTrigger>
+            ))}
+          </TabsList>
           {conflictCount > 0 ? <span className={styles.memoryConflictCount}>含 {conflictCount} 条冲突</span> : null}
-        </div>
-        <Button variant="outline" size="sm" type="button" onClick={() => void refresh()} disabled={loading}>
+        </Tabs>
+        <Button
+          variant="outline"
+          size="sm"
+          type="button"
+          onClick={() => void refresh()}
+          disabled={loading || Boolean(activeMutationKey)}
+        >
           <RefreshCw aria-hidden="true" /> 刷新
         </Button>
       </div>
       {loading ? <Card className={styles.memoryEmpty}>正在加载记忆...</Card> : null}
-      {!loading && visibleMemories.length ? (
+      {!loading && loadError ? (
+        <Card className={styles.memoryError} role="alert">
+          <div className={styles.memoryErrorMessage}>
+            <CircleAlert aria-hidden="true" />
+            <span>{loadError}</span>
+          </div>
+          <Button variant="outline" type="button" onClick={() => void refresh()}>
+            重试
+          </Button>
+        </Card>
+      ) : null}
+      {!loading && !loadError && visibleMemories.length ? (
         <div className={styles.memoryList}>
           {visibleMemories.map((memory) => (
             <MemoryRow
               key={memory.id}
               memory={memory}
-              onConfirm={() => void runMutation(() => confirmMemory(memory.id), '记忆已确认。')}
+              disabled={Boolean(activeMutationKey)}
+              onConfirm={() =>
+                void runMutation(`confirm:${memory.id}`, (signal) => confirmMemory(memory.id, signal), '记忆已确认。')
+              }
               onEdit={() => {
                 setEditing(memory);
                 setEditValue(memory.content);
@@ -2024,7 +2584,7 @@ function RealMemoriesTab() {
           ))}
         </div>
       ) : null}
-      {!loading && !visibleMemories.length ? (
+      {!loading && !loadError && !visibleMemories.length ? (
         <Card className={styles.memoryEmpty}>
           <div className={styles.emptyEyebrow}>MEMORY / EMPTY</div>
           <h2>{memories.length ? '没有匹配的记忆' : '暂无长期记忆'}</h2>
@@ -2056,7 +2616,11 @@ function RealMemoriesTab() {
               type="button"
               onClick={() => {
                 if (!deleting) return;
-                void runMutation(() => deleteMemory(deleting.id), '记忆已删除。');
+                void runMutation(
+                  `delete:${deleting.id}`,
+                  (signal) => deleteMemory(deleting.id, signal),
+                  '记忆已删除。',
+                );
                 setDeleting(undefined);
               }}
             >
@@ -2084,7 +2648,11 @@ function RealMemoriesTab() {
               type="button"
               onClick={() => {
                 if (!editing || !editValue.trim()) return;
-                void runMutation(() => updateMemory(editing.id, editValue.trim(), editing.scope), '记忆已更新。');
+                void runMutation(
+                  `edit:${editing.id}`,
+                  (signal) => updateMemory(editing.id, editValue.trim(), editing.scope, signal),
+                  '记忆已更新。',
+                );
                 setEditing(undefined);
               }}
             >
@@ -2110,7 +2678,7 @@ function toMemory(item: MemoryRecord): Memory {
     else if (value && typeof value === 'object' && 'value' in value)
       content = String((value as { value: unknown }).value);
   } catch {
-    // Keep legacy plain-text memory values readable.
+    // 兼容旧数据中的纯文本记忆值，保持页面可读。
   }
   return {
     id: memoryId ?? 0,
@@ -2130,8 +2698,9 @@ export function ProfilePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const fixtureState = getProfileFixtureState(searchParams.get('state'));
-  const baseFigmaState = getProfileBaseFigmaState(searchParams.get('state'));
+  // 真实模式忽略画板 query，避免演示身份、壳层和弹层进入真实资料页面。
+  const fixtureState = realMode ? undefined : getProfileFixtureState(searchParams.get('state'));
+  const baseFigmaState = realMode ? undefined : getProfileBaseFigmaState(searchParams.get('state'));
   const activeTab = fixtureState?.startsWith('security')
     ? 'security'
     : fixtureState?.startsWith('privacy')

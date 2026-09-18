@@ -111,4 +111,162 @@ describe('管理端真实工具数据', () => {
     expect(screen.getByRole('complementary', { name: '工具调用详情' })).toHaveTextContent('trace_plan_1024');
     expect(fetchMock.mock.calls[0][0]).toContain('/api/admin/queries/tool-calls');
   });
+
+  it('注册表页面卸载时取消真实请求', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((_input: RequestInfo | URL, init?: RequestInit) => {
+        capturedSignal = init?.signal ?? undefined;
+        return new Promise<Response>(() => undefined);
+      }),
+    );
+
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('真实写操作成功后由服务端刷新提供最终工具状态', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            tools: [
+              {
+                tool_id: 720005,
+                name: 'food_log_writer',
+                display_name: 'Food log writer',
+                description: 'Write food logs.',
+                category: 'write',
+                risk_level: 'high',
+                availability_scope: 'user',
+                status: 'active',
+                current_version: 'v1',
+                version: 'v1',
+                input_schema: { type: 'object' },
+                output_schema: { type: 'object' },
+                permissions: { approval: 'required' },
+                timeout_ms: 10000,
+                retryable: false,
+                idempotent: true,
+                published_at: null,
+                revision: 7,
+              },
+            ],
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          success: true,
+          data: {
+            tools: [
+              {
+                tool_id: 720005,
+                name: 'food_log_writer',
+                display_name: 'Food log writer',
+                description: 'Write food logs.',
+                category: 'write',
+                risk_level: 'high',
+                availability_scope: 'user',
+                status: 'disabled',
+                current_version: 'v1',
+                version: 'v1',
+                input_schema: { type: 'object' },
+                output_schema: { type: 'object' },
+                permissions: { approval: 'required' },
+                timeout_ms: 10000,
+                retryable: false,
+                idempotent: true,
+                published_at: null,
+                revision: 8,
+              },
+            ],
+          },
+        }),
+      );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={onAction} operationStatus="confirm" refreshNonce={0} />
+      </MemoryRouter>,
+    );
+
+    const stopButton = await screen.findByRole('button', { name: '停用工具' });
+    await user.click(stopButton);
+    const action = onAction.mock.calls[0]?.[0];
+    expect(action).toBeDefined();
+
+    action.onApply?.();
+    expect(within(screen.getByRole('table')).getByText('已启用')).toBeInTheDocument();
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={onAction} operationStatus="confirm" refreshNonce={1} />
+      </MemoryRouter>,
+    );
+
+    expect(await within(screen.getByRole('table')).findByText('已停用')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('服务端刷新后同步更新当前选中工具详情', async () => {
+    const tool = (status: 'active' | 'disabled', revision: number) => ({
+      tool_id: 720005,
+      name: 'food_log_writer',
+      display_name: 'Food log writer',
+      description: 'Write food logs.',
+      category: 'write',
+      risk_level: 'high',
+      availability_scope: 'user',
+      status,
+      current_version: 'v1',
+      version: 'v1',
+      input_schema: { type: 'object' },
+      output_schema: { type: 'object' },
+      permissions: { approval: 'required' },
+      timeout_ms: 10000,
+      retryable: false,
+      idempotent: true,
+      published_at: null,
+      revision,
+    });
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(jsonResponse({ success: true, data: { tools: [tool('active', 7)] } }))
+      .mockResolvedValueOnce(jsonResponse({ success: true, data: { tools: [tool('disabled', 8)] } }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} refreshNonce={0} />
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '配置详情' }));
+    expect(screen.getByRole('dialog')).toHaveTextContent('已启用');
+
+    view.rerender(
+      <MemoryRouter initialEntries={['/admin/tools?tab=registry']}>
+        <ToolsSection onAction={vi.fn()} refreshNonce={1} />
+      </MemoryRouter>,
+    );
+
+    expect(await within(screen.getByRole('dialog')).findByText('已停用')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

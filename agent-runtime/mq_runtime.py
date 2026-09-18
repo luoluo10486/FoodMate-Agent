@@ -114,8 +114,11 @@ class RedisCommandInbox:
         self.prefix = prefix or os.getenv("FOODMATE_AGENT_REDIS_KEY_PREFIX", "foodmate:agent")
         self.ttl_seconds = int(os.getenv("FOODMATE_AGENT_REDIS_INBOX_RETENTION_SECONDS", "604800"))
 
-    def claim(self, dispatch_id: str, request_hash: str, command: dict) -> str:
-        key = f"{self.prefix}:inbox:command:{dispatch_id}"
+    def claim(self, key_id: str, request_hash: str, command: dict, kind: str = "command") -> str:
+        """按消息类型和业务幂等键分别保存 Run 与 Skip 的接收事实。"""
+        if kind not in {"command", "skip"}:
+            raise ValueError("RUNTIME_INBOX_KIND_INVALID")
+        key = f"{self.prefix}:inbox:{kind}:{key_id}"
         value = json.dumps({"request_hash": request_hash, "command": command}, ensure_ascii=False, sort_keys=True)
         if self.client.set(key, value, nx=True, ex=self.ttl_seconds):
             return "claimed"
@@ -374,24 +377,54 @@ class RocketMqKnowledgePurgeResultPublisher:
             _shutdown_client(self.producer)
 
 
+def _message_property(message, name: str) -> str | None:
+    """兼容 RocketMQ SDK 和测试消息对象的用户属性读取方式。"""
+    getter = getattr(message, "get_property", None) or getattr(message, "getProperty", None)
+    if callable(getter):
+        return getter(name)
+    properties = getattr(message, "properties", None)
+    if isinstance(properties, dict):
+        return properties.get(name)
+    return None
+
+
 class _CommandListener(MessageListener):
-    def __init__(self, inbox: RedisCommandInbox, execute: Callable[[dict], None], metrics=None):
+    def __init__(
+        self,
+        inbox: RedisCommandInbox,
+        execute: Callable[[dict], None],
+        metrics=None,
+        apply_skip: Callable[[dict], None] | None = None,
+    ):
         self.inbox = inbox
         self.execute = execute
         self.metrics = metrics
+        self.apply_skip = apply_skip
 
     def consume(self, message):
         try:
             command = json.loads(message.body.decode("utf-8"))
-            dispatch_id = command["dispatch_id"]
+            message_type = _message_property(message, "foodmate_message_type")
+            is_skip = message_type == "SkipCommand" or "skip_id" in command
+            key_id = command["skip_id"] if is_skip else command["dispatch_id"]
             request_hash = command["request_hash"]
-            result = self.inbox.claim(dispatch_id, request_hash, command)
+            result = self.inbox.claim(
+                key_id,
+                request_hash,
+                command,
+                "skip" if is_skip else "command",
+            )
             if result == "claimed":
-                self.execute(command)
+                if is_skip:
+                    if self.apply_skip is None:
+                        raise RuntimeError("RUNTIME_SKIP_HANDLER_UNAVAILABLE")
+                    self.apply_skip(command)
+                else:
+                    self.execute(command)
                 if self.metrics:
-                    self.metrics("dispatch", "claimed", "redis_inbox")
+                    self.metrics("skip" if is_skip else "dispatch", "claimed", "redis_inbox")
             elif self.metrics:
-                self.metrics("dispatch", "duplicate", "redis_inbox")
+                self.metrics("skip" if is_skip else "dispatch", "duplicate", "redis_inbox")
             return ConsumeResult.SUCCESS
         except ValueError:
             # Contract/idempotency conflicts are deterministic and must not retry forever.
@@ -464,6 +497,7 @@ class RocketMqRuntime:
         publisher=None,
         proposal_publisher=None,
         on_result=None,
+        on_skip=None,
         result_inbox=None,
         metrics=None,
         consumer_factory=None,
@@ -474,6 +508,7 @@ class RocketMqRuntime:
         self.result_inbox = result_inbox or RedisResultInbox()
         self.execute = execute
         self.on_result = on_result or (lambda _result: None)
+        self.on_skip = on_skip or (lambda _command: None)
         self.metrics = metrics
         self.endpoint = os.getenv("FOODMATE_ROCKETMQ_PROXY_ADDR", "localhost:8081")
         self.topic = os.getenv("FOODMATE_ROCKETMQ_TOPIC_AGENT_COMMAND", "foodmate-agent-command-v1")
@@ -500,7 +535,7 @@ class RocketMqRuntime:
         command_consumer = self.consumer_factory(
             configuration,
             self.command_group,
-            _CommandListener(self.inbox, self.execute, self.metrics),
+            _CommandListener(self.inbox, self.execute, self.metrics, self.on_skip),
             subscription={self.topic: FilterExpression("*")},
             consumption_thread_count=int(os.getenv("FOODMATE_AGENT_WORKER_CONCURRENCY", "1")),
         )

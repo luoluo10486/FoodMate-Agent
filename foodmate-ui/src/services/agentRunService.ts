@@ -1,9 +1,20 @@
-import type { AgentStreamConnection, AgentStreamConnectionState } from '../types/agent';
+import type { AgentStreamConnection, AgentStreamHandle } from '../types/agent';
+import { isTerminalAgentEvent } from '../lib/agentEvent';
+import { apiRequest } from './apiClient';
+import { openSseStream } from './sseStream';
+
+function requestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
+}
 
 export type AgentRunEvent = {
   event_id?: string;
   sse_event_id?: string;
   event_type?: string;
+  state?: string;
+  payload?: unknown;
+  code?: string;
+  message?: string;
   status?: string;
   intent?: string;
   complexity?: string;
@@ -19,11 +30,18 @@ export type AgentRunEvent = {
   reason?: string;
   checkpoint_version?: number;
   checkpoint_digest?: string;
+  completed_invocation_ids?: string[];
   current_node?: string;
   budget_revision?: number;
   error_code?: string;
   error_message?: string;
   result_type?: string;
+  usage?: {
+    tokens?: number;
+    cost_cny?: number | string;
+    model_calls?: number;
+    steps?: number;
+  };
   requires_confirmation?: boolean;
   budget_actions?: { requires_confirmation?: boolean };
   confirmation_ref?: string;
@@ -51,6 +69,7 @@ export type AgentRunEvent = {
     plan?: AgentRunEvent['plan'];
   };
   retryable?: boolean;
+  skippable?: boolean;
   citations?: Array<{
     citation_id: string;
     document_id: string;
@@ -61,265 +80,401 @@ export type AgentRunEvent = {
   }>;
 };
 
-export type AgentStreamHandle = {
-  close: () => void;
-  getConnection: () => AgentStreamConnection;
-};
-
 export type AgentStreamOptions = {
+  /** 重新订阅已有 Run 时使用的持久化 SSE 游标。 */
+  lastEventId?: string;
+  /** 绑定页面或会话生命周期，取消后关闭流并阻止后续重连。 */
+  signal?: AbortSignal;
   maxAttempts?: number;
   reconnectDelayMs?: number;
   onStateChange?: (connection: AgentStreamConnection) => void;
   onError?: (connection: AgentStreamConnection) => void;
 };
 
-const terminalEventTypes = new Set(['run.completed', 'run.failed', 'run.cancelled', 'run.superseded']);
+export type AgentRunStatus = {
+  run_id: string;
+  status: string;
+  accepted_event_count: number;
+};
 
-const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
+export type AgentCancellationResult = {
+  run_id: string;
+  status: string;
+  terminal: boolean;
+};
+
+export type AgentToolSkipResult = {
+  run_id: string;
+  proposal_id: string;
+  skip_id: string;
+  dispatch_id: string;
+  attempt: number;
+  status: string;
+};
+
+type AgentToolSkipPayload = Partial<AgentToolSkipResult> & {
+  runId?: string | number;
+  proposalId?: string;
+  skipId?: string;
+  dispatchId?: string;
+};
+
+type AgentCancellationPayload = Partial<AgentCancellationResult> & {
+  runId?: string | number;
+};
+
+export type AgentBudgetExtensionResult = {
+  run_id: string;
+  dispatch_id: string;
+  attempt: number;
+  budget_revision: number;
+  status: string;
+};
+
+type AgentBudgetExtensionPayload = Partial<AgentBudgetExtensionResult> & {
+  runId?: string | number;
+  dispatchId?: string;
+  budgetRevision?: number;
+};
+
+export type AgentRecoveryRequest = {
+  checkpointVersion: number;
+  checkpointDigest: string;
+  completedInvocationIds?: string[];
+};
+
+export type AgentRecoveryResult = {
+  run_id: string;
+  dispatch_id: string;
+  attempt: number;
+  status: string;
+};
+
+export type AgentFeedbackRequest = {
+  helpful: boolean;
+  reasonCodes?: string[];
+  comment?: string;
+};
+
+export type AgentFeedbackResponse = {
+  feedback_id: string;
+  run_id: string;
+  message_id: string;
+  helpful: boolean;
+  reason_codes: string[];
+  high_risk: boolean;
+  idempotency_key: string;
+};
+
+export type ApprovalProposalRequest = {
+  sessionId?: string | number;
+  agentRunId?: string | number;
+  operation: string;
+  resourceType: string;
+  resourceId?: string | number;
+  parameters: Record<string, unknown>;
+  idempotencyKey?: string;
+  expiresInSeconds?: number;
+};
+
+export type ApprovalProposalResponse = {
+  approval_request_id: string;
+  operation: string;
+  resource_type: string;
+  resource_id: number | null;
+  parameters_digest: string;
+  status: string;
+  expires_at: string;
+  confirmed_at: string | null;
+  executed_at: string | null;
+};
+
+export type ApprovalExecuteResponse = {
+  approval_request_id: string;
+  operation: string;
+  status: string;
+  resource_id: number | null;
+};
+
+const agentEventTypes = [
+  'run.created',
+  'run.event',
+  'run.accepted',
+  'run.routed',
+  'run.planned',
+  'run.retrieval_started',
+  'run.retrieval_finished',
+  'run.context_assembled',
+  'run.tool_started',
+  'run.tool_finished',
+  'run.eval_decided',
+  'run.model_usage',
+  'run.checkpoint_saved',
+  'run.clarification_requested',
+  'run.cancel_acknowledged',
+  'run.answer_stream',
+  'run.completed',
+  'run.failed',
+  'run.cancelled',
+  'run.superseded',
+] as const;
 
 export function openAgentRunStream(
   runId: string,
   onEvent: (eventType: string, payload: AgentRunEvent, eventId: string) => void,
   options: AgentStreamOptions = {},
 ): AgentStreamHandle {
-  const maxAttempts = Math.max(1, options.maxAttempts ?? 5);
-  const reconnectDelayMs = Math.max(0, options.reconnectDelayMs ?? 500);
-  const eventTypes = [
-    'run.event',
-    'run.accepted',
-    'run.routed',
-    'run.context_assembled',
-    'run.tool_started',
-    'run.tool_finished',
-    'run.eval_decided',
-    'run.model_usage',
-    'run.checkpoint_saved',
-    'run.clarification_requested',
-    'run.answer_stream',
-    'run.completed',
-    'run.failed',
-    'run.cancelled',
-    'run.superseded',
-  ];
-  const seen = new Set<string>();
-  let source: EventSource | undefined;
-  let reconnectTimer: number | undefined;
-  let terminal = false;
-  let closed = false;
-  let connection: AgentStreamConnection = { state: 'connecting', attempt: 1, maxAttempts };
-
-  const publishState = (state: AgentStreamConnectionState, patch: Partial<AgentStreamConnection> = {}) => {
-    connection = { ...connection, ...patch, state };
-    options.onStateChange?.(connection);
-  };
-
-  const closeSource = () => {
-    source?.close();
-    source = undefined;
-  };
-
-  const close = () => {
-    if (closed) return;
-    closed = true;
-    terminal = true;
-    if (reconnectTimer !== undefined) window.clearTimeout(reconnectTimer);
-    closeSource();
-    publishState('closed');
-  };
-
-  const connect = () => {
-    if (closed || terminal) return;
-    const lastEventId = connection.lastEventId;
-    const suffix = lastEventId ? `?lastEventId=${encodeURIComponent(lastEventId)}` : '';
-    const nextState = connection.attempt === 1 ? 'connecting' : 'reconnecting';
-    if (connection.state !== nextState) publishState(nextState);
-    const nextSource = new EventSource(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/stream${suffix}`, {
-      withCredentials: true,
-    });
-    source = nextSource;
-    nextSource.onopen = () => publishState('connected');
-    for (const registeredType of eventTypes) {
-      nextSource.addEventListener(registeredType, (event) => {
-        const message = event as MessageEvent<string>;
-        let payload: AgentRunEvent;
-        try {
-          payload = JSON.parse(message.data) as AgentRunEvent;
-        } catch {
-          options.onError?.(connection);
-          return;
-        }
-        const eventId = message.lastEventId || payload.sse_event_id || payload.event_id || '';
-        if (eventId && seen.has(eventId)) return;
-        if (eventId) seen.add(eventId);
-        if (eventId && eventId !== connection.lastEventId) {
-          // 游标变化也必须通知页面，保证连接状态面板和下一次续接使用同一份 ID。
-          publishState(connection.state, { lastEventId: eventId });
-        }
-        const eventType = payload.event_type || registeredType;
-        onEvent(eventType, payload, eventId);
-        if (terminalEventTypes.has(eventType)) {
-          terminal = true;
-          closeSource();
-          publishState('closed');
-        }
-      });
-    }
-    nextSource.onerror = () => {
-      // EventSource 在 close 后仍可能派发一次异步 error，不能为旧连接再安排重连。
-      if (closed || terminal || source !== nextSource) return;
-      closeSource();
-      if (connection.attempt >= maxAttempts) {
-        publishState('exhausted');
-        options.onError?.(connection);
-        return;
-      }
-      if (reconnectTimer !== undefined) return;
-      const attempt = connection.attempt + 1;
-      publishState('reconnecting', { attempt });
-      reconnectTimer = window.setTimeout(() => {
-        reconnectTimer = undefined;
-        connect();
-      }, reconnectDelayMs);
-      options.onError?.(connection);
-    };
-  };
-
-  // 建立 EventSource 前先发布初始连接状态，页面可以立即显示连接中的运行态。
-  options.onStateChange?.(connection);
-  connect();
-  return { close, getConnection: () => connection };
+  return openSseStream<AgentRunEvent>({
+    path: `/api/agent-runs/${encodeURIComponent(runId)}/stream`,
+    eventTypes: agentEventTypes,
+    lastEventId: options.lastEventId,
+    signal: options.signal,
+    maxAttempts: options.maxAttempts,
+    reconnectDelayMs: options.reconnectDelayMs,
+    onStateChange: options.onStateChange,
+    onError: options.onError,
+    parseEvent: (message, registeredType) => {
+      const payload = JSON.parse(message.data) as AgentRunEvent;
+      const eventIds = [message.lastEventId, payload.sse_event_id, payload.event_id].filter(
+        (eventId): eventId is string => Boolean(eventId),
+      );
+      return {
+        payload,
+        eventId: eventIds[0],
+        eventIds,
+        eventType: payload.event_type || registeredType,
+      };
+    },
+    onEvent,
+    isTerminal: (eventType, payload) => isTerminalAgentEvent(eventType, payload as unknown as Record<string, unknown>),
+  });
 }
 
-export async function cancelAgentRun(runId: string): Promise<void> {
-  // 取消是写操作，必须把可读 CSRF Cookie 转发给后端。
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/cancel`, {
+export async function loadAgentRun(runId: string, signal?: AbortSignal): Promise<AgentRunStatus> {
+  return apiRequest<AgentRunStatus>(`/api/agent-runs/${encodeURIComponent(runId)}`, requestInit(signal));
+}
+
+export async function cancelAgentRun(
+  runId: string,
+  reason = 'user_requested',
+  signal?: AbortSignal,
+): Promise<AgentCancellationResult> {
+  const result = await apiRequest<AgentCancellationPayload>(`/api/agent-runs/${encodeURIComponent(runId)}/cancel`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify({ reason: 'user_requested' }),
+    body: JSON.stringify({ reason }),
+    ...requestInit(signal),
   });
-  if (!response.ok) throw new Error('取消运行失败');
+  return normalizeCancellationResult(result);
 }
 
 export async function extendAgentRunBudget(
   runId: string,
   additionalTokens: number,
   additionalCostCny: string,
-): Promise<void> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const raw = `${runId}:${additionalTokens}:${additionalCostCny}:${Date.now()}`;
-  const digest = Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw))))
-    .map((value) => value.toString(16).padStart(2, '0'))
-    .join('');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/budget-extensions`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify({
-      additional_tokens: additionalTokens,
-      additional_cost_cny: additionalCostCny,
-      confirmation_digest: `sha256:${digest}`,
-    }),
-  });
-  if (!response.ok) throw new Error('预算追加失败，请稍后重试。');
+  confirmationDigest?: string,
+  signal?: AbortSignal,
+): Promise<AgentBudgetExtensionResult> {
+  const digest =
+    confirmationDigest ??
+    (await stableDigest(`agent-run.budget.extension|${runId}|${additionalTokens}|${additionalCostCny}`));
+  const result = await apiRequest<AgentBudgetExtensionPayload>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/budget-extensions`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        additionalTokens,
+        additionalCostCny,
+        confirmationDigest: digest,
+      }),
+      ...requestInit(signal),
+    },
+  );
+  return normalizeBudgetExtensionResult(result);
 }
 
 /**
- * 恢复必须由 Java 根据已持久化 checkpoint 对账，前端不提交 checkpoint 内容。
+ * 根据已持久化的 checkpoint 恢复时，前端不提交 checkpoint 内容。
  */
 export async function recoverAgentRun(
   runId: string,
-): Promise<{ run_id: string; dispatch_id: string; attempt: number; status: string }> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+  request: AgentRecoveryRequest,
+  signal?: AbortSignal,
+): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover`, {
     method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
+    body: JSON.stringify({
+      checkpoint_version: request.checkpointVersion,
+      checkpoint_digest: request.checkpointDigest,
+      completed_invocation_ids: request.completedInvocationIds ?? [],
+    }),
+    ...requestInit(signal),
   });
-  const body = (await response.json()) as {
-    success: boolean;
-    data?: { run_id: string; dispatch_id: string; attempt: number; status: string };
-    error?: { message?: string };
-  };
-  if (!response.ok || !body.success || !body.data) throw new Error(body.error?.message ?? '运行恢复失败，请稍后重试。');
-  return body.data;
+}
+
+export async function recoverAgentRunFromCheckpoint(runId: string, signal?: AbortSignal): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/recover-from-checkpoint`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
+}
+
+/** 失败重试由 Java 根据 Runtime 的 retryable 事件和持久化事实裁决。 */
+export async function retryAgentRun(runId: string, signal?: AbortSignal): Promise<AgentRecoveryResult> {
+  return apiRequest<AgentRecoveryResult>(`/api/agent-runs/${encodeURIComponent(runId)}/retry`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
+}
+
+/** 请求后端跳过一个仍可跳过的工具步骤；完成事实必须由后续 SSE 事件确认。 */
+export async function skipAgentTool(
+  runId: string,
+  proposalId: string,
+  reason = '用户请求跳过工具步骤',
+  signal?: AbortSignal,
+): Promise<AgentToolSkipResult> {
+  const result = await apiRequest<AgentToolSkipPayload>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/tool-proposals/${encodeURIComponent(proposalId)}/skip`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+      ...requestInit(signal),
+    },
+  );
+  return normalizeToolSkipResult(result);
+}
+
+export async function submitAgentFeedback(
+  runId: string,
+  messageId: string,
+  request: AgentFeedbackRequest,
+  signal?: AbortSignal,
+): Promise<AgentFeedbackResponse> {
+  return apiRequest<AgentFeedbackResponse>(
+    `/api/agent-runs/${encodeURIComponent(runId)}/messages/${encodeURIComponent(messageId)}/feedback`,
+    {
+      method: 'POST',
+      headers: { 'Idempotency-Key': `agent-feedback-${runId}-${messageId}` },
+      body: JSON.stringify({
+        helpful: request.helpful,
+        reason_codes: request.reasonCodes ?? [],
+        comment: request.comment || undefined,
+      }),
+      ...requestInit(signal),
+    },
+  );
+}
+
+export async function createApprovalProposal(
+  request: ApprovalProposalRequest,
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>('/api/approvals/proposals', {
+    method: 'POST',
+    body: JSON.stringify({
+      session_id: request.sessionId,
+      agent_run_id: request.agentRunId,
+      operation: request.operation,
+      resource_type: request.resourceType,
+      resource_id: request.resourceId,
+      parameters: request.parameters,
+      idempotency_key: request.idempotencyKey ?? idempotencyKey('approval-proposal'),
+      expires_in_seconds: request.expiresInSeconds ?? 900,
+    }),
+    ...requestInit(signal),
+  });
+}
+
+export async function loadApprovalProposal(
+  approvalRequestId: string | number,
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}`,
+    requestInit(signal),
+  );
 }
 
 export async function confirmAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入确认失败，请稍后重试。');
-  return body.data;
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/confirm`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+      ...requestInit(signal),
+    },
+  );
 }
 
 export async function executeAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown>,
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '写入执行失败，请稍后重试。');
-  return body.data;
+  signal?: AbortSignal,
+): Promise<ApprovalExecuteResponse> {
+  return apiRequest<ApprovalExecuteResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/execute`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+      ...requestInit(signal),
+    },
+  );
 }
 
 export async function rejectAgentWrite(
   approvalRequestId: string | number,
   parameters: Record<string, unknown> = {},
-): Promise<unknown> {
-  const csrf = document.cookie
-    .split('; ')
-    .find((value) => value.startsWith('foodmate_csrf='))
-    ?.split('=')
-    .slice(1)
-    .join('=');
-  const response = await fetch(`${baseUrl}/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json', ...(csrf ? { 'X-CSRF-Token': csrf } : {}) },
-    body: JSON.stringify(parameters),
-  });
-  const body = (await response.json()) as { success?: boolean; data?: unknown; error?: { message?: string } };
-  if (!response.ok || body.success === false) throw new Error(body.error?.message ?? '取消写入失败，请稍后重试。');
-  return body.data;
+  signal?: AbortSignal,
+): Promise<ApprovalProposalResponse> {
+  return apiRequest<ApprovalProposalResponse>(
+    `/api/approvals/${encodeURIComponent(String(approvalRequestId))}/reject`,
+    {
+      method: 'POST',
+      body: JSON.stringify(parameters),
+      ...requestInit(signal),
+    },
+  );
+}
+
+function idempotencyKey(prefix: string) {
+  const suffix = globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  return `${prefix}-${suffix}`;
+}
+
+async function stableDigest(value: string) {
+  const bytes = await globalThis.crypto.subtle.digest('SHA-256', new TextEncoder().encode(value));
+  return `sha256:${Array.from(new Uint8Array(bytes), (byte) => byte.toString(16).padStart(2, '0')).join('')}`;
+}
+
+function normalizeCancellationResult(payload: AgentCancellationPayload): AgentCancellationResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    status: String(payload.status ?? ''),
+    terminal: Boolean(payload.terminal),
+  };
+}
+
+function normalizeBudgetExtensionResult(payload: AgentBudgetExtensionPayload): AgentBudgetExtensionResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
+    attempt: Number(payload.attempt ?? 0),
+    budget_revision: Number(payload.budget_revision ?? payload.budgetRevision ?? 0),
+    status: String(payload.status ?? ''),
+  };
+}
+
+function normalizeToolSkipResult(payload: AgentToolSkipPayload): AgentToolSkipResult {
+  return {
+    run_id: String(payload.run_id ?? payload.runId ?? ''),
+    proposal_id: String(payload.proposal_id ?? payload.proposalId ?? ''),
+    skip_id: String(payload.skip_id ?? payload.skipId ?? ''),
+    dispatch_id: String(payload.dispatch_id ?? payload.dispatchId ?? ''),
+    attempt: Number(payload.attempt ?? 0),
+    status: String(payload.status ?? ''),
+  };
 }

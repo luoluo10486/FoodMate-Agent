@@ -1,16 +1,341 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-12
+更新时间：2026-09-16
+
+## 1.1.50 2026-09-16 Workspace/Home 快捷操作图标资源复核（非像素验收）
+
+本节记录首页快捷操作图标的资源替换和代表页面运行时证据。Figma 继续作为颜色、字体、布局和图标意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | `759×698 / 1.25` | `diet-records.svg`、`intake-analysis.svg`、`meal-planning.svg`、`knowledge.svg` 均以 `16×16` 加载；“快速计算”保留 Lucide；字体 `loaded`，页面 `scrollWidth=759` | 代表复核通过 |
+
+- [x] Home 定向测试 `8/8`，typecheck、lint、format、build、接口审计和 diff 检查通过。
+- [x] 浏览器控制台没有 warning/error；本批次没有新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
+## 1.1.51 2026-09-16 页面组代表路由复核（非像素验收）
+
+本节记录 Diet、Knowledge、Profile 和 Admin 页面组的代表路由检查。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节只验证可读性、页面边界和行为，不代表 105 个画板全量验收完成。
+
+| 页面组 | 代表路由 | 页面级宽度证据 | 结果 |
+|---|---|---|---|
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 关键餐次、营养指标、详情和操作入口可见 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 时间范围、餐次筛选、洞察和数据质量说明可见 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 页面级宽度未溢出 | 计划摘要、五日餐表、约束校验和购物清单可见 |
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `scrollWidth=clientWidth=759` | 搜索、引用详情和主题预览可见 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | 页面级宽度未溢出 | 资料、头像、安全设备和隐私入口可见 |
+| Admin | `/admin*?state=figma-v2&visual-qa=1` | 页面级宽度未溢出；宽表在内部滚动 | 概览、用户、知识库、工具、保留和用量入口可见 |
+
+- [x] 前端定向测试：Diet `100/100`、Knowledge/Profile `82/82`、Admin `127/127`。
+- [x] 后端定向测试：Diet Application/API `39/39` + `21/21`；Knowledge/Profile Application/API `52/52` + `19/19`；Admin Application/API `134/134` + `35/35`。
+- [x] 代表路由字体均完成加载，控制台没有业务 warning/error；本节没有生成 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
+## 1.1.49 全量接口矩阵与代表页面复核（非像素验收）
+
+本节记录执行计划第一阶段的接口矩阵审计和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
+
+| 页面组 | 浏览器路由 | 视口 / 页面宽度 | 复核结论 |
+| --- | --- | --- | --- |
+| Workspace/Home | `/` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 文字、头像和运行状态可读，代表复核通过 |
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 筛选边界和结果卡可读，代表复核通过 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 代表复核通过 |
+| Admin | `/admin?state=figma-v2&visual-qa=1` | `759×698`，`scrollWidth=759` | 宽表在内部容器滚动，代表复核通过 |
+
+- [x] `npm.cmd run audit:api` 通过：Controller `128`、浏览器接口 `121`、内部接口 `7`、生产消费者 `121/121`。
+- [x] 代表路由控制台未发现 warning/error；本批次没有新增后端接口或修改 SSE 协议。
+- [ ] 本节只证明接口矩阵和代表页面的本地结构、可读性与响应式边界，不替代生产环境联调，不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 继续保持 `BLOCKED`。
+
+## 1.1.48 2026-09-16 Diet Records、Intake Analysis 与 Meal Planning 代表页面复核（非像素验收）
+
+本节记录三类饮食工具页面的真实契约和代表页面观察。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不执行 105 个画板全量 PNG/diff，也不代表任何画板获得像素级 `PASS`。
+
+| 页面 | 浏览器路由 | 观察到的关键内容 | 结论 |
+| --- | --- | --- | --- |
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | 日期导航、日/周视图、营养指标、餐次记录、详情、记录一餐、编辑和软删除入口可访问 | 代表复核通过 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | 7/30/90 天范围、自定义范围、全部餐次、导出、摘要、图表和 Agent 洞察入口可访问 | 代表复核通过 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 计划重生成/保存、周日程、约束校验、购物清单和勾选控件可访问 | 代表复核通过 |
+
+- [x] 前端全量 Vitest `72` 个文件、`578/578`；typecheck、lint、format、build 通过；后端 `.\mvnw.cmd verify` 为 `BUILD SUCCESS`。
+- [x] 本批次按 Controller/DTO 核对 revision、幂等键、分析范围和购物清单请求差异；没有新增虚构接口或把 Fixture 状态写入真实模式。
+- [ ] 本节不使用像素差异比例替代视觉判断，不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、映射、来源和许可证继续保持 `BLOCKED`。
+
+## 1.1.47 2026-09-16 Auth 页面组短视口滚动复核（非像素验收）
+
+本节记录 Auth 页面在窄桌面视口下的实际容器滚动修复。Figma 节点 `647:214`、`680:216` 继续作为颜色、字体、布局和控件意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Login | `/login?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、内容不超出视口，字体 `loaded` | 代表复核通过 |
+| Register | `/register?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、`scrollHeight=895`；滚动后注册按钮和底部登录入口可见 | 代表复核通过 |
+| Forgot Password | `/forgot-password?visual-qa=1` | `759×698 / 1.25` | Auth 容器 `clientHeight=698`、`scrollHeight=827`；表单和成功卡片可纵向访问 | 代表复核通过 |
+| Reset Password | `/reset-password?visual-qa=1` | `759×698 / 1.25` | 单卡内容稳定可见，字体 `loaded` | 代表复核通过 |
+| Token Status | `/token-status?state=invalid/expired/used&visual-qa=1` | `759×698 / 1.25` | 三种状态标题、说明和动作均可见；Used 状态客服按钮保持禁用 | 代表复核通过 |
+
+- [x] 所有复核路由页面级 `scrollWidth=759`，Auth 控制台 warning/error 为空。
+- [x] 本批次修复的是 Auth 容器高度和滚动边界，不改变 Figma 视觉层级、现有真实接口或 Fixture/真实隔离。
+- [x] Auth 定向测试 `3` 个文件、`43/43`；本节为结构、可访问性和响应式边界复核，不新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比，也不把本地 Auth 复核扩展为生产邮件、Cookie、数据库和部署联调；iconfont 实体包、完整映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
+## 1.1.46 2026-09-16 Chat 六种 Agent 状态与终态消息复核（非像素验收）
+
+本节记录 Chat/Agent 状态和服务端终态消息投影的本地浏览器复核。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 状态/入口 | 浏览器路由 | 复核证据 | 结论 |
+|---|---|---|---|
+| 写入确认 | `/chat?state=write-confirmation` | 写入目标、日期、食物、热量、蛋白质、来源、估算假设、确认和取消均可见 | 代表复核通过 |
+| 预算上限 | `/chat?state=budget-limit` | `50,000 tokens`、`100%`、预计费用、追加预算和结束会话均可见 | 代表复核通过 |
+| 可重试工具失败 | `/chat?state=tool-failed-retryable` | 超时错误码、外部知识库不可用原因、重试和跳过入口均可见 | 代表复核通过 |
+| 安全降级 | `/chat?state=safety-degraded` | 有限数据提示、基础回答和个人条件未完整应用警告均可见 | 代表复核通过 |
+| 用户取消 | `/chat?state=user-cancelled` | 已接收的部分文本、用户取消原因和重新提问入口均可见 | 代表复核通过 |
+| SSE 重连 | `/chat?state=sse-reconnecting` | 已展示文本保留，显示第 `2/5` 次重连和持续失败后的刷新提示 | 代表复核通过 |
+
+- [x] 六个入口稳定渲染后均不再停留在加载态；浏览器控制台 warning/error 为空。
+- [x] 真实 Chat 的 `run.completed` 会回读服务端消息并替换临时流式文本；只有服务端返回当前 Run assistant 时才清除临时文本。
+- [x] 定向 Chat/Agent 测试 `3` 个文件、`43/43`；本节为结构、状态语义和消息一致性复核，不新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比，也不把本地 Fixture 复核扩展为生产 SSE 长连接联调；iconfont 实体包、完整映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
+## 1.1.45 2026-09-16 Workspace/Home 移动导航结构复核（非像素验收）
+
+本节记录移动工作区壳层的实际浏览器复核。页面视觉仍以 Figma 的导航层级、颜色、字体和间距意图为依据；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| Figma/页面入口 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | `640×698 / 1` | 移动导航按钮可见；Sheet 打开后包含会话、饮食工具、知识库、设置和账户入口；点击“知识库”跳转 `/knowledge` 后 Sheet 自动关闭；字体 `loaded`，页面 `scrollWidth=640` | 代表复核通过 |
+
+- [x] 页面和文档宽度均为 `640px`，没有页面级横向溢出。
+- [x] 浏览器控制台 warning/error 为空。
+- [x] 本节是结构、可访问性和响应式边界复核，不新增 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、映射、来源和许可证仍未提供，继续保持 `BLOCKED`。
+
+## 1.1.44 2026-09-16 Chat 与 Admin 代表页面边界复核（非像素验收）
+
+本节记录本次本地浏览器复核的可读性、头像一致性、控件几何和页面级溢出证据。Figma 继续作为颜色、字体、布局、状态和交互意图来源；本节不新增全量画板 PNG、diff JSON 或像素级 `PASS`。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 结构与可读性证据 | 结论 |
+|---|---|---|---|---|
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `759×698 / 1.25` | 字体 `loaded`；页面 `scrollWidth=759`；用户气泡正文 `rgb(0,0,0)`、表面 `rgb(255,246,226)`；侧栏、顶栏和消息头像均为 `/assets/avatars/default-male.svg` | 代表复核通过 |
+| Admin | `/admin?state=figma-v2&visual-qa=1` | `1280×720 / 1.25` | 字体 `loaded`；页面 `scrollWidth=1280`；筛选控件无重叠；表格容器 `956px`，表格内容 `1116px`，横向滚动仅存在于表格容器 | 代表复核通过 |
+
+- [x] Agent 绿色状态方块继续使用独立 `data-visual-role="agent-status-marker"` 语义，不计入人物头像资源。
+- [x] 本节只证明代表页面的结构、可读性和响应式边界，不代表 105 个画板全量视觉验收完成，也不改变既有 `DIFF_REVIEW` 结论。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.43 2026-09-16 Intake Analysis Fixture 范围筛选结构复核（非像素验收）
+
+本节记录 Figma 节点 `640:773` 的范围筛选结构复核。Figma 画板包含 `7 天`、`30 天`、`90 天`、`自定义范围` 和 `全部餐次`；真实模式的 `今天` 属于后端分析能力，不属于该 Fixture 画板。
+
+| Figma 节点 | 浏览器路由 | 结构证据 | 结论 |
+|---|---|---|---|
+| `640:773` | `/analysis?state=figma-v2&visual-qa=1` | Fixture Tab 为 `7 天`、`30 天`、`90 天`；高级筛选按钮独立保留；真实模式仍可请求 `today` | 结构收口通过 |
+
+- [x] `AnalysisPage.test.tsx` 覆盖 `state=v2` 和 `state=figma-v2`，确认 Fixture 不渲染 `今天`。
+- [x] `AnalysisPage.real.test.tsx` 继续覆盖真实模式 `today`、`7d`、`30d` 请求和旧请求取消。
+- [ ] 本节只记录代表页面结构和可读性，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`，不执行花瓣像素对比。
+- [ ] iconfont 实体包、CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.42 2026-09-16 Meal Planning 窄视口结构复核（非像素验收）
+
+本节记录 Figma 节点 `640:974`、`640:988` 对应的 Meal Planning Fixture 结构复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 作为布局、字体、颜色、圆角和交互意图来源；窄视口下允许通过内部滚动保留餐食卡片的可读宽度。
+
+| Figma 节点 | 浏览器路由 | 视口 / DPR | 结构证据 | 结论 |
+|---|---|---|---|---|
+| `640:974` / `640:988` | `/planning?state=figma-v2&visual-qa=1` | `759×698 / 1.25` | 页面级 `scrollWidth=759`；日程区 `scrollWidth=720`；餐食卡片宽度 `112px`；内部横向滚动可见 | 结构与可读性通过 |
+
+- [x] `state=v2` 和 `state=figma-v2` 均进入同一 Fixture 视觉壳层；真实模式没有复用 Fixture 专用窄视口 class。
+- [x] 定向测试 `PlanningPage.test.tsx`、`AnalysisPage.test.tsx` 共 `24/24` 通过；`lint`、`format:check`、`typecheck`、`build`、`audit:api` 和 `git diff --check` 通过。
+- [ ] 本节不是像素级验收，不改变既有 `DIFF_REVIEW` 结论，不执行 105 个画板全量像素差异或花瓣像素对比。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.41 2026-09-16 Auth、Workspace/Home 与 Chat 代表页面复核（非像素验收）
+
+本节记录 Figma 设计上下文、Motion 上下文和本地浏览器的代表页面复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。页面可以根据真实数据、响应式宽度和可访问性做合理适配。
+
+| Figma 节点 | 浏览器路由 | 本次复核结论 |
+|---|---|---|
+| `647:214` Auth 登录 | `/login?visual-qa=1` | 400px 表单、52px 输入控件、Figma Auth 半透明表面和登录/注册结构可见；字体已加载，无页面级横向溢出。 |
+| `640:256` Workspace Home | `/?state=figma-v2&visual-qa=1` | 260px 侧栏、工作台导航、任务输入器、快速操作、营养指标和任务状态面板可见；字体已加载，无页面级横向溢出。 |
+| `983:3` Chat 消息操作 | `/chat?state=figma-v2&visual-qa=1` | 用户消息为黑色正文和 `#fff6e2` 表面；侧栏、顶栏和用户消息头像统一使用登记男性默认 SVG；Agent 状态方块保持独立语义。 |
+
+- [x] Auth Motion 上下文已读取：主时间线为 `4500ms` 循环；当前验收入口关闭动态干扰，未将静态截图当作动画完成证据。
+- [x] 浏览器复核视口为 `759×698`、DPR `1.25`，三条路由字体状态均为 `loaded`；该视口仅用于结构、可读性和溢出检查。
+- [x] Auth、Home、Chat、WorkspaceLayout 定向验证共 `6` 个文件、`131/131`；接口审计为 Controller `126`、浏览器接口 `119`、内部接口 `7`、生产消费者证据 `119/119`。
+- [ ] 本节不是像素级验收，不改变既有 `DIFF_REVIEW` 结论，不执行 105 个画板全量像素差异或花瓣像素对比。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.40 2026-09-15 代表页面结构与可读性复核（非像素验收）
+
+本节只记录当前前端代表页面的浏览器复核，不新增 105 个画板 PNG、diff JSON 或像素级 `PASS`。Figma 继续作为颜色、字体、布局、组件状态和交互意图来源；页面允许为真实数据长度、响应式宽度和可访问性做合理适配。
+
+| 页面 | 浏览器路由 | 本次复核结论 |
+|---|---|---|
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | 操作栏位于餐次记录之后，Lunch 第二条记录不再被覆盖。 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | 指标卡、图表卡和筛选条完整可见，筛选条从左侧开始展示。 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | 移动端宽表在自身容器内滚动，页面整体不产生横向溢出。 |
+| Agent Chat | `/chat?state=figma-v2&visual-qa=1` | 用户消息使用深色文字；Workspace 账号与用户消息使用同一登记默认头像，绿色 Agent 方块保留为状态标识。 |
+
+- [x] 受影响页面定向测试 `6` 个文件、`76/76` 通过；全量 Vitest `70` 个文件、`529/529` 通过。
+- [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过。
+- [ ] 本节不把结构和可读性复核扩展为 105 个画板全量像素差异，也不执行花瓣像素对比；现有像素报告中的非零 diff 结论不改写。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.39 2026-09-15 Knowledge、Profile、Admin 代表页面复核（非像素验收）
+
+本节只记录三个业务域的浏览器结构、控件和可读性复核，不新增 PNG、diff JSON 或像素级 `PASS`。页面实现继续以 Figma 的视觉和交互意图为依据，并保留真实数据、权限和响应式适配边界。
+
+| 页面 | 浏览器路由 | 本次复核结论 |
+|---|---|---|
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | 搜索、主题筛选、结果列表、引用详情和推荐主题均可见。 |
+| Profile | `/profile?state=figma-v2&visual-qa=1` | 头像、资料表单、个人中心导航和保存状态入口均可见，默认头像使用登记资源。 |
+| Admin | `/admin?state=figma-v2&visual-qa=1` | 筛选器、指标、运行表格和侧栏可用；宽表仅在内部容器滚动。 |
+
+- [x] `src/architecture/shadcnBoundary.test.ts` 定向验证 `1/1` 通过；没有发现新增页面级 Radix 或 `AdminPrimitives` 依赖。
+- [x] 本节不修改当前像素报告的 `DIFF_REVIEW` 结论，不执行 105 个画板全量像素差异或花瓣像素对比。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.37 2026-09-13 用户头像实体与 Chat 对比度当前证据
+
+本节只更新用户反馈直接涉及的头像和 Chat 用户消息对比度证据，不重新验收全部 105 个画板。Figma 文件为 `MX18RZCfAmgprNzxItkHUH`，浏览器使用本地 `127.0.0.1:5188`、Chrome `152.0.7977.83`、相同 `1440×1024` 视口、DPR `1`、字体加载完成和关闭动态干扰条件。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Workspace/Home | `640:256` | `/?state=figma-v2` | `recaptured-figma/workspace-home-v2-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-workspace-home-v2-browser-2026-09-13.png` | `recaptured/workspace-home-v2-current-diff-2026-09-13-avatar-fixed.json` | `9.2689%` | `2.914238` | `17.797930` | `255` | `DIFF_REVIEW` |
+| Agent Chat | `640:428` | `/chat?state=figma-v2` | `recaptured-figma/agent-chat-v2-figma-2026-09-13-contrast-fixed-avatar-fixed.png` | `recaptured/dpr1-agent-chat-v2-browser-2026-09-13.png` | `recaptured/agent-chat-v2-current-diff-2026-09-13-contrast-fixed-avatar-fixed.json` | `7.6864%` | `2.417285` | `16.019108` | `255` | `DIFF_REVIEW` |
+| Profile Basic | `806:1119` | `/profile?state=basic` | `recaptured-figma/profile-basic-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-basic-browser-2026-09-13.png` | `recaptured/profile-basic-current-diff-2026-09-13-avatar-fixed.json` | `60.0198%` | `3.500633` | `18.502580` | `255` | `DIFF_REVIEW` |
+| Profile Memories | `806:1281` | `/profile?state=memories` | `recaptured-figma/profile-memories-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-memories-browser-2026-09-13.png` | `recaptured/profile-memories-current-diff-2026-09-13-avatar-fixed.json` | `21.4582%` | `4.229244` | `21.220424` | `255` | `DIFF_REVIEW` |
+| Profile Security | `806:1445` | `/profile?state=security` | `recaptured-figma/profile-security-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-security-browser-2026-09-13.png` | `recaptured/profile-security-current-diff-2026-09-13-avatar-fixed.json` | `50.2518%` | `5.202315` | `21.698268` | `255` | `DIFF_REVIEW` |
+| Profile Privacy | `806:1585` | `/profile?state=privacy` | `recaptured-figma/profile-privacy-figma-2026-09-13-avatar-fixed.png` | `recaptured/dpr1-profile-privacy-browser-2026-09-13.png` | `recaptured/profile-privacy-current-diff-2026-09-13-avatar-fixed.json` | `7.7374%` | `2.414843` | `15.979757` | `255` | `DIFF_REVIEW` |
+
+- [x] 实时 Figma 节点 `640:529` 的用户消息文字已由 `#FFFFFF` 改为 `#000000`，Figma 截图和浏览器设计态现在使用同一黑色前景；浏览器 Chat 截图中用户消息已清晰可读。
+- [x] 六个当前 Figma PNG 与六个浏览器 PNG 均为 `1440×1024`；截图前字体状态为 `loaded`、DPR 为 `1`、`bodyOverflow=false`，并完成自动 diff、几何检查、文字检查和人工视觉复核。
+- [x] Workspace、Chat、Profile Basic、Profile Memories、Profile Security、Profile Privacy 的人物头像均只使用用户提供的 `default-male.svg`；运行时 Chat/Workspace/Profile 的侧栏、顶栏、消息和 Profile 主头像已核对为同一登记资源。女性 SVG 仍作为性别对应的唯一女性默认资源保留。
+- [x] 绿色 Agent 方块属于 `data-visual-role="agent-status-marker"` 状态标识，认证页 `foodmate-*-user.svg` 属于字段图标，均不计入人物头像；旧真人头像 PNG 仅是历史验收证据，不再作为当前映射或运行时资源。
+- [ ] 六项 diff 均为非零，因此不能标记像素级 `PASS`；本节只复采 6 个受影响画板，其余画板不在本次范围内，全量聚合继续保持 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.36 2026-09-13 Admin 操作审计增量验收与头像来源复核
+
+本节只记录 Figma 节点 `995:1499`（`admin-operation-audit`）的单页增量证据，不重新采集或判定其余画板。Figma 参考图尺寸为 `1440×1024`；浏览器使用同尺寸视口、DPR 1、字体加载完成并关闭动态干扰。头像按用户要求使用登记的默认 SVG，因此与 Figma 历史真人头像的像素差异属于预期差异，不能仅凭结构接近标记 `PASS`。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Admin Operation Audit | `995:1499` | `/admin?view=audit` | `docxs/设计/figma-png/admin-operation-audit.png` | `recaptured/dpr1-admin-operation-audit-browser-2026-09-13.png` | `figma-105-diff-results.json#admin-operation-audit` | `8.4906006%` | `3.018938` | `18.223665` | `241` | `DIFF_REVIEW` |
+
+- [x] 浏览器证据由 Chrome `152.0.7977.83` 采集，视口 `1440×1024`、DPR `1`、字体状态 `loaded`、`bodyOverflow=false`；映射和聚合 diff 已同步。
+- [x] Figma 节点的表格字体、圆角和表头边框已逐项回读并落实；审计 Fixture 账号固定为 `Anddy / 1234567 / Anddy's Lab`，不再使用本地 mock 用户信息。
+- [x] 运行时人物头像扫描覆盖 Chat、Workspace、Diet Records、Intake Analysis、Meal Planning、Knowledge、Profile 和 Admin；人物头像只出现用户提供的 `default-male.svg` / `default-female.svg`，两份实体 SHA-256 与附件登记一致。
+- [x] 自动 diff、几何检查、文字检查和人工视觉复核均已完成；剩余差异包括用户指定默认头像替换造成的预期资产差异、字体光栅化和局部像素差异，因此保留 `DIFF_REVIEW`。
+- [ ] 本轮不重新验收其余 104 个画板；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 实体包、映射、来源和许可证继续为 `BLOCKED`。
+
+## 1.1.34 2026-09-13 Diet Records 增量像素证据
+
+本节只记录 Figma 节点 `640:588`（`diet-records-v2`）的最新浏览器证据，不重新采集或判定其余画板。Figma 参考图仍为实时文件导出的 `1440×1024` PNG；浏览器使用同尺寸视口、DPR 1、字体加载完成和关闭动态干扰条件。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Diet Records | `640:588` | `/analysis?view=records&state=v2` | `recaptured-figma/diet-records-v2-live-2026-09-12.png` | `recaptured/dpr1-diet-records-v2-browser-2026-09-13.png` | `recaptured/diet-records-v2-current-diff-2026-09-13.json` | `7.372979%` | `2.469032` | `16.609406` | `255` | `DIFF_REVIEW` |
+
+- [x] 视口尺寸、DPR、字体状态和页面溢出检查通过：`1440×1024`、`1`、`loaded`、`bodyOverflow=false`。
+- [x] 结构人工复核确认工作区侧栏、窗口控制点、会话搜索、会话历史、分页、营养记录和记录详情区域均可见；新证据已同步 `figma-105-mapping.json`。
+- [ ] 自动 diff 非零，且仍有图标、字体光栅化和局部像素差异，因此不能标记 `PASS`；本节不代表其余 104 个画板重新验收。
+- [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 实体包、映射、来源和许可证继续为 `BLOCKED`。
+
+## 1.1.35 2026-09-13 默认头像运行时边界加固
+
+本节记录头像组件的默认安全边界，不新增 Figma 画板截图，也不改变真实上传接口。
+
+- [x] `AvatarImage` 默认 `defaultOnly=true`；新增调用方不显式授权时只能输出 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] 真实上传流程仍采用双重显式授权（`defaultOnly={false}` + `allowUploaded`），仅允许当前页面生成的 `blob:` 预览；持久化 URL 和外部人物图片继续按性别回退。
+- [x] 本地资源 SHA-256 与用户附件一致；实时 Figma `🎨 :: Design` 页 192 个默认头像容器中男性 189、女性 3、其它来源 0。
+- [ ] 本节不代表任何画板新增像素级 `PASS`；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 继续为 `BLOCKED`。
+
+## 1.1.33 2026-09-13 Chat Agent 状态页头像同源修正
+
+本节记录浏览器反馈后的 Chat 状态页头像一致性修正。安全降级只表示本次分析能力受限，不表示当前用户发生变化；因此工作区账号和用户消息必须继续使用同一份登记头像。Figma 文件保持只读，本次不重新采集 105 个画板。
+
+- [x] `safety-degraded` 不再单独使用女性消息头像；六个 Agent 状态 Fixture 的侧栏、顶栏和用户消息均使用 `/assets/avatars/default-male.svg`，并经过 `AvatarImage defaultOnly` 输出。
+- [x] Chat 回归测试新增同源断言，逐状态比较 `workspace-sidebar`、`workspace-topbar` 和 `fixture-message` 的 `src`，定向测试 `3` 个文件、`68/68` 个用例通过。
+- [x] 浏览器实际复核 `/chat?state=safety-degraded&visual-qa=1`：顶部、侧栏和消息右侧显示同一男性默认头像；浅黄色用户气泡使用黑色前景，未恢复历史真人素材。
+- [ ] 本次只完成运行时修正和定向验证，没有新增 Figma PNG 或 diff JSON；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，登记状态继续保持 `BLOCKED`。
+
+## 1.1.32 2026-09-13 Admin Overview 控件语义与 Chat 反馈运行时复核
+
+本节记录 Admin Overview 的 shadcn 控件迁移，以及 Chat 用户消息颜色和头像来源的运行时复核；本次没有新增 Figma PNG、浏览器 PNG 或 pixel diff，不能替代像素级验收。
+
+- [x] Admin Overview 的状态标签已由普通 `span` 迁移为 `Badge variant="outline"`，详情入口已由普通 `Link` 迁移为 `Button asChild`；Figma 视觉覆盖保留原有尺寸、颜色、边框、圆角和无阴影规则。
+- [x] Admin 定向测试 `27/27`、Chat 与头像回归测试 `50/50`、`typecheck`、生产 `build` 和 `git diff --check` 均通过。
+- [x] Chat 浏览器运行时复核确认用户气泡前景为黑色 `#000000`；Workspace 侧栏、顶栏和 Chat 用户消息都使用同一份登记男性默认 SVG，未使用历史真人头像。
+- [ ] 本节没有新增截图和 diff JSON；现有 105 个画板聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，本次不能新增或改写 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍缺失，继续保持 `BLOCKED`。
+
+## 1.1.31 2026-09-13 Knowledge 状态页底色增量验收
+
+本节只记录 Figma 节点 `795:786`、`795:968`、`795:1151` 对应的 Knowledge 状态页增量证据，不重新采集或判定其余画板。Figma 文件保持只读，状态页真实检索和引用交互不变。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Knowledge Empty | `795:786` | `/knowledge?state=empty` | `recaptured-figma/user-knowledge-empty-795-786-2026-09-12.png` | `recaptured/dpr1-user-knowledge-empty-browser-2026-09-13.png` | `recaptured/user-knowledge-empty-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.7764%` | `1.263706` | `9.279379` | `204` | `DIFF_REVIEW` |
+| Knowledge Search Failed | `795:968` | `/knowledge?state=search-failed` | `recaptured-figma/user-knowledge-search-failed-795-968-2026-09-12.png` | `recaptured/dpr1-user-knowledge-search-failed-browser-2026-09-13.png` | `recaptured/user-knowledge-search-failed-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.6421%` | `1.369563` | `10.161040` | `204` | `DIFF_REVIEW` |
+| Knowledge Source Unavailable | `795:1151` | `/knowledge?state=source-unavailable` | `recaptured-figma/user-knowledge-source-unavailable-795-1151-2026-09-12.png` | `recaptured/dpr1-user-knowledge-source-unavailable-browser-2026-09-13.png` | `recaptured/user-knowledge-source-unavailable-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.6210%` | `1.358999` | `10.141111` | `204` | `DIFF_REVIEW` |
+
+- [x] 三项均使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1`、字体状态 `loaded`，页面无横向溢出；自动 diff、几何、文字和人工视觉复核均已完成。
+- [x] 状态页底层工作区中性底色已与白色状态蒙层分离，差异比例较 2026-09-12 的 `39.2856%~40.2713%` 降至 `15.6210%~15.7764%`；剩余差异仍来自字体、图标和局部光栅化，不能标记 `PASS`。
+- [x] `figma-105-mapping.json`、`figma-105-diff-results.json` 和 3 份独立 diff 已同步；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [x] 本大点门禁通过：Knowledge 定向测试 `6/6`、`typecheck`、`build`、`qa:figma:validate` 和 `git diff --check`；证据校验为 `structuralPass=true`、`mappedPass=0`、`diffReview=105`、`errors=[]`。
+- [ ] 本轮不重新验收其余 102 个画板；iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射继续为 `BLOCKED`。
+
+## 1.1.30 2026-09-13 Admin User Detail 增量验收
+
+本节只记录 Figma 节点 `801:215` 对应的用户详情 Fixture 增量收口，不重新采集或人工验收其余画板。Figma 文件保持只读；真实模式的用户服务、权限和会话操作边界不因 Fixture 调整改变。
+
+| 画板 | Figma 节点 | 浏览器路由 | Figma PNG | 浏览器 PNG | 独立 diff JSON | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
+|---|---|---|---|---|---|---|---:|---:|---:|---:|---|
+| Admin User Detail | `801:215` | `/admin?state=user-detail` | `docxs/设计/figma-png/admin-user-detail.png` | `recaptured/dpr1-admin-user-detail-browser-2026-09-13.png` | `recaptured/admin-user-detail-current-diff-2026-09-13.json` | `1440×1024 / 1` | `15.1837%` | `3.319421` | `20.034593` | `255` | `DIFF_REVIEW` |
+
+- [x] Fixture 侧栏当前只渲染 8 个导航项：概览、用户管理、Agent 运行、工具调用与 SQL、模型用量、知识库、删除资源、审计日志；用户管理激活态使用暖黄色。
+- [x] 详情面板当前只渲染资料、饮食、会话、历史 4 个 Tab；业务会话入口和说明卡已从该 Fixture 移除，真实用户管理页仍保留业务 Tab。
+- [x] 分页、底部账号和顶栏内边距已按画板收口；浏览器实际检查确认 `Showing 1-4 of 1,284 users`、页码 1/2、`Anddy 实验室` 和 24px 顶栏边距存在。
+- [x] 浏览器证据由 Chrome `152.0.7977.83` 采集，视口 `1440×1024`、DPR `1`、字体状态 `loaded`、页面横向/纵向溢出均为 `false`；映射、聚合 diff、独立 diff 已同步。
+- [x] Admin 定向测试 `2` 个文件、`32` 个用例、`typecheck`、`build` 已通过；本次没有执行 105 个画板全量采集。
+- [x] 头像运行时审计继续有效：人物头像只允许用户提供的 `default-male.svg`、`default-female.svg`；Figma 历史真人图只留在 QA 证据目录，认证 `foodmate-*-user.svg` 仅是字段装饰图标。
+- [ ] 自动 diff 仍为非零，且默认头像按用户要求替换后与 Figma 历史真人头像存在预期差异，不能标记像素级 `PASS`；全量聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、版本、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.29 2026-09-13 默认头像缓存入口收口
+
+本节记录用户反馈后的头像来源复核和缓存边界修正。Figma 文件保持只读；本次不重新采集 105 个画板 PNG，也不把现有差异改写为像素级通过。
+
+- [x] 已在本地浏览器逐页检查 Workspace、Chat 六种 Agent 状态、饮食记录、摄入分析、餐食规划、Knowledge、Profile 和 Admin，人物头像 DOM 只出现 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`。
+- [x] 两份运行时 SVG 与用户附件逐字节一致；认证字段的 `foodmate-*-user.svg` 和其它 `/assets/figma/**` SVG 均为界面图标，不属于人物头像。
+- [x] 登录缓存和当前用户接口改用 `resolvePersistedAvatarUrl`，历史 `blob:` 临时预览不会在刷新或重新登录后继续作为默认头像展示。
+- [ ] 本节没有新增 Figma PNG 或 diff JSON；全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
+
+## 1.1.28 2026-09-13 Profile 记忆筛选页签语义迁移
+
+本节记录 Profile 记忆筛选从手写页签交互迁移到 shadcn/Radix Tabs 的实现收口。Figma 文件保持只读；本次未重新采集 Profile PNG，也没有把已有非零差异改写为像素级通过。
+
+- [x] Fixture 记忆页和真实记忆页使用统一的 `Tabs`、`TabsList`、`TabsTrigger`，筛选值仍由页面受控状态管理。
+- [x] 仅覆盖 shadcn 默认容器样式，使筛选条保持 Figma 胶囊布局；真实记忆页的冲突提示不再作为 `tablist` 子节点。
+- [x] Profile 页签切换定向测试和全量 Vitest `46/46` 文件 `315/315` 用例、typecheck、lint、format、build、`qa:figma:validate`、`git diff --check` 已通过。
+- [ ] 本次未新增 Figma PNG、浏览器 PNG 或 diff JSON；Profile 相关既有画板继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源、许可证和 glyph-Figma 映射仍未提供，资源登记继续保持 `BLOCKED`。
 
 ## 1.1.27 2026-09-12 Chat 用户消息可读性与 Fixture 头像一致性修正
 
-本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求或其它 Agent 状态的独立头像语义。
+本节记录浏览器反馈对应的默认 Chat Figma Fixture 修正。Figma 文件保持只读；本次只修正用户消息正文对比度和默认头像资源一致性，不修改真实模式请求。
 
 | 画板 | Figma 节点 | 浏览器路由 | 视口 / DPR | Diff 比例 | MAE | RMSE | 最大通道差异 | 结论 |
 |---|---|---|---|---:|---:|---:|---:|---|
 | Agent Chat | `640:428` | `/chat?state=figma-v2&visual-qa=1` | `1440×1024 / 1` | `7.6942%` | `2.520406` | `16.610552` | `255` | `DIFF_REVIEW` |
 
-- [x] 用户消息气泡保留 Figma 浅黄色背景，正文改用 `--fm-ink`（`#333333`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
+- [x] 用户消息气泡保留 Figma 浅黄色背景，正文使用 `--fm-figma-chat-user-text`（`#000000`），浏览器截图中不再使用白色正文叠加在浅色气泡上。
 - [x] 默认 Chat Fixture 的侧栏、顶栏和用户消息均使用登记的 `/assets/avatars/default-male.svg`；运行时头像来源一致，未引入外部或历史人物素材。
 - [x] 浏览器 PNG 使用 Chrome `152.0.7977.83`、`1440×1024`、DPR `1` 和已加载字体采集；页面无横向溢出，Figma 与浏览器 PNG 尺寸一致。
 - [x] 独立 diff、105 项聚合结果和运行时复采集路径已同步到 `.qa/figma-pixel-acceptance/`；结构校验结果保持 `structuralPass=true`、`strictDprPass=true`、`errors=[]`。
@@ -3092,6 +3417,8 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 
 本节只复核默认头像资源和 Agent 状态页运行时 DOM，不重新验收全部 105 个画板，Figma 文件保持只读。
 
+> 历史记录说明：本节反映 2026-09-07 当时的状态页头像策略。该策略已由本报告顶部的 1.1.33 批次修正；当前运行时以“同一账号的工作区入口和用户消息使用同一头像”为准。
+
 - [x] 用户提供的男性和女性 SVG 已通过 SHA-256 校验：`default-male.svg` 为 `EE00AF66515C1807ED24738774776C9EBCAAECCBD28F15B1B43B6DBBF67D0D`，`default-female.svg` 为 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
 - [x] 浏览器检查 `/chat?state=write-confirmation`、`budget-limit`、`tool-failed-retryable`、`safety-degraded`、`user-cancelled` 和 `sse-reconnecting`；六页所有 `data-avatar-policy="default-only"` 图片均来自两份登记 SVG。
 - [x] `safety-degraded` 的用户消息头像为 `/assets/avatars/default-female.svg`，其余默认用户消息头像和共享工作台账号头像为 `/assets/avatars/default-male.svg`。
@@ -3216,3 +3543,113 @@ Figma Design 页共有 105 张顶层画板。本轮已为 105 张画板建立独
 - [x] 本次 8 个变更资源的 SHA-256 已登记在《前端已完成实现清单》对应批次；运行时不引入未登记 iconfont 字体或 Unicode glyph。
 - [ ] 本次没有新增浏览器 PNG 或独立 diff JSON；Auth 13 项既有自动 diff 仍为非零并保持 `DIFF_REVIEW`，不能将资源字节一致误写成像素级 `PASS`。
 - [ ] 全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`；iconfont 资源登记仍为 `BLOCKED`。
+
+## 2026-09-13 默认人物头像单一来源复核
+
+本次只复核运行时人物头像契约，不重新验收全部 105 个画板。Fixture 账号头像统一从 `FIXTURE_ACCOUNT_AVATAR` 派生，Chat 消息头像与 Workspace 壳层头像不再由独立常量分别维护。
+
+- [x] `public/assets/avatars/` 实体目录仅包含用户提供的 `default-male.svg` 与 `default-female.svg`；两份文件的 SHA-256 与附件登记值一致。
+- [x] 主要页面浏览器运行时的带头像策略标记节点均指向 `/assets/avatars/default-male.svg` 或 `/assets/avatars/default-female.svg`，未出现历史人物 PNG、Figma MCP 地址或旧上传地址；默认 Chat 用户气泡实际前景色为 `rgb(0, 0, 0)`。
+- [x] Figma Plugin API 实时回读 `MX18RZCfAmgprNzxItkHUH` 的 `🎨 :: Design` 页面确认 192 个标准头像容器：男性 189 个、女性 3 个；每个容器各有且仅有一个对应的用户提供 SVG 根节点，缺失、重复和性别错配均为 0，尺寸覆盖 `32×32`、`36×36`、`56×56` 和 `108×108`。
+- [x] Agent 绿色状态方块和认证字段用户图标已明确排除在人物头像审计之外；历史真人 PNG 继续只保留在 QA 证据目录。
+- [ ] 本次为运行时资源审计，不新增 Figma PNG 或 pixel diff；既有 105 项结论继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能据此标记任何画板为 `PASS`。
+
+## 2026-09-13 Profile Basic Fixture Select 与过敏原控件收口
+
+本次依据 Profile Basic 状态组节点 `792:212`、`794:212`、`794:380` 对照现有 Figma 参考图，仅修正页面控件的视觉层，不重新采集或验收全部 105 个画板。
+
+- [x] Figma Fixture 的性别和活动水平字段仍为可操作的 Radix Select，但隐藏 shadcn 默认 Chevron，保持 Figma 灰色字段的左对齐文本表现。
+- [x] Figma Fixture 的过敏原输入保留键盘 Enter 添加，移除画板不存在的独立加号图标按钮；真实模式按钮入口不变。
+- [x] Profile 定向测试 `26/26` 通过；类型检查和 `git diff --check` 通过。
+- [ ] 本次没有新增浏览器 PNG、Figma PNG 或 diff JSON；既有 Profile 和全量 105 项结论继续保持 `DIFF_REVIEW`，不能标记 `PASS`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 2026-09-13 Chat Fixture 头像绑定收口
+
+本批次只处理 Chat Fixture 的人物头像来源和用户气泡可读性反馈，不重新生成全部 105 个画板的像素证据。Figma 设计文件保持只读，真实模式的上传头像路径保持不变。
+
+- [x] Chat 各状态页面统一通过 `FIXTURE_ACCOUNT_AVATAR` 绑定示例账号头像；消息头像、Workspace 侧栏头像和顶栏头像不再由独立 Chat 常量提供，运行时来源保持一致。
+- [x] 用户提供的男性/女性 SVG 仍是唯一默认人物资源，项目文件与附件 SHA-256 登记值保持不变；Chat 当前示例账号实际输出男性登记 SVG。
+- [x] 用户消息浅黄色气泡正文固定使用 `#000000` 语义 Token，解决浅色前景导致的可读性问题。
+- [x] 2026-09-13 通过 `127.0.0.1:5188` 直接读取运行时资源，男性 `default-male.svg` 为 `15487` 字节、SHA-256 `EE00AF66515C1807ED24738774776C9EBCAAECCBDCD28F15B1B43B6DBBF67D0D`，女性 `default-female.svg` 为 `20345` 字节、SHA-256 `6F12B013242789D28BA4D8949F7345986956D474F07442C3DC9B23FE634ACF34`。
+- [x] Agent 绿色方块继续按 Figma 语义登记为状态标识，不计入人物头像资源审计；认证页面 `*-user.svg` 继续只作为输入框装饰图标。
+- [ ] 本批次不改变任何 PNG diff 结论；全量仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，不能以头像运行时核验替代像素级验收。
+
+## 2026-09-13 Meal Planning 向导 Step 1/2/3 局部复核
+
+本次仅复核实时 Figma 文件 `MX18RZCfAmgprNzxItkHUH` 中的 `692:2801`、`692:2934`、`692:3078` 三个画板。实时设计稿实际包含右侧状态面板，覆盖早期“单卡、无右侧面板”的记录；本节以实时画板为准，不代表其余 102 个画板已重新验收。
+
+| 画板 | 右侧 Figma 节点 | 浏览器证据 | diff | 结论 |
+| --- | --- | --- | --- | --- |
+| `meal-plan-wizard-step1` | `977:3` | `dpr1-meal-plan-wizard-step1-browser-2026-09-13.png` | `22.5625% / MAE 4.197707 / RMSE 22.423570 / max 251` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step2` | `980:3` | `dpr1-meal-plan-wizard-step2-browser-2026-09-13.png` | `25.4375% / MAE 5.405299 / RMSE 25.522226 / max 254` | `DIFF_REVIEW` |
+| `meal-plan-wizard-step3` | `981:3` | `dpr1-meal-plan-wizard-step3-browser-2026-09-13.png` | `26.5771% / MAE 5.429956 / RMSE 25.670396 / max 255` | `DIFF_REVIEW` |
+
+- [x] 三项浏览器截图均为 `1440×1024`、DPR `1`、字体 `loaded`，且 `bodyOverflow=false`；Figma 与浏览器 PNG 尺寸一致。
+- [x] 三个右侧面板均完成节点元数据、面板位置、文字换行和主卡片无遮挡的人工复核；没有发现尺寸错配或横向溢出。
+- [x] 差异证据来源为 `scripts/png-diff.mjs`；详细 JSON 已登记在 `figma-105-diff-results.json` 及三个 `*-current-diff-2026-09-13.json` 文件中。
+- [ ] 三项整页 diff 均非零，保留 `DIFF_REVIEW`；不能用局部结构修复或人工“看起来接近”替代像素级 `PASS`。
+- [ ] 当前全量聚合继续为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`，iconfont 实体包、CSS/Unicode 映射、来源和许可证仍为 `BLOCKED`。
+
+## 2026-09-13 Agent SSE 取消终态与异常连接隔离
+
+本节记录真实 Chat 前端的 SSE 生命周期增量，不新增 Figma/浏览器 PNG，不把连接测试结果当作画板像素级通过证据。Figma 文件保持只读，后端 SSE 事件协议保持不变。
+
+| 验收项 | 代码/测试证据 | 结论 |
+| --- | --- | --- |
+| 连接状态与游标 | `src/types/agent.ts`、`src/services/agentRunService.ts` | `AgentStreamConnection` 提供五种连接状态、重试次数上限和 `lastEventId` |
+| 断点恢复与去重 | `src/services/agentRunService.test.ts` | 初始游标、`MessageEvent.lastEventId`、`sse_event_id`/`event_id` 和重复事件去重均通过 |
+| 异常连接隔离 | `src/services/agentRunService.test.ts` | 非法 JSON、旧连接延迟消息/错误和重连耗尽均进入预期分支 |
+| 取消生命周期 | `src/pages/ChatPage/ChatPage.tsx`、`src/pages/ChatPage/ChatPage.real.test.tsx` | 取消接口接受、`run.cancel_acknowledged` 和 `run.cancelled` 分阶段展示，原游标恢复通过 |
+| 终态关闭 | `src/services/agentRunService.test.ts` | `completed`、`failed`、`cancelled`、`superseded` 均关闭 EventSource 且不再重连 |
+
+- [x] 本大点完成后定向验证为 `6` 个测试文件、`100/100` 个用例通过；该数字包含 Chat、Workspace 和头像契约回归，不代表全量 105 画板验收。
+- [x] 用户取消期间保留已接收回答文本；HTTP 取消成功不直接写入 `cancelled`，必须等待服务端终态事件，避免把请求接受误判为业务完成。
+- [x] 重连连接状态可供页面展示第几次尝试和最大次数；达到上限后进入稳定错误提示，不再显示“停止生成”入口。
+- [ ] 本节没有新增 PNG、diff JSON、几何检查或人工视觉复核证据；105 项聚合仍为 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH`。
+- [ ] iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证仍缺失，继续保持 `BLOCKED`。
+
+## 2026-09-16 Chat/Agent 操作竞态收口记录
+
+- [x] 本批次只修改 Chat Agent 操作的同步防重复逻辑，没有改变页面颜色、字体、布局、图标或 Figma 交互意图。
+- [x] Chat Agent 真实模式定向测试 `2` 个文件、`39/39` 通过；typecheck、Lint、格式检查、构建、接口审计和差异检查通过。
+- [x] 本批次没有新增 Figma PNG、浏览器 PNG 或 diff JSON，不将功能测试结果转换为视觉 `PASS`。
+- [ ] 既有 105 个画板结论保持不变；本轮不执行 105 个画板全量像素差异或花瓣像素对比，iconfont 实体包、映射、来源和许可证仍缺失并保持 `BLOCKED`。
+
+## 2026-09-16 ChatRun SSE 会话切换记录
+
+- [x] 本批次只新增真实 ChatRun SSE 会话切换回归测试，不改变颜色、字体、布局、图标或 Figma 交互意图。
+- [x] 测试验证旧连接关闭、迟到事件隔离；SSE 续接、去重、重连耗尽和终态关闭证据继续沿用既有定向测试。
+- [x] 本批次没有新增 Figma PNG、浏览器 PNG 或 diff JSON，不将功能测试结果转换为视觉 `PASS`。
+- [ ] 既有 105 个画板结论保持不变；本轮不执行全量像素差异或花瓣像素对比，iconfont 实体包、映射、来源和许可证仍缺失并保持 `BLOCKED`。
+
+## 当前执行范围：Figma 代表页面视觉验收（2026-09-16）
+
+本计划将 Figma 作为颜色、字体、结构、层级、交互状态和响应式边界的唯一视觉来源，但不要求前端与设计稿像素一比一，也不执行 105 个画板的全量 PNG/diff 或花瓣像素差异。
+
+| 验收项 | 当前结论 |
+| --- | --- |
+| 视觉来源 | 使用实时 Figma 节点和已登记导出资源，不从旧前端样式反推设计 |
+| 代表页面范围 | Auth、Workspace/Home、Chat、Diet Records、Intake Analysis、Meal Planning、Knowledge、Profile、Admin |
+| 桌面视口 | 重点页面使用 `1440×900`；特殊后台页面按实际设计使用 `1366×768` |
+| 移动视口 | 代表页面使用 `390×844`，检查溢出、裁切、换行和操作可达性 |
+| 验收方式 | 人工检查颜色、字体、层级、间距、状态、可读性和响应式，不以非零像素差异直接判定失败 |
+| 全量 105 画板 | 不作为本轮完成条件，历史 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH` 记录不改写 |
+
+- [x] 已有代表页面人工复核证据继续有效，包括 Chat 用户消息黑色文字、默认头像单一来源和主要工作区页面响应式边界。
+- [ ] 每个页面组仍需在迁移时补充当前节点、关键状态和人工结论；该过程不扩展为 105 张画板全量差异测试。
+- [ ] shadcn 全量页面迁移尚未完成；标准命令图标继续使用 Lucide，iconfont 实体资源登记继续保持 `BLOCKED`。
+
+## 2026-09-16 Auth 页面组运行时复核
+
+本节记录 Auth 页面组的实际浏览器和行为复核，不改变既有 PNG diff 结论，也不把运行时检查替代像素级验收。
+
+| 页面状态 | 浏览器证据 | 结论 |
+| --- | --- | --- |
+| 登录默认态 | `http://127.0.0.1:5188/login?state=v2&visual-qa=1` | 页面结构、字体、认证语义色和共享控件可见 |
+| 登录凭证错误态 | `http://127.0.0.1:5188/login?state=credential-error&visual-qa=1` | 错误提示、错误占位符、登录和注册入口可见 |
+
+- [x] Auth 定向测试 `5` 个文件、`59/59` 通过。
+- [x] 页面层未发现 `AdminPrimitives`、直接 Radix 或可见原生交互控件依赖，继续符合 shadcn 边界。
+- [x] 本次复核没有修改认证接口、Figma 文件或视觉 Token。
+- [ ] Auth 既有自动 diff 仍保持历史 `DIFF_REVIEW`；本次不执行 105 个画板全量视觉差异或花瓣像素对比。

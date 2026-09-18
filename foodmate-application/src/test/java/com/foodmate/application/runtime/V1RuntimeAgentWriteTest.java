@@ -12,6 +12,8 @@ import static org.mockito.Mockito.when;
 import com.foodmate.application.runtime.port.out.RuntimeEventRepository;
 import com.foodmate.application.runtime.service.impl.V1RuntimeEventServiceImpl;
 import com.foodmate.shared.runtime.V1RunEvent;
+import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
@@ -43,6 +45,31 @@ class V1RuntimeAgentWriteTest {
         assertEquals("run.completed", event.eventType());
         assertEquals(true, event.payload().path("write_skipped").asBoolean());
         assertEquals(false, event.payload().has("food_log_id"));
+    }
+
+    @Test
+    void chatHistoryExposesDurableSseCursorSeparatelyFromRuntimeEventId() {
+        RuntimeEventRepository store = mock(RuntimeEventRepository.class);
+        when(store.events(42L))
+                .thenReturn(
+                        List.of(
+                                new RuntimeEventRepository.EventRow(
+                                        "runtime-event-7",
+                                        "sse-19",
+                                        "dispatch-1",
+                                        1,
+                                        7,
+                                        "run.planned",
+                                        Instant.parse("2026-09-16T00:00:00Z"),
+                                        "{}",
+                                        "sha256:test")));
+        V1RuntimeEventServiceImpl service =
+                new V1RuntimeEventServiceImpl(provider(store), () -> 1L);
+
+        var event = service.chatEvents("42").getFirst();
+
+        assertEquals("runtime-event-7", event.eventId());
+        assertEquals("sse-19", event.sseEventId());
     }
 
     @Test

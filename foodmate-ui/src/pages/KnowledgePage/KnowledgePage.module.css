@@ -15,6 +15,11 @@
   background: var(--fm-surface);
 }
 
+/* Figma 状态画板先在工作区中性底色上叠加白色蒙层，避免状态页背景被渲染成纯白。 */
+.stateFixture {
+  background: var(--fm-figma-workspace-bg);
+}
+
 /* Knowledge 默认态对应 Figma 795:838 的全宽顶栏布局，右侧引用栏固定 340px。 */
 .defaultFixture {
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -115,6 +120,11 @@
 
 .filterActive {
   font-weight: 700;
+}
+
+.filter:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
 }
 
 .resultCount {

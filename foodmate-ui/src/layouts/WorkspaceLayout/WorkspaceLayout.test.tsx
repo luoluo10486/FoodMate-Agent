@@ -1,12 +1,240 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mockAuthUser } from '../../mock/auth';
+import {
+  archiveSession,
+  createSession,
+  loadDeletedSessions,
+  loadSessionSummariesPage,
+  restoreSession,
+  searchSessions,
+  type RealSession,
+} from '../../services/sessionService';
+import { loadCurrentUser } from '../../services/authService';
 import { WorkspaceLayout } from './WorkspaceLayout';
 import styles from './WorkspaceLayout.module.css';
 
+vi.mock('../../services/authService', async () => {
+  const actual = await vi.importActual<typeof import('../../services/authService')>('../../services/authService');
+  return { ...actual, loadCurrentUser: vi.fn() };
+});
+
+vi.mock('../../services/sessionService', async () => {
+  const actual = await vi.importActual<typeof import('../../services/sessionService')>('../../services/sessionService');
+  return {
+    ...actual,
+    archiveSession: vi.fn(),
+    createSession: vi.fn(),
+    loadDeletedSessions: vi.fn(),
+    loadSessionSummariesPage: vi.fn(),
+    restoreSession: vi.fn(),
+    searchSessions: vi.fn(),
+  };
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllEnvs();
+  localStorage.clear();
+});
+
 describe('WorkspaceLayout shell controls', () => {
+  it('aborts an in-flight session mutation when the workspace unmounts', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({
+      items: [{ id: 'session-1', title: '早餐记录', subtitle: '今天', active: true }],
+      total: 1,
+      page: 1,
+      size: 50,
+    });
+
+    let requestSignal: AbortSignal | undefined;
+    let releaseArchive: () => void = () => undefined;
+    vi.mocked(archiveSession).mockImplementation((_sessionId, signal) => {
+      requestSignal = signal;
+      return new Promise<void>((resolve) => {
+        releaseArchive = resolve;
+      });
+    });
+
+    const user = userEvent.setup();
+    const view = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '管理早餐记录' }));
+    await user.click(await screen.findByRole('menuitem', { name: '归档' }));
+    await waitFor(() => expect(requestSignal).toBeDefined());
+
+    view.unmount();
+
+    expect(requestSignal?.aborted).toBe(true);
+    releaseArchive();
+  });
+
+  it('prevents duplicate real session creation while the first request is pending', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+
+    let resolveCreate: (session: RealSession) => void = () => undefined;
+    vi.mocked(createSession).mockReturnValue(
+      new Promise<RealSession>((resolve) => {
+        resolveCreate = resolve;
+      }),
+    );
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const createButton = await screen.findByRole('button', { name: '新建任务' });
+    await user.click(createButton);
+    await user.click(createButton);
+
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(createButton).toBeDisabled();
+
+    resolveCreate({
+      session_id: 'session-1',
+      title: '新会话',
+      mode: 'chat',
+      status: 'active',
+    });
+    await waitFor(() => expect(createButton).not.toBeDisabled());
+  });
+
+  it('clears the session search and reloads the first page', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+    vi.mocked(searchSessions).mockImplementation(async (_query, params = {}) => ({
+      items: [
+        {
+          id: 'session-1',
+          title: '早餐记录',
+          subtitle: '今天',
+          active: false,
+        },
+      ],
+      total: 51,
+      page: params.page ?? 1,
+      size: params.size ?? 50,
+    }));
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const search = await screen.findByPlaceholderText('搜索会话...');
+    await user.type(search, '早餐');
+    await waitFor(() =>
+      expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 1, size: 50 }, expect.any(AbortSignal)),
+    );
+
+    await user.click(screen.getByRole('button', { name: '下一页' }));
+    await waitFor(() =>
+      expect(searchSessions).toHaveBeenCalledWith('早餐', { page: 2, size: 50 }, expect.any(AbortSignal)),
+    );
+
+    await user.click(screen.getByRole('button', { name: '清除会话搜索' }));
+    await waitFor(() =>
+      expect(loadSessionSummariesPage).toHaveBeenLastCalledWith({ page: 1, size: 50 }, expect.any(AbortSignal)),
+    );
+  });
+
+  it('reloads the deleted session list from the backend after restoring a session', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({ items: [], total: 0, page: 1, size: 50 });
+    vi.mocked(loadDeletedSessions)
+      .mockResolvedValueOnce([
+        {
+          session_id: 'deleted-1',
+          title: '待恢复会话',
+          mode: 'chat',
+          status: 'deleted',
+        },
+      ])
+      .mockResolvedValueOnce([]);
+    vi.mocked(restoreSession).mockResolvedValue(undefined);
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(await screen.findByRole('button', { name: '查看已删除会话' }));
+    await user.click(await screen.findByRole('button', { name: '恢复' }));
+
+    await waitFor(() => expect(loadDeletedSessions).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(screen.getByText('暂无可恢复的会话。')).toBeInTheDocument());
+    expect(restoreSession).toHaveBeenCalledWith('deleted-1', expect.any(AbortSignal));
+    expect(loadSessionSummariesPage).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not keep stale sessions after a real list request fails', async () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    localStorage.setItem('foodmate_auth_user', JSON.stringify(mockAuthUser));
+    vi.mocked(loadCurrentUser).mockResolvedValue(mockAuthUser);
+    vi.mocked(loadSessionSummariesPage).mockResolvedValue({
+      items: [
+        {
+          id: 'session-1',
+          title: '旧查询结果',
+          subtitle: 'chat',
+          active: false,
+        },
+      ],
+      total: 1,
+      page: 1,
+      size: 50,
+    });
+    vi.mocked(searchSessions).mockRejectedValue(new Error('搜索服务暂不可用'));
+
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('旧查询结果')).toBeInTheDocument();
+    await user.type(await screen.findByPlaceholderText('搜索会话...'), '早餐');
+
+    await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('搜索服务暂不可用'));
+    expect(screen.queryByText('旧查询结果')).not.toBeInTheDocument();
+  });
+
   it('renders shell actions through the shared shadcn Button primitive', () => {
     render(
       <MemoryRouter initialEntries={['/']}>
@@ -21,6 +249,74 @@ describe('WorkspaceLayout shell controls', () => {
     expect(screen.getByRole('button', { name: '收起导航' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '通知' })).toHaveClass('inline-flex');
     expect(screen.getByRole('button', { name: '梁同学' })).toHaveClass('inline-flex');
+  });
+
+  it('can collapse and expand the real workspace navigation', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const collapseButton = screen.getByRole('button', { name: '收起导航' });
+    await user.click(collapseButton);
+
+    expect(screen.getByRole('button', { name: '展开导航' })).toHaveAttribute('aria-expanded', 'false');
+    expect(container.firstElementChild).toHaveClass('sidebarCollapsed');
+
+    await user.click(screen.getByRole('button', { name: '展开导航' }));
+    expect(screen.getByRole('button', { name: '收起导航' })).toHaveAttribute('aria-expanded', 'true');
+    expect(container.firstElementChild).not.toHaveClass('sidebarCollapsed');
+  });
+
+  it('keeps navigation entry points available in the collapsed icon rail', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: '收起导航' }));
+
+    const sidebar = within(container.querySelector('aside') as HTMLElement);
+    expect(sidebar.getByRole('link', { name: '工作台' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '饮食记录' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '摄入分析' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '餐食规划' })).toBeInTheDocument();
+    expect(sidebar.getByRole('link', { name: '知识库' })).toBeInTheDocument();
+    expect(sidebar.getByRole('button', { name: '设置' })).toBeInTheDocument();
+    expect(container.querySelector('.searchWrap')).toBeInTheDocument();
+    expect(container.querySelector('.sidebar-session-section')).toBeInTheDocument();
+  });
+
+  it('provides the complete workspace navigation from the mobile sheet', async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <MemoryRouter initialEntries={['/']}>
+        <WorkspaceLayout>
+          <div>页面内容</div>
+        </WorkspaceLayout>
+      </MemoryRouter>,
+    );
+
+    const mobileTrigger = screen.getByRole('button', { name: '打开工作区导航' });
+    expect(mobileTrigger).toHaveClass('inline-flex');
+    await user.click(mobileTrigger);
+
+    const mobileNavigation = screen.getByRole('dialog', { name: '移动端工作区导航' });
+    expect(within(mobileNavigation).getByRole('button', { name: '新建任务' })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByPlaceholderText('搜索会话...')).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole('link', { name: '饮食记录' })).toBeInTheDocument();
+    expect(within(mobileNavigation).getByRole('link', { name: '知识库' })).toBeInTheDocument();
+
+    await user.click(within(mobileNavigation).getByRole('link', { name: '知识库' }));
+    await waitFor(() => expect(container.querySelector('[data-state="closed"]')).toBeInTheDocument());
   });
 
   it('renders the Figma fixture pagination as a compact control', () => {
@@ -212,6 +508,10 @@ describe('WorkspaceLayout shell controls', () => {
     expect(container.querySelector('[data-avatar-role="workspace-topbar"]')).toHaveAttribute(
       'src',
       '/assets/avatars/default-male.svg',
+    );
+    expect(container.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute(
+      'src',
+      container.querySelector('[data-avatar-role="workspace-topbar"]')?.getAttribute('src') ?? '',
     );
   });
 

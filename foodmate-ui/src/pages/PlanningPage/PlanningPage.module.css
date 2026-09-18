@@ -481,6 +481,16 @@
   display: none;
 }
 
+.figmaPlanMain .scheduleSection {
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.figmaPlanMain .scheduleGrid {
+  min-width: 720px;
+}
+
 .planBanner {
   display: flex;
   height: 97px;
@@ -789,6 +799,32 @@
   gap: 12px;
 }
 
+.shoppingTitleRow {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.shoppingTitleRow h2 {
+  min-width: 0;
+}
+
+.shoppingTitleRow button {
+  flex: 0 0 auto;
+  min-height: 30px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.shoppingTitleRow button:hover,
+.shoppingTitleRow button:focus-visible {
+  color: var(--fm-ink);
+}
+
 .planSidebar h2 {
   color: var(--fm-ink);
   font-family: var(--fm-font);
@@ -966,6 +1002,17 @@
   .planMain {
     gap: 20px;
     padding: 20px 16px 24px;
+  }
+
+  .scheduleSection {
+    min-width: 0;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: thin;
+  }
+
+  .scheduleGrid {
+    min-width: 720px;
   }
 
   .planBanner {

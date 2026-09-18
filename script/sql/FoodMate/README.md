@@ -4,7 +4,7 @@
 
 1. 在目标库确认数据库名、账号、PostgreSQL 版本和当前脚本版本。
 2. 按 `baseline/` 中的基线脚本完成空环境初始化；已有环境不得重复执行基线。
-3. 按版本号顺序执行 `migration/` 中的增量脚本，从 V2 到当前最高版本 V39；SQL Agent 的 V37 是独立 seed，不能替代 V36 结构迁移。
+3. 按版本号顺序执行 `migration/` 中的增量脚本，从 V2 到当前最高版本 V40；SQL Agent 的 V37 是独立 seed，不能替代 V36 结构迁移。
 4. 对具备配套校验的迁移，完成后执行同名 `validation/` 脚本并保存只读结果；历史迁移的配套状态以 `migration/README.md` 的矩阵为准。
 5. 需要测试数据时，最后按需执行 `seed/`，并执行对应 seed validation。
 
@@ -33,7 +33,7 @@
 
 每轮执行都要在 `EXECUTION_RECORD.md` 追加记录：时间和时区、环境、数据库版本、脚本版本、实际命令、validation 结果、保留数据范围、失败与补偿、执行人以及是否清理了本轮随机测试数据。未实际执行的迁移或联调不得写成已完成。
 
-当前版本说明：V16-V17 为 M2-1 公共知识库，V18-V20 和 V30 为 M2-2/M2-3 工具和管理契约，V21-V22 为模型治理，V23 为管理员导出任务，V24-V25 为 DLQ 重放和保留治理，V26 为 M1-4 结构化 Agent 反馈，V27 为 M3 清理执行对账事实，V28 为 M2-1 索引重试 Outbox 事实修正，V29 为 M2-1 Embedding 供应商 Trace 关联事实，V36 为 M2-6 计划执行与购物项结构，V37 seed 为 SQL Agent 执行统计 Catalog 增量，V38 为复合菜饮食记录聚合营养快照约束修正，V39 为复合菜组成明细活动顺序约束修正。详见 `migration/README.md` 及各版本配套 validation/rollback 文件。
+当前版本说明：V16-V17 为 M2-1 公共知识库，V18-V20 和 V30 为 M2-2/M2-3 工具和管理契约，V21-V22 为模型治理，V23 为管理员导出任务，V24-V25 为 DLQ 重放和保留治理，V26 为 M1-4 结构化 Agent 反馈，V27 为 M3 清理执行对账事实，V28 为 M2-1 索引重试 Outbox 事实修正，V29 为 M2-1 Embedding 供应商 Trace 关联事实，V36 为 M2-6 计划执行与购物项结构，V37 seed 为 SQL Agent 执行统计 Catalog 增量，V38 为复合菜饮食记录聚合营养快照约束修正，V39 为复合菜组成明细活动顺序约束修正，V40 为 Agent 单工具步骤跳过控制命令和策略字段。详见 `migration/README.md` 及各版本配套 validation/rollback 文件。
 
 本地维护脚本：
 

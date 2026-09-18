@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.application.account.port.out.AdminManagementRepository;
+import com.foodmate.application.account.port.out.PasswordResetNotifier;
 import com.foodmate.application.account.service.AdminManagementService;
 import com.foodmate.application.account.service.AdminManagementService.AdminWriteCommand;
+import com.foodmate.application.account.service.UserAccountService;
 import com.foodmate.application.account.service.impl.AdminManagementServiceImpl;
 import com.foodmate.application.common.service.OperationAuditService;
 import com.foodmate.shared.account.enums.UserRole;
@@ -25,13 +27,19 @@ import org.junit.jupiter.api.Test;
 class AdminManagementServiceImplTest {
     private AdminManagementRepository store;
     private OperationAuditService audit;
+    private UserAccountService accounts;
+    private PasswordResetNotifier passwordResetNotifier;
     private AdminManagementServiceImpl service;
 
     @BeforeEach
     void setUp() {
         store = mock(AdminManagementRepository.class);
         audit = mock(OperationAuditService.class);
-        service = new AdminManagementServiceImpl(store, audit, new ObjectMapper());
+        accounts = mock(UserAccountService.class);
+        passwordResetNotifier = mock(PasswordResetNotifier.class);
+        service =
+                new AdminManagementServiceImpl(
+                        store, audit, new ObjectMapper(), accounts, passwordResetNotifier);
         when(audit.reserve(
                         any(Long.class),
                         any(String.class),
@@ -184,6 +192,98 @@ class AdminManagementServiceImplTest {
         assertEquals(2, result.revision());
         verify(store).findUser(9);
         verify(store).updateUserStatus(9, UserStatus.DISABLED, 2, 1);
+    }
+
+    @Test
+    void adminResetCredentialsSendsOneTimeNotificationAndRevokesSessions() {
+        when(store.findUser(9))
+                .thenReturn(new AdminManagementRepository.UserSnapshot(9, "user", "active", 1));
+        when(passwordResetNotifier.isAvailable()).thenReturn(true);
+        when(accounts.createAdminPasswordReset(9))
+                .thenReturn(
+                        new UserAccountService.AdminPasswordReset(
+                                9, "user@example.com", "raw-token"));
+        when(store.revokeSessions(9, 2, 1))
+                .thenReturn(new AdminManagementRepository.RevokeResult(3, 2));
+
+        AdminManagementService.ManagementResult result =
+                service.resetUserCredentials(
+                        9,
+                        new AdminWriteCommand(
+                                2,
+                                UserRole.ADMIN,
+                                "trace-1",
+                                "credential-reset-1",
+                                1,
+                                true,
+                                AdminManagementServiceImpl.confirmationDigest(
+                                        "admin.user.credentials.reset", "9", "", 1)));
+
+        assertEquals("requested", result.status());
+        assertEquals(2, result.revision());
+        assertEquals(3, result.affected());
+        verify(accounts).createAdminPasswordReset(9);
+        verify(passwordResetNotifier).send("user@example.com", "raw-token");
+        verify(store).revokeSessions(9, 2, 1);
+    }
+
+    @Test
+    void adminResetCredentialsStopsWhenNotificationServiceIsUnavailable() {
+        when(store.findUser(9))
+                .thenReturn(new AdminManagementRepository.UserSnapshot(9, "user", "active", 1));
+        when(passwordResetNotifier.isAvailable()).thenReturn(false);
+
+        BusinessException exception =
+                assertThrows(
+                        BusinessException.class,
+                        () ->
+                                service.resetUserCredentials(
+                                        9,
+                                        new AdminWriteCommand(
+                                                2,
+                                                UserRole.ADMIN,
+                                                "trace-1",
+                                                "credential-reset-2",
+                                                1,
+                                                true,
+                                                AdminManagementServiceImpl.confirmationDigest(
+                                                        "admin.user.credentials.reset",
+                                                        "9",
+                                                        "",
+                                                        1))));
+
+        assertEquals(ErrorCode.COORDINATION_UNAVAILABLE, exception.errorCode());
+        verify(accounts, never()).createAdminPasswordReset(9);
+        verify(store, never()).revokeSessions(any(Long.class), any(Long.class), any(Long.class));
+    }
+
+    @Test
+    void adminResetCredentialsDoesNotNotifyWhenSessionRevocationConflicts() {
+        when(store.findUser(9))
+                .thenReturn(new AdminManagementRepository.UserSnapshot(9, "user", "active", 1));
+        when(passwordResetNotifier.isAvailable()).thenReturn(true);
+        when(accounts.createAdminPasswordReset(9))
+                .thenReturn(
+                        new UserAccountService.AdminPasswordReset(
+                                9, "user@example.com", "raw-token"));
+        when(store.revokeSessions(9, 2, 1)).thenReturn(null);
+
+        assertThrows(
+                BusinessException.class,
+                () ->
+                        service.resetUserCredentials(
+                                9,
+                                new AdminWriteCommand(
+                                        2,
+                                        UserRole.ADMIN,
+                                        "trace-1",
+                                        "credential-reset-conflict-1",
+                                        1,
+                                        true,
+                                        AdminManagementServiceImpl.confirmationDigest(
+                                                "admin.user.credentials.reset", "9", "", 1))));
+
+        verify(passwordResetNotifier, never()).send(any(String.class), any(String.class));
     }
 
     private AdminWriteCommand command(UserRole role, long revision, String key) {

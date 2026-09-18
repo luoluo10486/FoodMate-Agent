@@ -1,12 +1,26 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KnowledgeSection } from './KnowledgeTab';
 
 class TestEventSource {
+  static instances: TestEventSource[] = [];
+
+  readonly url: string;
+  onopen: (() => void) | null = null;
+
+  constructor(url: string) {
+    this.url = url;
+    TestEventSource.instances.push(this);
+  }
+
   addEventListener() {}
   removeEventListener() {}
   close() {}
+
+  open() {
+    this.onopen?.();
+  }
 }
 
 const dashboard = {
@@ -41,6 +55,7 @@ describe('KnowledgeSection real mode', () => {
       'foodmate_auth_user',
       JSON.stringify({ id: '7', username: 'admin', displayName: 'Admin', role: 'admin', status: 'active' }),
     );
+    TestEventSource.instances = [];
     vi.stubGlobal('EventSource', TestEventSource);
   });
 
@@ -123,13 +138,307 @@ describe('KnowledgeSection real mode', () => {
     await user.click(screen.getByRole('button', { name: '提交上传' }));
 
     expect(await screen.findByText('批次 9001')).toBeInTheDocument();
+    TestEventSource.instances[0].open();
+    expect(await screen.findByText('实时进度已连接')).toBeInTheDocument();
     expect(await screen.findByText(/guide\.pdf: index_failed/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '重试' }));
 
     await waitFor(() => expect(screen.getByText(/guide\.pdf: pending/)).toBeInTheDocument());
+    expect(TestEventSource.instances).toHaveLength(2);
     expect(fetchMock).toHaveBeenCalledWith(
       '/api/admin/knowledge-upload-batches/9001/documents/42/retry',
       expect.objectContaining({ method: 'POST' }),
     );
+  });
+
+  it('uploads one document through the single-document endpoint', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge' && method === 'POST') {
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: true, data: { document_id: 73 } }), { status: 200 }),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+    await user.upload(
+      screen.getByLabelText('选择知识库文件'),
+      new File(['guide'], 'single-guide.pdf', { type: 'application/pdf' }),
+    );
+    await user.click(screen.getByRole('button', { name: '单文件上传' }));
+    await user.click(screen.getByRole('button', { name: '提交上传' }));
+
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/admin/knowledge',
+        expect.objectContaining({ method: 'POST', body: expect.any(FormData) }),
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/queries/knowledge?page=1&size=20',
+      expect.objectContaining({ method: 'GET' }),
+    );
+  });
+
+  it('disables real uploads for a read-only admin role', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+          }),
+          { status: 200 },
+        ),
+      ),
+    );
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess={false} />);
+
+    expect(await screen.findByLabelText('选择知识库文件')).toBeDisabled();
+  });
+
+  it('真实文档状态在服务端刷新后才更新', async () => {
+    let visibility = 'published';
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                resource: 'knowledge',
+                items: [
+                  {
+                    document_id: 42,
+                    title: '服务端公共饮食指南.pdf',
+                    status: 'indexed',
+                    visibility,
+                    chunks: 4,
+                    owner: '管理员',
+                    source: 'nutrition-guides',
+                    index_progress: '100%',
+                    updated_at: '2026-08-22T12:00:00Z',
+                  },
+                ],
+                total: 1,
+                page: 1,
+                size: 20,
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const onAction = vi.fn();
+    const user = userEvent.setup();
+    const view = render(<KnowledgeSection onAction={onAction} canManageAccess refreshNonce={0} />);
+
+    expect(await screen.findByText('服务端公共饮食指南.pdf')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '下线文档' }));
+    const action = onAction.mock.calls[0]?.[0];
+    expect(action).toBeDefined();
+
+    action.onApply?.();
+    expect(screen.getByText('已发布')).toBeInTheDocument();
+
+    visibility = 'disabled';
+    view.rerender(<KnowledgeSection onAction={onAction} canManageAccess refreshNonce={1} />);
+
+    expect(await screen.findByText('已下线')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('reindexes an indexed document with an independent operation state', async () => {
+    const user = userEvent.setup();
+    let itemStatus = 'indexed';
+    let releaseReindex: (() => void) | undefined;
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9002');
+    const reindexResponse = new Promise<Response>((resolve) => {
+      releaseReindex = () =>
+        resolve(new Response(JSON.stringify({ success: true, data: { status: 'pending' } }), { status: 200 }));
+    });
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      const method = (init?.method ?? 'GET').toUpperCase();
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: dashboard.knowledge, total: 1, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9002' && method === 'GET') {
+        const pending = itemStatus === 'pending';
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                batch: {
+                  job: {
+                    job_id: '9002',
+                    status: pending ? 'indexing' : 'completed',
+                    total_items: 1,
+                    indexed_items: pending ? 0 : 1,
+                    failed_items: 0,
+                  },
+                  items: [
+                    {
+                      item_id: 'item-2',
+                      document_id: '42',
+                      filename: 'guide.pdf',
+                      upload_status: 'uploaded',
+                      index_status: itemStatus,
+                      attempts: pending ? 1 : 2,
+                      error_code: undefined,
+                    },
+                  ],
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9002/documents/42/reindex' && method === 'POST') {
+        itemStatus = 'pending';
+        return reindexResponse;
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+    expect(await screen.findByText('批次 9002')).toBeInTheDocument();
+    await act(async () => TestEventSource.instances[0].open());
+    expect(await screen.findByText(/guide\.pdf: indexed/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '重新索引' }));
+
+    expect(await screen.findByRole('button', { name: '重新索引中...' })).toBeInTheDocument();
+    releaseReindex?.();
+    await waitFor(() => expect(screen.getByText(/guide\.pdf: pending/)).toBeInTheDocument());
+    expect(TestEventSource.instances).toHaveLength(2);
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/admin/knowledge-upload-batches/9002/documents/42/reindex',
+      expect.objectContaining({ method: 'POST' }),
+    );
+  });
+
+  it('shows an expired batch as terminal instead of leaving it in a submitted state', async () => {
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9003');
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9003') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                batch: {
+                  job: { job_id: '9003', status: 'expired', total_items: 1, indexed_items: 0, failed_items: 1 },
+                  items: [],
+                },
+              },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      return Promise.resolve(new Response(JSON.stringify({ success: true, data: {} }), { status: 200 }));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+
+    expect(await screen.findByText('已过期')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('当前批次已过期，请重新上传文件。');
+  });
+
+  it('shows batch detail error codes and retries the detail request', async () => {
+    localStorage.setItem('foodmate:admin:knowledge:last-batch', '9004');
+    let shouldFail = true;
+    const fetchMock = vi.fn().mockImplementation((input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path === '/api/admin/queries/knowledge?page=1&size=20') {
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { resource: 'knowledge', items: [], total: 0, page: 1, size: 20 },
+            }),
+            { status: 200 },
+          ),
+        );
+      }
+      if (path === '/api/admin/knowledge-upload-batches/9004' && shouldFail) {
+        return Promise.resolve(
+          new Response(JSON.stringify({ success: false, error: { code: 'BATCH_NOT_FOUND', message: '批次不存在' } }), {
+            status: 404,
+          }),
+        );
+      }
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            success: true,
+            data: {
+              batch: {
+                job: { job_id: '9004', status: 'indexing', total_items: 1, indexed_items: 0, failed_items: 0 },
+                items: [],
+              },
+            },
+          }),
+          { status: 200 },
+        ),
+      );
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<KnowledgeSection onAction={vi.fn()} canManageAccess />);
+
+    expect(await screen.findByText('BATCH_NOT_FOUND: 批次不存在')).toBeInTheDocument();
+    shouldFail = false;
+    await userEvent.setup().click(screen.getByRole('button', { name: '重新加载批次' }));
+    expect(await screen.findByText('索引中')).toBeInTheDocument();
+    expect(screen.queryByText('BATCH_NOT_FOUND: 批次不存在')).not.toBeInTheDocument();
   });
 });

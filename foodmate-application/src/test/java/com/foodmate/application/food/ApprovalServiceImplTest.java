@@ -418,7 +418,8 @@ class ApprovalServiceImplTest {
                 .addObject()
                 .put("name", "rice")
                 .put("amount", 100)
-                .put("unit", "g");
+                .put("unit", "g")
+                .put("nutrition_food_id", 168880L);
         ApprovalRequestRepository.ApprovalSnapshot confirmed =
                 snapshot(
                         new ApprovalRequestRepository.ApprovalWrite(
@@ -483,7 +484,8 @@ class ApprovalServiceImplTest {
                 .addObject()
                 .put("name", "rice")
                 .put("amount", 100)
-                .put("unit", "g");
+                .put("unit", "g")
+                .put("nutrition_food_id", 168880L);
         ApprovalRequestRepository.ApprovalSnapshot confirmed =
                 snapshot(
                         new ApprovalRequestRepository.ApprovalWrite(
@@ -543,7 +545,9 @@ class ApprovalServiceImplTest {
 
         assertEquals(501L, first.resourceId());
         assertEquals(first, replay);
-        verify(foods).create(eq(7L), any());
+        var createCommand = org.mockito.ArgumentCaptor.forClass(FoodLogService.CreateCommand.class);
+        verify(foods).create(eq(7L), createCommand.capture());
+        assertEquals(168880L, createCommand.getValue().items().getFirst().nutritionFoodId());
         verify(repository).updateExecutedResource(eq(7L), eq(100L), eq(501L), any());
     }
 
@@ -723,7 +727,12 @@ class ApprovalServiceImplTest {
                         .objectNode()
                         .put("meal_time", "2026-08-13T04:00:00Z")
                         .put("meal_type", "lunch");
-        value.putArray("items").addObject().put("name", "rice").put("amount", 100).put("unit", "g");
+        value.putArray("items")
+                .addObject()
+                .put("name", "rice")
+                .put("amount", 100)
+                .put("unit", "g")
+                .put("nutrition_food_id", 168880L);
         return value;
     }
 

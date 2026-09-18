@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
+import { useAuth, type AuthProviderStatus } from '../../../auth/AuthContext';
 import type { TableColumnProps } from '@/components/ui/data-table';
 import {
   adminAuditRows,
@@ -33,18 +35,25 @@ export type AdminAccess = {
   canRestoreResources: boolean;
 };
 
-export function resolveAdminAccess(status: AuthStatus, role: string): AdminAccess {
+export function resolveAdminAccess(status: AuthStatus | AuthProviderStatus, role: string): AdminAccess {
   const canAccess = status === 'authenticated' && ['admin', 'operator', 'superadmin'].includes(role);
   const canManage = canAccess && ['admin', 'superadmin'].includes(role);
   return {
     canAccess,
     canManage,
     canViewUserDetails: canAccess,
-    canViewAudit: canManage,
+    // 操作审计和运营查询是只读能力，后端允许 operator 查看，但写操作仍由 canManage 控制。
+    canViewAudit: canAccess,
     canRestoreResources: canManage,
   };
 }
 
+export function useAdminAccess(): AdminAccess {
+  const auth = useAuth();
+  return useMemo(() => resolveAdminAccess(auth.status, auth.user?.role ?? 'user'), [auth.status, auth.user?.role]);
+}
+
+// 保留独立挂载测试和旧版 Fixture 的静态导出；正式页面通过 useAdminAccess 读取实时权限。
 const adminAccess = resolveAdminAccess(authStatus, authUser.role);
 export const canAccessAdmin = adminAccess.canAccess;
 export const canManage = adminAccess.canManage;
@@ -155,11 +164,16 @@ export const adminNavItems: Array<{
     adminOnly: true,
   },
   {
+    key: 'retention',
+    path: '/admin/data-retention',
+    label: '数据保留',
+    iconPath: '/assets/figma/admin/navigation/deleted.svg',
+  },
+  {
     key: 'audit',
     path: '/admin?view=audit',
     label: '操作审计',
     iconPath: '/assets/figma/admin/navigation/audit.svg',
-    adminOnly: true,
   },
 ];
 
@@ -199,6 +213,11 @@ export const sectionMeta: Record<string, { title: string; description: string; t
   },
   knowledge: { title: '知识库', description: '管理知识库文档、解析状态、索引进度和下线恢复。', tag: 'Knowledge' },
   deleted: { title: '删除资源', description: '查看已删除业务资源，并由 admin 执行恢复操作。', tag: 'Recovery' },
+  retention: {
+    title: '数据保留',
+    description: '管理清理申请、执行前置检查和法律保留，所有高风险动作均由服务端确认。',
+    tag: 'Retention',
+  },
   audit: {
     title: '操作审计',
     description: '按动作、目标、结果和请求链路查询管理操作，并查看不可变审计详情。',
@@ -302,5 +321,6 @@ export function getSectionKey(pathname: string, search = ''): string {
   if (pathname.endsWith('/model-governance')) return 'model';
   if (pathname.endsWith('/knowledge')) return 'knowledge';
   if (pathname.endsWith('/deleted')) return 'deleted';
+  if (pathname.endsWith('/data-retention')) return 'retention';
   return 'overview';
 }

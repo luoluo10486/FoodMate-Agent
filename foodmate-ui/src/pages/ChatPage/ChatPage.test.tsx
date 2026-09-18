@@ -11,7 +11,7 @@ import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { useEffect, useState } from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { ChatPage } from './ChatPage';
 import styles from './ChatPage.module.css';
 
@@ -130,6 +130,26 @@ describe('ChatPage Figma 默认状态', () => {
 
     expect(screen.getByText('Anddy')).toBeInTheDocument();
     expect(screen.getByText('ID: 1234567')).toBeInTheDocument();
+  });
+
+  it('renders the default Figma conversation history in the workspace sidebar', () => {
+    renderChatState('figma-v2');
+
+    expect(screen.getByText('每周饮食微调')).toBeInTheDocument();
+    expect(screen.getByText('1 / 3')).toBeInTheDocument();
+    expect(screen.getByText('共 15 条会话')).toBeInTheDocument();
+    expect(screen.queryByText('暂无会话')).not.toBeInTheDocument();
+  });
+
+  it('keeps the initial user message visible instead of auto-scrolling the Figma canvas', () => {
+    const scrollSpy = vi.spyOn(Element.prototype, 'scrollTo').mockImplementation(() => undefined);
+
+    try {
+      renderChatState('figma-v2');
+      expect(scrollSpy).not.toHaveBeenCalled();
+    } finally {
+      scrollSpy.mockRestore();
+    }
   });
 
   it('uses the Figma 560px assistant content width for the default response', () => {
@@ -265,6 +285,8 @@ describe('ChatPage Agent remaining states', () => {
       'src',
       document.querySelector('aside .avatar img')?.getAttribute('src') ?? '',
     );
+    expect(document.querySelector('.userAvatar img')).toHaveAttribute('data-avatar-kind', 'person-default');
+    expect(document.querySelector('[data-visual-role="agent-status-marker"]')).not.toHaveAttribute('data-avatar-kind');
     expect(document.querySelector('.userAvatar img')).not.toHaveAttribute(
       'src',
       '/legacy-assets/chat/person-avatar.png',
@@ -274,9 +296,22 @@ describe('ChatPage Agent remaining states', () => {
   it('uses dark text for the light user message bubble', () => {
     const pageStylesheet = readFileSync(resolve(__dirname, 'ChatPage.module.css'), 'utf8');
     const userBubbleStyles = pageStylesheet.match(/(?:^|\n)\.user \.messageBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
+    const fixtureUserBubbleStyles = pageStylesheet.match(/(?:^|\n)\.fixtureUserBubble\s*{([\s\S]*?)}/)?.[1] ?? '';
 
     expect(userBubbleStyles).toContain('color: var(--fm-ink);');
     expect(userBubbleStyles).not.toContain('color: #ffffff;');
+    expect(userBubbleStyles).toContain('min-height: 49px;');
+    expect(userBubbleStyles).not.toMatch(/(?:^|\n)\s*height:\s*49px;/);
+    expect(fixtureUserBubbleStyles).toContain('color: var(--fm-figma-chat-user-text);');
+    expect(fixtureUserBubbleStyles).toContain('min-height: 49px;');
+    expect(pageStylesheet).toContain('--fm-figma-chat-user-text');
+    expect(pageStylesheet).toContain('.designChatPage .user .messageBubble');
+    expect(pageStylesheet).toContain('.planningUserBubble');
+    expect(pageStylesheet).toContain('.executingUserBubble');
+    expect(pageStylesheet).toContain('.awaitingUserBubble');
+    expect(pageStylesheet).toMatch(/\.planningUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
+    expect(pageStylesheet).toMatch(/\.executingUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
+    expect(pageStylesheet).toMatch(/\.awaitingUserBubble\s*\{[\s\S]*?color: var\(--fm-figma-chat-user-text\);/);
   });
 
   it('renders write confirmation details and records confirm/cancel actions', () => {
@@ -291,6 +326,7 @@ describe('ChatPage Agent remaining states', () => {
     const writeDetails = document.querySelector('[class*="fixtureWriteCard"] [class*="fixtureDetails"]');
     expect(writeDetails).toBeInTheDocument();
     expect(document.querySelector('[data-agent-marker="figma-status-surface"]')).toBeInTheDocument();
+    expect(document.querySelector('[data-visual-role="agent-status-marker"]')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '确认写入' }).querySelector('svg')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '取消' }).querySelector('svg')).not.toBeInTheDocument();
     expect(document.querySelector('img[src="/assets/avatars/default-male.svg"]')).toBeInTheDocument();
@@ -302,7 +338,7 @@ describe('ChatPage Agent remaining states', () => {
     ['write-confirmation', '/assets/avatars/default-male.svg'],
     ['budget-limit', '/assets/avatars/default-male.svg'],
     ['tool-failed-retryable', '/assets/avatars/default-male.svg'],
-    ['safety-degraded', '/assets/avatars/default-female.svg'],
+    ['safety-degraded', '/assets/avatars/default-male.svg'],
     ['user-cancelled', '/assets/avatars/default-male.svg'],
     ['sse-reconnecting', '/assets/avatars/default-male.svg'],
   ])('uses the registered %s fixture user avatar', (state, expectedSource) => {
@@ -318,6 +354,8 @@ describe('ChatPage Agent remaining states', () => {
       ),
     ).toBe(true);
     expect(document.querySelector('[data-avatar-role="fixture-message"]')).toHaveAttribute('src', expectedSource);
+    expect(document.querySelector('[data-avatar-role="workspace-sidebar"]')).toHaveAttribute('src', expectedSource);
+    expect(document.querySelector('[data-avatar-role="workspace-topbar"]')).toHaveAttribute('src', expectedSource);
     expect(avatarImages.every((image) => !image.getAttribute('src')?.includes('/assets/figma/'))).toBe(true);
   });
 

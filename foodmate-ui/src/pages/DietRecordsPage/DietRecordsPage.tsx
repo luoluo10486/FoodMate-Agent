@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
@@ -23,7 +23,9 @@ import {
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
+import { ApiError, isAbortError } from '../../services/apiClient';
 import {
   createFoodLog,
   deleteFoodLog,
@@ -32,10 +34,12 @@ import {
   restoreFoodLog,
   updateFoodLog,
   type FoodLog,
+  type FoodLogItem,
 } from '../../services/foodLogService';
 import {
   createCompositeDish,
   deleteCompositeDish,
+  loadCompositeDish,
   loadCompositeDishes,
   updateCompositeDish,
   type CompositeDish,
@@ -152,6 +156,66 @@ const figmaSidebarSessions: SessionSummary[] = [
 ];
 
 type RecordsState = 'default' | 'loading' | 'empty' | 'error';
+
+type PendingFoodDeletion = {
+  logId: string;
+  itemId: string;
+  itemName: string;
+};
+
+type FoodMutation = 'create' | 'update' | 'delete' | 'restore' | undefined;
+
+type PendingCompositeDishDeletion = CompositeDish;
+
+type MutationRequest = {
+  requestId: number;
+  controller: AbortController;
+};
+
+function isFoodLogConflict(cause: unknown): boolean {
+  return (
+    cause instanceof ApiError &&
+    (cause.status === 409 || ['CONFLICT', 'VERSION_CONFLICT', 'REVISION_CONFLICT'].includes(cause.code))
+  );
+}
+
+function foodLogErrorMessage(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError) {
+    if (isFoodLogConflict(cause)) return '饮食记录已被修改，请重新加载后再试。';
+    if (cause.code === 'FORBIDDEN') return '当前账号无权操作这条饮食记录。';
+    return cause.message || fallback;
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function compositeDishErrorMessage(cause: unknown, fallback: string): string {
+  if (cause instanceof ApiError) {
+    if (cause.status === 409 || ['CONFLICT', 'VERSION_CONFLICT', 'REVISION_CONFLICT'].includes(cause.code)) {
+      return '复合菜已被修改，请重新加载后再试。';
+    }
+    if (cause.code === 'FORBIDDEN') return '当前账号无权操作这道复合菜。';
+    return cause.message || fallback;
+  }
+  return cause instanceof Error ? cause.message : fallback;
+}
+
+function buildFoodLogWriteRequest(log: FoodLog, items: FoodLogItem[]): Parameters<typeof updateFoodLog>[2] {
+  return {
+    meal_time: log.meal_time,
+    meal_type: log.meal_type,
+    notes: log.notes ?? undefined,
+    meal_plan_meal_id: log.meal_plan_meal_id ?? undefined,
+    composite_dish_id: log.composite_dish_id ?? undefined,
+    composite_dish_revision: log.composite_dish_revision ?? undefined,
+    composite_dish_servings: log.composite_dish_servings == null ? undefined : Number(log.composite_dish_servings),
+    items: items.map((item) => ({
+      raw_name: item.raw_name,
+      amount: asNumber(item.amount),
+      unit: item.unit,
+      ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+    })),
+  };
+}
 
 function getRecordsState(value: string | null): RecordsState {
   return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
@@ -351,7 +415,7 @@ export function DietRecordsPage() {
   const linkedMealPlanMealId = searchParams.get('mealPlanMealId') ?? undefined;
   const linkedMealType = searchParams.get('mealType');
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || recordsState !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || recordsState !== 'default');
   const [selectedDate, setSelectedDate] = useState(() => (isRealMode ? new Date() : initialDate));
   const [view, setView] = useState<'day' | 'week'>('day');
   const [meals, setMeals] = useState<MealSection[]>(initialMeals);
@@ -373,6 +437,7 @@ export function DietRecordsPage() {
   const [compositeDishes, setCompositeDishes] = useState<CompositeDish[]>([]);
   const [compositeDishesLoading, setCompositeDishesLoading] = useState(isRealMode);
   const [compositeDishesError, setCompositeDishesError] = useState<string>();
+  const [compositeReloadNonce, setCompositeReloadNonce] = useState(0);
   const [selectedCompositeDishId, setSelectedCompositeDishId] = useState<string>();
   const [compositeDishServings, setCompositeDishServings] = useState('1');
   const [dishDialogOpen, setDishDialogOpen] = useState(false);
@@ -383,65 +448,151 @@ export function DietRecordsPage() {
     { rawName: '', amount: '', unit: 'g' },
   ]);
   const [dishCandidateMap, setDishCandidateMap] = useState<Record<number, NutritionFoodCandidate[]>>({});
+  const [dishDetailReady, setDishDetailReady] = useState(true);
+  const [dishLoading, setDishLoading] = useState(false);
   const [dishSaving, setDishSaving] = useState(false);
+  const [dishDeleting, setDishDeleting] = useState(false);
+  const [pendingCompositeDishDeletion, setPendingCompositeDishDeletion] = useState<PendingCompositeDishDeletion>();
   const [dishError, setDishError] = useState<string>();
   const [deletedLogs, setDeletedLogs] = useState<FoodLog[]>([]);
   const [deletedLoading, setDeletedLoading] = useState(false);
   const [deletedError, setDeletedError] = useState<string>();
   const [showDeleted, setShowDeleted] = useState(false);
   const [notice, setNotice] = useState('');
+  const [foodMutation, setFoodMutation] = useState<FoodMutation>();
+  const [pendingFoodDeletion, setPendingFoodDeletion] = useState<PendingFoodDeletion>();
+  const realLogsRequestId = useRef(0);
+  const compositeListRequestId = useRef(0);
+  const deletedRequestId = useRef(0);
+  const deletedAbortController = useRef<AbortController>();
+  const dishDetailAbortController = useRef<AbortController>();
+  const dishRequestId = useRef(0);
+  const foodMutationAbortController = useRef<AbortController>();
+  const foodMutationRequestId = useRef(0);
+  const dishMutationAbortController = useRef<AbortController>();
+  const dishMutationRequestId = useRef(0);
+
+  const beginFoodMutation = (mutation: Exclude<FoodMutation, undefined>): MutationRequest => {
+    // 新的写操作开始前终止旧请求，避免多个操作同时回写同一份页面状态。
+    foodMutationAbortController.current?.abort();
+    const requestId = ++foodMutationRequestId.current;
+    const controller = new AbortController();
+    foodMutationAbortController.current = controller;
+    setFoodMutation(mutation);
+    return { requestId, controller };
+  };
+
+  const isCurrentFoodMutation = ({ requestId, controller }: MutationRequest) =>
+    !controller.signal.aborted &&
+    requestId === foodMutationRequestId.current &&
+    foodMutationAbortController.current === controller;
+
+  const cancelFoodMutation = () => {
+    foodMutationRequestId.current += 1;
+    foodMutationAbortController.current?.abort();
+    foodMutationAbortController.current = undefined;
+    setFoodMutation(undefined);
+  };
+
+  const beginDishMutation = (): MutationRequest => {
+    // 复合菜保存和删除共用一个控制器，确保操作替换时不会留下旧写入。
+    dishMutationAbortController.current?.abort();
+    const requestId = ++dishMutationRequestId.current;
+    const controller = new AbortController();
+    dishMutationAbortController.current = controller;
+    return { requestId, controller };
+  };
+
+  const isCurrentDishMutation = ({ requestId, controller }: MutationRequest) =>
+    !controller.signal.aborted &&
+    requestId === dishMutationRequestId.current &&
+    dishMutationAbortController.current === controller;
+
+  const cancelDishMutation = () => {
+    dishMutationRequestId.current += 1;
+    dishMutationAbortController.current?.abort();
+    dishMutationAbortController.current = undefined;
+    setDishSaving(false);
+    setDishDeleting(false);
+  };
+
+  useEffect(() => {
+    return () => {
+      // 组件卸载时终止由交互事件发起、但不受读取 effect 管理的请求。
+      deletedRequestId.current += 1;
+      deletedAbortController.current?.abort();
+      dishRequestId.current += 1;
+      dishDetailAbortController.current?.abort();
+      foodMutationRequestId.current += 1;
+      foodMutationAbortController.current?.abort();
+      dishMutationRequestId.current += 1;
+      dishMutationAbortController.current?.abort();
+    };
+  }, []);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
-    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    const requestId = ++realLogsRequestId.current;
+    const controller = new AbortController();
+    // 每次外部请求都由当前 effect 管理完整生命周期，因此请求开始时重置加载状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
     const window = view === 'week' ? weekWindow(selectedDate) : dayWindow(selectedDate);
-    loadFoodLogs(window.from, window.to)
+    loadFoodLogs(window.from, window.to, controller.signal)
       .then((logs) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== realLogsRequestId.current) return;
         setRealLogs(logs);
         setMeals(mapFoodLogs(logs));
       })
       .catch((cause) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== realLogsRequestId.current) return;
         setRealLogs([]);
         setMeals([]);
         setRealError(cause instanceof Error ? cause.message : '饮食记录加载失败');
       })
       .finally(() => {
-        if (active) setRealLoading(false);
+        if (!controller.signal.aborted && requestId === realLogsRequestId.current) setRealLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [isRealMode, realReloadNonce, selectedDate, view]);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
-    void loadCompositeDishes()
+    const requestId = ++compositeListRequestId.current;
+    const controller = new AbortController();
+    // 复合菜的列表状态以服务端重新读取结果为准，避免本地乐观数据覆盖并发修改。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCompositeDishesLoading(true);
+    setCompositeDishesError(undefined);
+    void loadCompositeDishes(controller.signal)
       .then((dishes) => {
-        if (active) setCompositeDishes(dishes.filter((dish) => !dish.deleted));
+        if (controller.signal.aborted || requestId !== compositeListRequestId.current) return;
+        setCompositeDishes(dishes.filter((dish) => !dish.deleted));
       })
       .catch((cause) => {
-        if (active) setCompositeDishesError(cause instanceof Error ? cause.message : '复合菜加载失败');
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== compositeListRequestId.current) return;
+        // 刷新失败时清空旧列表，避免把过期复合菜继续当作服务端当前数据展示。
+        setCompositeDishes([]);
+        setCompositeDishesError(compositeDishErrorMessage(cause, '复合菜加载失败'));
       })
       .finally(() => {
-        if (active) setCompositeDishesLoading(false);
+        if (!controller.signal.aborted && requestId === compositeListRequestId.current)
+          setCompositeDishesLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
-  }, [isRealMode]);
+  }, [compositeReloadNonce, isRealMode]);
 
   const selectedMeal = useMemo(() => meals.find((meal) => meal.id === dialogMealId), [dialogMealId, meals]);
   const weekDays = useMemo(() => mapWeekLogs(realLogs, selectedDate), [realLogs, selectedDate]);
 
   const openFoodDialog = useCallback(
     (mealId: MealSection['id'], date = selectedDate) => {
+      setNotice('');
       setDialogMode('create');
       setEditingLogId(undefined);
       setDialogMealId(mealId);
@@ -455,16 +606,33 @@ export function DietRecordsPage() {
       setSelectedCompositeDishId(undefined);
       setCompositeDishServings('1');
     },
-    [selectedDate],
+    [
+      selectedDate,
+      setNotice,
+      setDialogMode,
+      setEditingLogId,
+      setDialogMealId,
+      setDialogDate,
+      setFoodName,
+      setFoodAmount,
+      setFoodUnit,
+      setNutritionFoodId,
+      setNutritionCandidates,
+      setNutritionCandidatesError,
+      setSelectedCompositeDishId,
+      setCompositeDishServings,
+    ],
   );
 
   const openEditDialog = (logId: string) => {
     const log = realLogs.find((candidate) => candidate.food_log_id === logId);
     const firstItem = log?.items[0];
     if (!log || !firstItem) return;
+    setNotice('');
     setDialogMode('edit');
     setEditingLogId(log.food_log_id);
     setDialogMealId(log.meal_type as MealSection['id']);
+    setDialogDate(new Date(log.meal_time));
     setFoodName(firstItem.raw_name);
     setNutritionFoodId(firstItem.nutrition_food_id ?? undefined);
     setFoodAmount(String(firstItem.amount));
@@ -475,7 +643,8 @@ export function DietRecordsPage() {
     setCompositeDishServings(String(log.composite_dish_servings ?? '1'));
   };
 
-  const closeFoodDialog = () => {
+  const closeFoodDialog = (cancelMutation = true) => {
+    if (cancelMutation) cancelFoodMutation();
     setDialogMealId(undefined);
     setDialogMode('create');
     setEditingLogId(undefined);
@@ -512,26 +681,28 @@ export function DietRecordsPage() {
       return;
     }
     let active = true;
+    const controller = new AbortController();
     const timer = window.setTimeout(() => {
       setNutritionCandidatesLoading(true);
       setNutritionCandidatesError(undefined);
-      void searchNutritionFoods(foodName.trim())
+      void searchNutritionFoods(foodName.trim(), 8, controller.signal)
         .then((candidates) => {
-          if (active) setNutritionCandidates(candidates);
+          if (active && !controller.signal.aborted) setNutritionCandidates(candidates);
         })
         .catch((cause) => {
-          if (active) {
+          if (active && !controller.signal.aborted && !isAbortError(cause)) {
             setNutritionCandidates([]);
             setNutritionCandidatesError(cause instanceof Error ? cause.message : '营养候选加载失败');
           }
         })
         .finally(() => {
-          if (active) setNutritionCandidatesLoading(false);
+          if (active && !controller.signal.aborted) setNutritionCandidatesLoading(false);
         });
     }, 300);
     return () => {
       active = false;
       window.clearTimeout(timer);
+      controller.abort();
     };
   }, [dialogMealId, foodName, isRealMode, selectedCompositeDishId]);
 
@@ -550,9 +721,7 @@ export function DietRecordsPage() {
     setNotice(`已选择${dish.dish_name}，服务端将按食用份数保存营养快照。`);
   };
 
-  const openDishEditor = (dish?: CompositeDish) => {
-    setDishError(undefined);
-    setEditingDishId(dish?.composite_dish_id);
+  const populateDishEditor = (dish?: CompositeDish) => {
     setDishName(dish?.dish_name ?? '');
     setDishTotalServings(String(dish?.total_servings ?? '2'));
     setDishComponents(
@@ -563,13 +732,55 @@ export function DietRecordsPage() {
         unit: component.unit,
       })) ?? [{ rawName: '', amount: '', unit: 'g' }],
     );
-    setDishCandidateMap({});
-    setDishDialogOpen(true);
   };
 
-  const closeDishEditor = () => {
+  const openDishEditor = (dish?: CompositeDish) => {
+    dishDetailAbortController.current?.abort();
+    dishDetailAbortController.current = undefined;
+    const requestId = ++dishRequestId.current;
+    setDishError(undefined);
+    setEditingDishId(dish?.composite_dish_id);
+    setDishDetailReady(!dish || !isRealMode);
+    setDishLoading(Boolean(dish && isRealMode));
+    populateDishEditor(dish);
+    setDishCandidateMap({});
+    setDishDialogOpen(true);
+    if (!dish || !isRealMode) return;
+
+    const controller = new AbortController();
+    dishDetailAbortController.current = controller;
+    void loadCompositeDish(dish.composite_dish_id, controller.signal)
+      .then((detail) => {
+        if (controller.signal.aborted || dishRequestId.current !== requestId) return;
+        if (detail.deleted) {
+          setDishDetailReady(false);
+          setDishError('这道复合菜已被删除，请重新加载列表。');
+          return;
+        }
+        setEditingDishId(detail.composite_dish_id);
+        populateDishEditor(detail);
+        setDishDetailReady(true);
+      })
+      .catch((cause) => {
+        if (controller.signal.aborted || isAbortError(cause) || dishRequestId.current !== requestId) return;
+        setDishDetailReady(false);
+        setDishError(compositeDishErrorMessage(cause, '复合菜详情加载失败，请重试。'));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && dishRequestId.current === requestId) setDishLoading(false);
+        if (dishDetailAbortController.current === controller) dishDetailAbortController.current = undefined;
+      });
+  };
+
+  const closeDishEditor = (cancelMutation = true) => {
+    if (cancelMutation) cancelDishMutation();
+    dishRequestId.current += 1;
+    dishDetailAbortController.current?.abort();
+    dishDetailAbortController.current = undefined;
     setDishDialogOpen(false);
     setEditingDishId(undefined);
+    setDishDetailReady(true);
+    setDishLoading(false);
     setDishError(undefined);
   };
 
@@ -580,6 +791,10 @@ export function DietRecordsPage() {
   };
 
   const saveDish = () => {
+    if (dishLoading || (editingDishId && !dishDetailReady)) {
+      setDishError('请先读取最新的复合菜详情后再保存。');
+      return;
+    }
     const servings = Number(dishTotalServings);
     if (!dishName.trim() || !Number.isFinite(servings) || servings <= 0) {
       setDishError('请填写菜名和有效的总份数。');
@@ -608,36 +823,67 @@ export function DietRecordsPage() {
         unit: component.unit.trim(),
       })),
     };
+    const editingDish = editingDishId
+      ? compositeDishes.find((dish) => dish.composite_dish_id === editingDishId)
+      : undefined;
+    if (editingDishId && !editingDish) {
+      setDishError('复合菜版本已失效，请重新加载后再编辑。');
+      return;
+    }
     setDishSaving(true);
     setDishError(undefined);
+    const mutation = beginDishMutation();
     const operation = editingDishId
-      ? updateCompositeDish(
-          editingDishId,
-          compositeDishes.find((dish) => dish.composite_dish_id === editingDishId)?.revision ?? 0,
-          request,
-        )
-      : createCompositeDish(request);
+      ? updateCompositeDish(editingDishId, editingDish?.revision ?? 0, request, mutation.controller.signal)
+      : createCompositeDish(request, mutation.controller.signal);
     void operation
       .then((saved) => {
-        setCompositeDishes((current) => [
-          saved,
-          ...current.filter((dish) => dish.composite_dish_id !== saved.composite_dish_id),
-        ]);
+        if (!isCurrentDishMutation(mutation)) return;
         setNotice(`${saved.dish_name} 已保存。`);
-        closeDishEditor();
+        closeDishEditor(false);
+        // 保存响应只用于提示，列表字段和删除状态统一以服务端回读为准。
+        setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setDishError(cause instanceof Error ? cause.message : '复合菜保存失败'))
-      .finally(() => setDishSaving(false));
+      .catch((cause) => {
+        if (!isCurrentDishMutation(mutation) || isAbortError(cause)) return;
+        setDishError(compositeDishErrorMessage(cause, '复合菜保存失败'));
+      })
+      .finally(() => {
+        if (!isCurrentDishMutation(mutation)) return;
+        setDishSaving(false);
+        dishMutationAbortController.current = undefined;
+      });
   };
 
-  const removeDish = (dish: CompositeDish) => {
-    void deleteCompositeDish(dish.composite_dish_id, dish.revision)
+  const requestRemoveDish = (dish: CompositeDish) => {
+    setDishError(undefined);
+    setPendingCompositeDishDeletion(dish);
+  };
+
+  const confirmRemoveDish = () => {
+    const dish = pendingCompositeDishDeletion;
+    if (!dish || dishDeleting) return;
+    setDishDeleting(true);
+    setDishError(undefined);
+    const mutation = beginDishMutation();
+    void deleteCompositeDish(dish.composite_dish_id, dish.revision, mutation.controller.signal)
       .then(() => {
-        setCompositeDishes((current) => current.filter((item) => item.composite_dish_id !== dish.composite_dish_id));
+        if (!isCurrentDishMutation(mutation)) return;
         if (selectedCompositeDishId === dish.composite_dish_id) setSelectedCompositeDishId(undefined);
         setNotice(`${dish.dish_name} 已删除，历史饮食记录不受影响。`);
+        setPendingCompositeDishDeletion(undefined);
+        // 删除接口只返回空响应，复合菜列表必须重新读取服务端事实。
+        setCompositeReloadNonce((current) => current + 1);
       })
-      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '复合菜删除失败'));
+      .catch((cause) => {
+        if (!isCurrentDishMutation(mutation) || isAbortError(cause)) return;
+        setDishError(compositeDishErrorMessage(cause, '复合菜删除失败'));
+      })
+      .finally(() => {
+        if (!isCurrentDishMutation(mutation)) return;
+        setDishDeleting(false);
+        dishMutationAbortController.current = undefined;
+      });
   };
 
   const addFood = () => {
@@ -656,68 +902,96 @@ export function DietRecordsPage() {
     if (isRealMode) {
       if (dialogMode === 'edit' && editingLogId) {
         const current = realLogs.find((log) => log.food_log_id === editingLogId);
-        if (!current || current.items.length === 0) return;
-        void updateFoodLog(editingLogId, current.revision, {
-          meal_time: current.meal_time,
-          meal_type: current.meal_type,
-          notes: current.notes ?? undefined,
-          meal_plan_meal_id: linkedMealPlanMealId ?? current.meal_plan_meal_id ?? undefined,
+        if (!current || current.items.length === 0 || foodMutation) return;
+        const mutation = beginFoodMutation('update');
+        void updateFoodLog(
+          editingLogId,
+          current.revision,
+          {
+            meal_time: current.meal_time,
+            meal_type: current.meal_type,
+            notes: current.notes ?? undefined,
+            meal_plan_meal_id: linkedMealPlanMealId ?? current.meal_plan_meal_id ?? undefined,
+            composite_dish_id: selectedDish?.composite_dish_id,
+            composite_dish_revision: selectedDish?.revision,
+            composite_dish_servings: selectedDish ? amount : undefined,
+            items: selectedDish
+              ? []
+              : current.items.map((item, index) =>
+                  index === 0
+                    ? {
+                        raw_name: name,
+                        amount,
+                        unit,
+                        ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                      }
+                    : {
+                        raw_name: item.raw_name,
+                        amount: asNumber(item.amount),
+                        unit: item.unit,
+                        ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
+                      },
+                ),
+          },
+          mutation.controller.signal,
+        )
+          .then((updated) => {
+            if (!isCurrentFoodMutation(mutation)) return;
+            setNotice(`${updated.items[0]?.raw_name ?? name} 已更新。`);
+            setRealReloadNonce((current) => current + 1);
+            closeFoodDialog(false);
+          })
+          .catch((cause) => {
+            if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
+            if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
+            setNotice(foodLogErrorMessage(cause, '饮食记录更新失败'));
+          })
+          .finally(() => {
+            if (!isCurrentFoodMutation(mutation)) return;
+            setFoodMutation(undefined);
+            foodMutationAbortController.current = undefined;
+          });
+        return;
+      }
+      if (foodMutation) return;
+      const mutation = beginFoodMutation('create');
+      void createFoodLog(
+        {
+          meal_time: new Date(dialogDate).toISOString(),
+          meal_type: dialogMealId,
+          meal_plan_meal_id: linkedMealPlanMealId,
           composite_dish_id: selectedDish?.composite_dish_id,
           composite_dish_revision: selectedDish?.revision,
           composite_dish_servings: selectedDish ? amount : undefined,
           items: selectedDish
             ? []
-            : current.items.map((item, index) =>
-                index === 0
-                  ? {
-                      raw_name: name,
-                      amount,
-                      unit,
-                      ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-                    }
-                  : {
-                      raw_name: item.raw_name,
-                      amount: asNumber(item.amount),
-                      unit: item.unit,
-                      ...(item.nutrition_food_id ? { nutrition_food_id: item.nutrition_food_id } : {}),
-                    },
-              ),
-        })
-          .then((updated) => {
-            const nextLogs = realLogs.map((log) => (log.food_log_id === updated.food_log_id ? updated : log));
-            setRealLogs(nextLogs);
-            setMeals(mapFoodLogs(nextLogs));
-            setNotice(`${name} 已更新。`);
-            closeFoodDialog();
-          })
-          .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录更新失败'));
-        return;
-      }
-      void createFoodLog({
-        meal_time: new Date(dialogDate).toISOString(),
-        meal_type: dialogMealId,
-        meal_plan_meal_id: linkedMealPlanMealId,
-        composite_dish_id: selectedDish?.composite_dish_id,
-        composite_dish_revision: selectedDish?.revision,
-        composite_dish_servings: selectedDish ? amount : undefined,
-        items: selectedDish
-          ? []
-          : [
-              {
-                raw_name: name,
-                amount,
-                unit,
-                ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
-              },
-            ],
-      })
+            : [
+                {
+                  raw_name: name,
+                  amount,
+                  unit,
+                  ...(nutritionFoodId ? { nutrition_food_id: nutritionFoodId } : {}),
+                },
+              ],
+        },
+        mutation.controller.signal,
+      )
         .then((created) => {
-          setRealLogs((current) => [...current, created]);
-          setMeals(mapFoodLogs([...realLogs, created]));
-          setNotice(`${name} 已提交，营养值由服务端权威计算。`);
-          closeFoodDialog();
+          if (!isCurrentFoodMutation(mutation)) return;
+          setNotice(`${created.items[0]?.raw_name ?? name} 已提交，营养值由服务端权威计算。`);
+          // 创建响应可能还会被服务端补充或规范化，页面只使用后续回读结果。
+          setRealReloadNonce((current) => current + 1);
+          closeFoodDialog(false);
         })
-        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录保存失败'));
+        .catch((cause) => {
+          if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
+          setNotice(foodLogErrorMessage(cause, '饮食记录保存失败'));
+        })
+        .finally(() => {
+          if (!isCurrentFoodMutation(mutation)) return;
+          setFoodMutation(undefined);
+          foodMutationAbortController.current = undefined;
+        });
       return;
     }
 
@@ -749,14 +1023,8 @@ export function DietRecordsPage() {
     if (isRealMode) {
       const item = meals.find((meal) => meal.id === mealId)?.items.find((candidate) => candidate.id === foodId);
       if (!item?.logId || item.revision == null) return;
-      void deleteFoodLog(item.logId, item.revision)
-        .then(() => {
-          const nextLogs = realLogs.filter((log) => log.food_log_id !== item.logId);
-          setRealLogs(nextLogs);
-          setMeals(mapFoodLogs(nextLogs));
-          setNotice(`${foodNameToRemove} 已从当前记录移除。`);
-        })
-        .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录删除失败'));
+      setNotice('');
+      setPendingFoodDeletion({ logId: item.logId, itemId: foodId, itemName: foodNameToRemove });
       return;
     }
     setMeals((current) =>
@@ -767,26 +1035,110 @@ export function DietRecordsPage() {
     setNotice(`${foodNameToRemove} 已从当前记录移除。`);
   };
 
+  const confirmRemoveFood = () => {
+    if (!pendingFoodDeletion || foodMutation) return;
+    const { logId, itemId, itemName } = pendingFoodDeletion;
+    const current = realLogs.find((log) => log.food_log_id === logId);
+    if (!current) {
+      setPendingFoodDeletion(undefined);
+      setNotice('记录已不在当前日期范围内，请重新加载。');
+      return;
+    }
+    const remainingItems = current.items.filter((item) => `${logId}-${item.food_log_item_id}` !== itemId);
+    const mutation = beginFoodMutation('delete');
+    const operation: Promise<FoodLog | undefined> =
+      remainingItems.length === 0
+        ? deleteFoodLog(logId, current.revision, mutation.controller.signal).then(() => undefined)
+        : updateFoodLog(
+            logId,
+            current.revision,
+            buildFoodLogWriteRequest(current, remainingItems),
+            mutation.controller.signal,
+          );
+    void operation
+      .then((updated) => {
+        if (!isCurrentFoodMutation(mutation)) return;
+        if (remainingItems.length > 0 && !updated) {
+          throw new Error('服务端未返回更新后的饮食记录');
+        }
+        setPendingFoodDeletion(undefined);
+        // 删除或拆分记录后统一回读，避免本地数组掩盖 revision 和营养快照变化。
+        setRealReloadNonce((current) => current + 1);
+        setNotice(`${itemName} 已从当前记录移除。`);
+      })
+      .catch((cause) => {
+        if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
+        if (isFoodLogConflict(cause)) setRealReloadNonce((current) => current + 1);
+        setNotice(foodLogErrorMessage(cause, '饮食记录删除失败'));
+      })
+      .finally(() => {
+        if (!isCurrentFoodMutation(mutation)) return;
+        setFoodMutation(undefined);
+        foodMutationAbortController.current = undefined;
+      });
+  };
+
+  const loadDeletedRecords = () => {
+    if (!isRealMode || deletedLoading) return;
+    deletedAbortController.current?.abort();
+    const requestId = ++deletedRequestId.current;
+    const controller = new AbortController();
+    deletedAbortController.current = controller;
+    setDeletedLoading(true);
+    setDeletedError(undefined);
+    void loadDeletedFoodLogs(controller.signal)
+      .then((logs) => {
+        if (controller.signal.aborted || requestId !== deletedRequestId.current) return;
+        setDeletedLogs(logs);
+      })
+      .catch((cause) => {
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== deletedRequestId.current) return;
+        // 重新读取失败时不保留旧回收站数据，避免用户对过期记录执行恢复操作。
+        setDeletedLogs([]);
+        setDeletedError(foodLogErrorMessage(cause, '已删除记录加载失败'));
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === deletedRequestId.current) setDeletedLoading(false);
+        if (deletedAbortController.current === controller) deletedAbortController.current = undefined;
+      });
+  };
+
   const toggleDeleted = () => {
     const nextVisible = !showDeleted;
     setShowDeleted(nextVisible);
-    if (!nextVisible || deletedLogs.length > 0 || deletedLoading) return;
-    setDeletedLoading(true);
-    setDeletedError(undefined);
-    void loadDeletedFoodLogs()
-      .then(setDeletedLogs)
-      .catch((cause) => setDeletedError(cause instanceof Error ? cause.message : '已删除记录加载失败'))
-      .finally(() => setDeletedLoading(false));
+    if (nextVisible) {
+      loadDeletedRecords();
+    } else {
+      // 收起回收站时取消尚未完成的读取，重新展开后只展示新的服务端结果。
+      if (foodMutation === 'restore') cancelFoodMutation();
+      deletedRequestId.current += 1;
+      deletedAbortController.current?.abort();
+      deletedAbortController.current = undefined;
+      setDeletedLoading(false);
+    }
   };
 
   const restoreDeleted = (log: FoodLog) => {
-    void restoreFoodLog(log.food_log_id, log.revision)
+    if (foodMutation) return;
+    const mutation = beginFoodMutation('restore');
+    void restoreFoodLog(log.food_log_id, log.revision, mutation.controller.signal)
       .then(() => {
-        setDeletedLogs((current) => current.filter((item) => item.food_log_id !== log.food_log_id));
+        if (!isCurrentFoodMutation(mutation)) return;
         setRealReloadNonce((current) => current + 1);
+        // 恢复同时影响活动列表和回收站，两个列表都必须重新读取服务端结果。
+        if (showDeleted) loadDeletedRecords();
         setNotice(`${log.items[0]?.raw_name ?? '饮食记录'} 已恢复。`);
       })
-      .catch((cause) => setNotice(cause instanceof Error ? cause.message : '饮食记录恢复失败'));
+      .catch((cause) => {
+        if (!isCurrentFoodMutation(mutation) || isAbortError(cause)) return;
+        if (isFoodLogConflict(cause)) loadDeletedRecords();
+        setNotice(foodLogErrorMessage(cause, '饮食记录恢复失败'));
+      })
+      .finally(() => {
+        if (!isCurrentFoodMutation(mutation)) return;
+        setFoodMutation(undefined);
+        foodMutationAbortController.current = undefined;
+      });
   };
 
   const reloadRecords = () => {
@@ -1069,7 +1421,7 @@ export function DietRecordsPage() {
           )}
         </section>
 
-        {(visibleState === 'default' || visibleState === 'empty') && !isFigmaFixture ? (
+        {visibleState === 'default' || (visibleState === 'empty' && isRealMode) ? (
           <section className={styles.recordsActions} aria-label="饮食记录操作">
             {visibleState === 'default' ? (
               <>
@@ -1115,9 +1467,18 @@ export function DietRecordsPage() {
             </header>
             {compositeDishesLoading ? <p className={styles.deletedState}>正在加载复合菜…</p> : null}
             {compositeDishesError ? (
-              <p className={styles.deletedState} role="alert">
-                {compositeDishesError}
-              </p>
+              <div className={styles.deletedError} role="alert">
+                <p className={styles.deletedState}>{compositeDishesError}</p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setCompositeReloadNonce((current) => current + 1)}
+                  disabled={compositeDishesLoading}
+                >
+                  <RefreshCw aria-hidden="true" />
+                  重试加载
+                </Button>
+              </div>
             ) : null}
             {!compositeDishesLoading && !compositeDishesError && compositeDishes.length === 0 ? (
               <p className={styles.deletedState}>还没有保存的复合菜。</p>
@@ -1147,7 +1508,7 @@ export function DietRecordsPage() {
                       <Pencil aria-hidden="true" />
                       编辑
                     </Button>
-                    <Button type="button" variant="ghost" onClick={() => removeDish(dish)}>
+                    <Button type="button" variant="ghost" onClick={() => requestRemoveDish(dish)}>
                       <Trash2 aria-hidden="true" />
                       删除
                     </Button>
@@ -1169,9 +1530,13 @@ export function DietRecordsPage() {
             </header>
             {deletedLoading ? <p className={styles.deletedState}>正在加载已删除记录…</p> : null}
             {deletedError ? (
-              <p className={styles.deletedState} role="alert">
-                {deletedError}
-              </p>
+              <div className={styles.deletedError} role="alert">
+                <p className={styles.deletedState}>{deletedError}</p>
+                <Button type="button" variant="outline" onClick={loadDeletedRecords} disabled={deletedLoading}>
+                  <RefreshCw aria-hidden="true" />
+                  重试加载
+                </Button>
+              </div>
             ) : null}
             {!deletedLoading && !deletedError && deletedLogs.length === 0 ? (
               <p className={styles.deletedState}>暂无可恢复记录。</p>
@@ -1194,10 +1559,11 @@ export function DietRecordsPage() {
                     variant="outline"
                     type="button"
                     onClick={() => restoreDeleted(log)}
+                    disabled={foodMutation === 'restore'}
                     aria-label={`恢复${log.items[0]?.raw_name ?? '饮食记录'}`}
                   >
                     <RotateCcw aria-hidden="true" />
-                    恢复
+                    {foodMutation === 'restore' ? '恢复中…' : '恢复'}
                   </Button>
                 </div>
               ))}
@@ -1228,12 +1594,12 @@ export function DietRecordsPage() {
               </Button>
             </div>
             <p className={styles.entryNote}>保存失败时保留草稿；已删除记录进入可恢复状态，不改变当天统计历史。</p>
-            {notice ? (
-              <p className={styles.notice} role="status" aria-live="polite">
-                {notice}
-              </p>
-            ) : null}
           </section>
+        ) : null}
+        {notice ? (
+          <p className={styles.notice} role="status" aria-live="polite">
+            {notice}
+          </p>
         ) : null}
       </div>
 
@@ -1247,6 +1613,11 @@ export function DietRecordsPage() {
                 : `添加到 ${selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。`}
             </DialogDescription>
           </DialogHeader>
+          {notice ? (
+            <p className={styles.dialogNotice} role="alert">
+              {notice}
+            </p>
+          ) : null}
           {isRealMode && compositeDishes.length > 0 ? (
             <div className={styles.compositeDishPicker} aria-label="选择复合菜">
               <div className={styles.compositeDishPickerHeader}>
@@ -1347,11 +1718,20 @@ export function DietRecordsPage() {
             onChange={(event) => setFoodUnit(event.target.value)}
           />
           <DialogFooter>
-            <Button variant="outline" onClick={closeFoodDialog}>
+            <Button variant="outline" onClick={() => closeFoodDialog()}>
               取消
             </Button>
-            <Button onClick={addFood} disabled={!foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}>
-              {dialogMode === 'edit' ? '保存' : '添加'}
+            <Button
+              onClick={addFood}
+              disabled={Boolean(foodMutation) || !foodName.trim() || !foodAmount.trim() || !foodUnit.trim()}
+            >
+              {foodMutation === 'update'
+                ? '保存中…'
+                : foodMutation === 'create'
+                  ? '添加中…'
+                  : dialogMode === 'edit'
+                    ? '保存'
+                    : '添加'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -1363,10 +1743,16 @@ export function DietRecordsPage() {
             <DialogTitle>{editingDishId ? '编辑复合菜' : '新建复合菜'}</DialogTitle>
             <DialogDescription>只保存食材组成和用量，不推断烹饪损耗或熟重。</DialogDescription>
           </DialogHeader>
+          {dishLoading ? (
+            <p className={styles.dishLoading} role="status">
+              正在读取服务端的最新复合菜详情…
+            </p>
+          ) : null}
           <Input
             aria-label="复合菜名称"
             placeholder="例如：鸡肉蔬菜饭"
             value={dishName}
+            disabled={dishLoading}
             onChange={(event) => setDishName(event.target.value)}
           />
           <Input
@@ -1376,6 +1762,7 @@ export function DietRecordsPage() {
             aria-label="复合菜总份数"
             placeholder="成品总份数"
             value={dishTotalServings}
+            disabled={dishLoading}
             onChange={(event) => setDishTotalServings(event.target.value)}
           />
           <div className={styles.dishComponentEditor} aria-label="复合菜食材组成">
@@ -1385,6 +1772,7 @@ export function DietRecordsPage() {
                   aria-label={`第${index + 1}项食材名称`}
                   placeholder="搜索食材，例如：鸡胸肉"
                   value={component.rawName}
+                  disabled={dishLoading}
                   onChange={(event) => {
                     const value = event.target.value;
                     updateDishComponent(index, { rawName: value, nutritionFoodId: undefined });
@@ -1402,12 +1790,14 @@ export function DietRecordsPage() {
                   aria-label={`第${index + 1}项食材用量`}
                   placeholder="用量"
                   value={component.amount}
+                  disabled={dishLoading}
                   onChange={(event) => updateDishComponent(index, { amount: event.target.value })}
                 />
                 <Input
                   aria-label={`第${index + 1}项食材单位`}
                   placeholder="单位"
                   value={component.unit}
+                  disabled={dishLoading}
                   onChange={(event) => updateDishComponent(index, { unit: event.target.value })}
                 />
                 {dishComponents.length > 1 ? (
@@ -1416,6 +1806,7 @@ export function DietRecordsPage() {
                     variant="ghost"
                     size="icon"
                     aria-label={`删除第${index + 1}项食材`}
+                    disabled={dishLoading}
                     onClick={() =>
                       setDishComponents((current) => current.filter((_, itemIndex) => itemIndex !== index))
                     }
@@ -1430,6 +1821,7 @@ export function DietRecordsPage() {
                         key={candidate.nutrition_food_id}
                         type="button"
                         variant={component.nutritionFoodId === candidate.nutrition_food_id ? 'secondary' : 'ghost'}
+                        disabled={dishLoading}
                         onClick={() => {
                           updateDishComponent(index, {
                             nutritionFoodId: candidate.nutrition_food_id,
@@ -1450,22 +1842,119 @@ export function DietRecordsPage() {
           <Button
             type="button"
             variant="ghost"
+            disabled={dishLoading}
             onClick={() => setDishComponents((current) => [...current, { rawName: '', amount: '', unit: 'g' }])}
           >
             <Plus aria-hidden="true" />
             添加食材
           </Button>
           {dishError ? (
+            <div className={styles.dishError} role="alert">
+              <p>{dishError}</p>
+              {editingDishId && !dishDetailReady ? (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const current = compositeDishes.find((item) => item.composite_dish_id === editingDishId);
+                    if (current) openDishEditor(current);
+                  }}
+                >
+                  重新读取详情
+                </Button>
+              ) : null}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => closeDishEditor()}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              onClick={saveDish}
+              disabled={dishSaving || dishLoading || Boolean(editingDishId && !dishDetailReady)}
+            >
+              {dishLoading ? '读取中…' : dishSaving ? '保存中…' : '保存复合菜'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingCompositeDishDeletion)}
+        onOpenChange={(open) => {
+          if (!open && !dishDeleting) {
+            setPendingCompositeDishDeletion(undefined);
+            setDishError(undefined);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除复合菜</DialogTitle>
+            <DialogDescription>
+              {pendingCompositeDishDeletion
+                ? `将删除“${pendingCompositeDishDeletion.dish_name}”。已有饮食记录会保留营养快照，不会被删除。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {dishError ? (
             <p className={styles.dishError} role="alert">
               {dishError}
             </p>
           ) : null}
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={closeDishEditor}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setPendingCompositeDishDeletion(undefined)}
+              disabled={dishDeleting}
+            >
               取消
             </Button>
-            <Button type="button" onClick={saveDish} disabled={dishSaving}>
-              {dishSaving ? '保存中…' : '保存复合菜'}
+            <Button type="button" onClick={confirmRemoveDish} disabled={dishDeleting}>
+              {dishDeleting ? '删除中…' : '确认删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={Boolean(pendingFoodDeletion)}
+        onOpenChange={(open) => {
+          if (!open) {
+            if (foodMutation === 'delete') cancelFoodMutation();
+            setPendingFoodDeletion(undefined);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认移除饮食记录</DialogTitle>
+            <DialogDescription>
+              {pendingFoodDeletion
+                ? `将从服务端记录中移除“${pendingFoodDeletion.itemName}”。如果记录中还有其它食物，只会更新当前这一项。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {notice ? (
+            <p className={styles.dialogNotice} role="alert">
+              {notice}
+            </p>
+          ) : null}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                if (foodMutation === 'delete') cancelFoodMutation();
+                setPendingFoodDeletion(undefined);
+              }}
+            >
+              取消
+            </Button>
+            <Button type="button" onClick={confirmRemoveFood} disabled={foodMutation === 'delete'}>
+              {foodMutation === 'delete' ? '处理中…' : '确认移除'}
             </Button>
           </DialogFooter>
         </DialogContent>

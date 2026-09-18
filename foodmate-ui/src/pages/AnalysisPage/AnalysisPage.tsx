@@ -1,22 +1,32 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
-import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
+import { isAbortError } from '../../services/apiClient';
+import {
+  loadNutritionAnalysis,
+  type NutritionAnalysis,
+  type NutritionAnalysisRange,
+} from '../../services/analysisService';
 import type { SessionSummary } from '../../types/session';
 import styles from './AnalysisPage.module.css';
 
-type RangeKey = '7d' | '30d' | '90d';
+type RangeKey = NutritionAnalysisRange | '90d';
 type AnalysisState = 'default' | 'loading' | 'empty' | 'error';
 
 const ranges: Array<{ key: RangeKey; label: string }> = [
+  { key: 'today', label: '今天' },
   { key: '7d', label: '7 天' },
   { key: '30d', label: '30 天' },
   { key: '90d', label: '90 天' },
 ];
+
+// Figma 摄入分析画板只展示 7 天、30 天和 90 天，真实模式仍保留后端支持的今天范围。
+const fixtureRanges = ranges.filter((item) => item.key !== 'today');
 
 const figmaSidebarSessions: SessionSummary[] = [
   { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true },
@@ -34,6 +44,13 @@ const rangeData: Record<
   RangeKey,
   { calories: string; protein: string; activeDays: string; bars: number[]; miniBars: number[] }
 > = {
+  today: {
+    calories: '1,982 kcal',
+    protein: '118 g',
+    activeDays: '1 / 1 Day',
+    bars: [82, 112, 94, 128, 106, 118, 98],
+    miniBars: [14, 20, 12, 22],
+  },
   '7d': {
     calories: '1,940 kcal',
     protein: '114 g',
@@ -69,6 +86,23 @@ function MiniBars({ bars }: { bars: number[] }) {
 
 function getAnalysisState(value: string | null): AnalysisState {
   return value === 'loading' || value === 'empty' || value === 'error' ? value : 'default';
+}
+
+function buildAnalysisInterpretPrompt(analysis: NutritionAnalysis) {
+  const rangeLabel = analysis.range === 'today' ? '今天' : analysis.range === '30d' ? '最近 30 天' : '最近 7 天';
+  const unmatchedItems = analysis.unmatched_names.length ? analysis.unmatched_names.join('、') : '无';
+  const calorieTarget =
+    analysis.calorie_target == null ? '未配置能量目标' : `能量目标为 ${analysis.calorie_target} kcal/天`;
+  const proteinTarget =
+    analysis.protein_target == null ? '未配置蛋白质目标' : `蛋白质目标为 ${analysis.protein_target} g/天`;
+
+  return [
+    `请解读我${rangeLabel}的饮食摄入分析。`,
+    `总能量 ${analysis.calories_kcal} kcal，蛋白质 ${analysis.protein_g} g，脂肪 ${analysis.fat_g} g，碳水 ${analysis.carbs_g} g。`,
+    `已匹配 ${analysis.matched_items}/${analysis.total_items} 条饮食记录，未匹配项：${unmatchedItems}。`,
+    `${calorieTarget}，${proteinTarget}。`,
+    `请区分已记录事实、估算值和建议，并说明数据限制：${analysis.disclaimer}`,
+  ].join(' ');
 }
 
 function LoadingMetrics() {
@@ -114,7 +148,11 @@ function LoadingAnalysis() {
         <div className={styles.loadingInsightList}>
           {Array.from({ length: 3 }, (_, index) => (
             <div className={styles.loadingInsightRow} key={index}>
-              <span className={styles.loadingInsightDot} />
+              <img
+                className={styles.loadingInsightDot}
+                src="/assets/figma/analysis/intake-analysis-loading-insight-dot.svg"
+                alt=""
+              />
               <Skeleton className={styles.loadingInsightSkeleton} />
             </div>
           ))}
@@ -135,9 +173,9 @@ function EmptyAnalysis({
 }: {
   onRecord: () => void;
   realMode?: boolean;
-  range?: '7d' | '30d';
+  range?: RangeKey;
 }) {
-  const days = range === '30d' ? 30 : 7;
+  const days = range === 'today' ? 1 : range === '30d' ? 30 : range === '90d' ? 90 : 7;
   return (
     <>
       <section className={styles.metrics} aria-label="分析摘要">
@@ -205,42 +243,43 @@ export function AnalysisPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const analysisState = getAnalysisState(searchParams.get('state'));
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isFigmaFixture = !isRealMode && (searchParams.get('state') === 'v2' || analysisState !== 'default');
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || analysisState !== 'default');
   const [range, setRange] = useState<RangeKey>('7d');
   const [notice, setNotice] = useState('');
   const [realData, setRealData] = useState<NutritionAnalysis>();
   const [realLoading, setRealLoading] = useState(isRealMode);
   const [realError, setRealError] = useState<string>();
   const [realReloadNonce, setRealReloadNonce] = useState(0);
+  const analysisRequestId = useRef(0);
   const data = rangeData[range];
-  const realRange = range === '90d' ? '30d' : range;
+  const realRange: NutritionAnalysisRange | undefined = range === '90d' ? undefined : range;
 
   useEffect(() => {
-    if (!isRealMode) return;
-    let active = true;
-    // The effect owns the request lifecycle, so loading state starts with each external data request.
+    if (!isRealMode || !realRange) return;
+    const requestId = ++analysisRequestId.current;
+    const controller = new AbortController();
+    // 每次真实请求都由当前 effect 管理加载、成功和失败状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setRealLoading(true);
     setRealError(undefined);
-    loadNutritionAnalysis(realRange)
+    loadNutritionAnalysis(realRange, controller.signal)
       .then((value) => {
-        if (active) setRealData(value);
+        if (!controller.signal.aborted && requestId === analysisRequestId.current) setRealData(value);
       })
       .catch((cause) => {
-        if (active) {
-          setRealData(undefined);
-          setRealError(cause instanceof Error ? cause.message : '营养分析加载失败');
-        }
+        if (controller.signal.aborted || isAbortError(cause) || requestId !== analysisRequestId.current) return;
+        setRealData(undefined);
+        setRealError(cause instanceof Error ? cause.message : '营养分析加载失败');
       })
       .finally(() => {
-        if (active) setRealLoading(false);
+        if (!controller.signal.aborted && requestId === analysisRequestId.current) setRealLoading(false);
       });
     return () => {
-      active = false;
+      controller.abort();
     };
   }, [isRealMode, realRange, realReloadNonce]);
 
-  const realDays = realRange === '7d' ? 7 : 30;
+  const realDays = realData?.range === 'today' ? 1 : realData?.range === '30d' ? 30 : 7;
   const realCalories = Number(realData?.calories_kcal ?? 0);
   const realProtein = Number(realData?.protein_g ?? 0);
   const realCoverage = Number(realData?.coverage ?? 0);
@@ -253,6 +292,7 @@ export function AnalysisPage() {
   const realState = realLoading ? 'loading' : realError ? 'error' : realHasNoData ? 'empty' : 'default';
   const visibleState = isRealMode ? realState : analysisState;
   const showAdvancedFilters = visibleState === 'default';
+  const visibleRanges = isRealMode ? ranges.filter((item) => item.key !== '90d') : fixtureRanges;
 
   const exportCsv = () => {
     setNotice('分析报告已排队，完成后可下载 CSV。');
@@ -282,19 +322,26 @@ export function AnalysisPage() {
         <section
           className={`${styles.analysisBody} ${isFigmaFixture ? styles.figmaAnalysis : ''} ${isFigmaFixture && visibleState === 'default' ? styles.figmaDefault : ''}`}
           aria-label="摄入分析"
-          data-figma-node-id="640:974"
+          data-figma-node-id="640:773"
         >
           <header
             className={`${styles.filterRow} ${isFigmaFixture ? styles.figmaFilterRow : ''} ${visibleState === 'loading' ? styles.stateFilterRow : ''}`}
           >
-            <Tabs className={styles.tabsRoot} value={range} onValueChange={(value) => setRange(value as RangeKey)}>
+            <Tabs
+              className={styles.tabsRoot}
+              value={range}
+              onValueChange={(value) => {
+                if (isRealMode && value === '90d') return;
+                setRange(value as RangeKey);
+              }}
+            >
               <TabsList aria-label="分析范围" className={styles.filters}>
-                {(isRealMode ? ranges.filter((item) => item.key !== '90d') : ranges).map((item) => (
+                {visibleRanges.map((item) => (
                   <TabsTrigger
                     className={range === item.key ? styles.rangeActive : ''}
                     key={item.key}
                     value={item.key}
-                    disabled={visibleState === 'loading' || visibleState === 'error'}
+                    disabled={visibleState === 'error'}
                   >
                     {item.label}
                   </TabsTrigger>
@@ -337,7 +384,7 @@ export function AnalysisPage() {
           {visibleState === 'empty' ? (
             <EmptyAnalysis
               onRecord={() => navigate('/analysis?view=records')}
-              range={realRange}
+              range={realData?.range ?? realRange ?? '7d'}
               realMode={isRealMode}
             />
           ) : null}
@@ -456,6 +503,16 @@ export function AnalysisPage() {
                     : '所有记录均已匹配营养目录。'}
                 </p>
               </div>
+              <div className={styles.insightActions}>
+                <Button
+                  onClick={() => navigate(`/chat?prompt=${encodeURIComponent(buildAnalysisInterpretPrompt(realData))}`)}
+                >
+                  让 Agent 解读
+                </Button>
+                <Button variant="outline" onClick={() => navigate('/planning')}>
+                  基于分析制定计划
+                </Button>
+              </div>
             </section>
           ) : null}
           {visibleState === 'default' && !isRealMode ? (
@@ -498,8 +555,9 @@ export function AnalysisPage() {
           <section className={styles.qualityPanel} aria-label="分析维度与数据质量" data-figma-node-id="975:3">
             <h2>分析维度与数据质量</h2>
             <p>
-              统计范围：{realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配 {realData.matched_items} /{' '}
-              {realData.total_items} 条记录
+              统计范围：
+              {realData.range === 'today' ? '今天' : realData.range === '7d' ? '最近 7 天' : '最近 30 天'} · 已匹配{' '}
+              {realData.matched_items} / {realData.total_items} 条记录
             </p>
             <p>
               营养合计：蛋白质 {realProtein.toLocaleString('zh-CN')} g · 脂肪{' '}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Copy, Lock, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -22,11 +22,12 @@ import {
   type ToolRow,
   adminToolRegistryRows,
   adminToolRows,
-  canManage,
   riskTag,
   statusTag,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload, AdminOperationState } from './types';
+import { isAbortError } from '../../../services/apiClient';
 import {
   loadAdminDashboard,
   loadAdminQuery,
@@ -131,6 +132,7 @@ function ToolRegistrySection({
   const [loadError, setLoadError] = useState('');
   const [loading, setLoading] = useState(isRealMode);
   const [retryNonce, setRetryNonce] = useState(0);
+  const requestIdRef = useRef(0);
   const showOperationActions = operationStatus !== 'idle';
   const operationActionDisabled = operationStatus === 'submitting' || operationStatus === 'no-permission';
 
@@ -142,11 +144,14 @@ function ToolRegistrySection({
       targetLabel: record.name,
       targetType: 'tool',
       targetId: record.name,
-      execute: async () => {
-        const result = await updateAdminToolStatus(record.name, nextStatus, record.revision ?? 1);
+      execute: async (signal) => {
+        const result = await updateAdminToolStatus(record.name, nextStatus, record.revision ?? 1, signal);
         nextRevision = result.revision;
       },
       onApply: () => {
+        // 真实模式由服务端刷新提供最终状态，不能直接改写页面数据。
+        if (isRealMode) return;
+
         setTools((current) =>
           current.map((tool) =>
             tool.key === record.key ? { ...tool, status: nextStatus, revision: nextRevision } : tool,
@@ -158,26 +163,31 @@ function ToolRegistrySection({
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     // 每次刷新都重新建立请求生命周期，避免旧请求覆盖当前页面状态。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminToolRegistry()
+    loadAdminToolRegistry(controller.signal)
       .then((items) => {
-        if (active) setTools(items);
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
+        setTools(items);
+        // 服务端刷新后只重新绑定已有选中工具，首次加载不能自动打开详情面板。
+        setSelectedTool((current) => (current ? items.find((item) => item.key === current.key) : undefined));
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setTools([]);
         setSelectedTool(undefined);
         setLoadError(error instanceof Error ? error.message : '工具注册表加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
   }, [isRealMode, refreshNonce, retryNonce]);
 
@@ -556,38 +566,45 @@ function RealToolCallsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [loadError, setLoadError] = useState('');
   const [retryNonce, setRetryNonce] = useState(0);
   const pageSize = 8;
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
-    let active = true;
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
     // 查询条件、刷新或重试变化时，只有当前请求可以更新页面。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminQuery<AdminQueryToolCall>('tool-calls', {
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: statusFilter === 'all' ? undefined : statusFilter,
-    })
+    loadAdminQuery<AdminQueryToolCall>(
+      'tool-calls',
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: statusFilter === 'all' ? undefined : statusFilter,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         const items = result.items.map(mapRealToolCall);
         setRows(items);
         setSelectedTool(items[0]);
         setTotal(result.total);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setRows([]);
         setSelectedTool(undefined);
         setTotal(0);
         setLoadError(error instanceof Error ? error.message : '工具调用加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
   }, [page, query, refreshNonce, retryNonce, statusFilter]);
 
@@ -737,6 +754,7 @@ function ToolCallsSection({
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce?: number;
 }) {
+  const { canManage } = useAdminAccess();
   const [tools, setTools] = useState<ToolRow[]>(import.meta.env.VITE_AGENT_MODE === 'real' ? [] : adminToolRows);
   const [selectedTool, setSelectedTool] = useState<ToolRow | undefined>(tools[0]);
   useEffect(() => {
@@ -773,14 +791,17 @@ function ToolCallsSection({
                 targetLabel: record.name,
                 targetType: 'tool',
                 targetId: record.name,
-                execute: async () => {
+                execute: async (signal) => {
                   await updateAdminToolStatus(
                     record.name,
                     record.status === 'active' ? 'disabled' : 'active',
                     record.revision ?? 1,
+                    signal,
                   );
                 },
                 onApply: () => {
+                  // 真实模式以 refreshNonce 触发的服务端回读为准，不能直接修改行对象。
+                  if (import.meta.env.VITE_AGENT_MODE === 'real') return;
                   record.status = record.status === 'active' ? 'disabled' : 'active';
                 },
               })

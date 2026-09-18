@@ -31,11 +31,16 @@ describe('KnowledgePage', () => {
     const nutritionFilter = screen.getByRole('button', { name: '营养素' });
     await user.click(nutritionFilter);
     expect(nutritionFilter).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByText('烹饪温度对牛油果健康脂肪的影响')).not.toBeInTheDocument();
+    expect(screen.getByText('藜麦与酸面包淀粉的血糖指数动态')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '仅引用' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '近90天' })).toBeDisabled();
 
-    await user.click(screen.getAllByRole('button', { name: '查看引用' })[1]);
+    await user.click(screen.getAllByRole('button', { name: '查看引用' })[0]);
     expect(screen.getByLabelText('当前引用详情：藜麦与酸面包淀粉的血糖指数动态')).toBeInTheDocument();
     expect(screen.getByText('USDA FoodData Central')).toBeInTheDocument();
 
+    await user.click(screen.getByRole('button', { name: '全部主题' }));
     const search = screen.getByRole('textbox', { name: '搜索食物知识、食材、烹饪技巧' });
     await user.type(search, '牛油果');
     await user.keyboard('{Enter}');
@@ -51,6 +56,7 @@ describe('KnowledgePage', () => {
     expect(screen.getByText('FoodMate')).toBeInTheDocument();
     expect(screen.queryByRole('navigation', { name: '工作区导航' })).not.toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: /当前引用详情/ })).toBeInTheDocument();
+    expect(container.querySelector('[class*="stateFixture"]')).not.toBeInTheDocument();
     expect(container.querySelectorAll('img[src="/assets/avatars/default-male.svg"]')).toHaveLength(1);
     expect(
       container.querySelector('img[src="/assets/figma/workspace/knowledge/topbar-search.svg"]'),
@@ -89,6 +95,7 @@ describe('KnowledgePage', () => {
     expect(screen.getByRole('link', { name: /每周饮食微调/ })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('没有找到相关内容');
     expect(container.querySelector('[data-name="window-controls"]')).toBeInTheDocument();
+    expect(container.querySelector('[class*="stateFixture"]')).toBeInTheDocument();
   });
 
   it('recovers from search and source availability errors', async () => {

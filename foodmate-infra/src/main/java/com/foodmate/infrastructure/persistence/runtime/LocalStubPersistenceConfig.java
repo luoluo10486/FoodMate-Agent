@@ -20,6 +20,10 @@ import com.foodmate.application.runtime.port.out.SqlSchemaCatalogRepository.Cata
 import com.foodmate.application.runtime.port.out.ToolGatewayPort;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository;
 import com.foodmate.application.runtime.port.out.ToolRegistryRepository.ToolDefinition;
+import com.foodmate.application.runtime.port.out.ToolSkipRepository;
+import com.foodmate.application.runtime.port.out.ToolSkipRepository.NewSkip;
+import com.foodmate.application.runtime.port.out.ToolSkipRepository.PendingSkip;
+import com.foodmate.application.runtime.port.out.ToolSkipRepository.SkipRecord;
 import com.foodmate.application.runtime.service.ToolRegistryCatalog;
 import java.math.BigDecimal;
 import java.util.List;
@@ -283,8 +287,41 @@ public class LocalStubPersistenceConfig {
                 return null;
             }
 
+            public int markExecuting(String proposalId) {
+                return 1;
+            }
+
+            public int requestSkip(String proposalId) {
+                return 0;
+            }
+
             public int complete(String proposalId, String resultJson) {
                 return 1;
+            }
+        };
+    }
+
+    @Bean
+    ToolSkipRepository localToolSkipRepository() {
+        return new ToolSkipRepository() {
+            public SkipRecord findByProposalId(String proposalId) {
+                return null;
+            }
+
+            public void insertRequested(NewSkip skip) {
+                throw unavailable();
+            }
+
+            public List<PendingSkip> findRequested(int limit) {
+                return List.of();
+            }
+
+            public int markDispatched(long rowId, String transport, String messageId) {
+                throw unavailable();
+            }
+
+            public int markApplied(String proposalId) {
+                return 0;
             }
         };
     }
@@ -350,6 +387,10 @@ public class LocalStubPersistenceConfig {
             public AdminManagementRepository.RevokeResult revokeSessions(
                     long userId, long operatorId, long revision) {
                 return null;
+            }
+
+            public int bumpUserRevision(long userId, long operatorId, long revision) {
+                return 0;
             }
 
             public int updateToolStatus(

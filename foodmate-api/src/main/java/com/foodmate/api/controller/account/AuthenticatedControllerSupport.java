@@ -16,10 +16,13 @@ public abstract class AuthenticatedControllerSupport {
     }
 
     public UserAccountService.UserRecord user(HttpServletRequest request) {
+        return accounts.requireSessionUser(sessionToken(request));
+    }
+
+    protected String sessionToken(HttpServletRequest request) {
         if (request.getCookies() != null)
             for (Cookie cookie : request.getCookies()) {
-                if ("foodmate_session".equals(cookie.getName()))
-                    return accounts.requireSessionUser(cookie.getValue());
+                if ("foodmate_session".equals(cookie.getName())) return cookie.getValue();
             }
         throw new BusinessException(ErrorCode.AUTH_REQUIRED);
     }

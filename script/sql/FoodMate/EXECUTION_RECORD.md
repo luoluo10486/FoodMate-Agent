@@ -2,6 +2,18 @@
 
 > 模板记录。实际执行后必须由执行人填写，不能用应用启动日志替代。
 
+## M14 RocketMQ Proposal/Result 与 DLQ reconciliation（2026-09-16 已执行）
+
+| 字段 | 内容 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；Docker Compose `foodmate` 网络；PostgreSQL、RocketMQ NameServer/Broker/Proxy healthy |
+| 运行方式 | Docker Maven 容器加入 `foodmate` 网络；同时启用 `foodmate.local-e2e=true` 与 `foodmate.local-mq-e2e=true` |
+| 测试 | `M14ProposalResultE2ETest` `2/2`；`M14DlqReconciliationE2ETest` `3/3` |
+| 执行结果 | 成功，合计 `5/5`；正常 Proposal Result、SQL 失败 Result、重复 Proposal 幂等和 DLQ reconciliation 均完成 |
+| 代码修复 | 修正 `ToolRegistryMapper` 的 `published_at/revision/skippable` 列顺序；Tool Gateway 只读 SQL 使用独立 `REQUIRES_NEW` 事务，失败后仍可写入审计和 Result |
+| 数据边界 | 仅使用随机测试账号、Run、Proposal 和 DLQ 事实；未删除容器、数据库卷或既有业务数据；不代表生产消息重放或部署验收完成 |
+| 代码门禁 | 受影响 reactor Spotless 通过；Alibaba Checkstyle `0 violations`；`git diff --check` 通过 |
+
 ## V2 临时 PostgreSQL 演练（非目标库）
 
 | 字段 | 内容 |
@@ -2707,3 +2719,75 @@
 | Alibaba 规范验证 | `.\mvnw.cmd -B -ntp -Palibaba-code-style -DskipTests verify`：根项目及五个 Java 模块构建成功，Checkstyle 均为 `0 violations`，Spotless clean，Bootstrap repackage 通过。 |
 | 业务与安全边界 | 本轮未新增业务逻辑、外部调用或测试数据；未执行性能压测、长稳、组件重启、ACK/重复投递故障注入、备份恢复、Kubernetes、生产部署或发布回滚。 |
 | Git | 待提交内容仅包含本次 Java 格式修复和对应文档；工作区其他前端/Figma 文档改动、临时目录与截图不纳入本提交。 |
+
+## D184 本地 V40 工具步骤跳过迁移与 Admin 回归前置修复（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL 16 容器 `foodmate-postgres`。 |
+| 数据库备份 | 执行迁移前创建 schema-only 逻辑备份；SHA-256 为 `55648385CB07EAEDB7F477E6333DD10F2E1E47E7E770088FE816CB40CF7692AF`；验证完成后删除临时备份文件。 |
+| 脚本版本 | `migration/V40__m2_2_tool_step_skip.sql`；此前仓库已有脚本，但当前本地人工迁移数据库尚未执行 V40。 |
+| 执行结果 | 成功；新增 `agent_run_tool_skips`、`tool_schema_versions.skippable`、`runtime_tool_proposal_inbox.execution_started_at/skip_requested_at`，没有删除或改写既有业务数据。 |
+| validation | `migration_status=applied`；非法跳过状态 `0`；可跳过策略行 `6`；回滚前置检查中的待处理跳过命令和待跳过提案均为 `0`。 |
+| 代码门禁 | 新增 `FlywayV40MigrationScriptTest`，`2/2` 通过；`git diff --check` 通过。 |
+| Admin 预检 | `M11AdminManagementE2ETest` `2/2`、`M11ExportDownloadE2ETest` `1/1` 通过；迁移前测试日志暴露的 `agent_run_tool_skips` 定时查询错误已不再有数据库结构阻塞。 |
+| 边界 | 本次只修复本地数据库结构和迁移台账，不代表生产数据库已执行 V40；生产执行仍需按备份、审批和 validation 流程单独完成。 |
+
+## D185 Admin Retention 本地真实接口闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 测试 | 新增 `foodmate-bootstrap/.../M11RetentionGovernanceE2ETest.java`；真实本地 HTTP E2E `1/1` 通过。 |
+| 业务覆盖 | 随机 admin/superadmin/operator、唯一软删除 Knowledge 文档、清理申请、幂等回放、详情、preflight、法律保留、operator 拒绝审批、hold 阻断、释放 hold、superadmin 审批和三类任务生成。 |
+| 数据断言 | 资源软删除且保留期已到；默认硬删除为 `false`；审批生成 `object_storage`、`vector_index`、`database` 三个任务；preflight 不泄露 `target_ref` 或原始对象键。 |
+| 定向门禁 | Retention Application `5/5`、API `4/4`、前端 `RetentionTab` `5/5`；生产代码未新增接口或修改 HTTP/SSE 协议。 |
+| 数据边界 | 当前本地人工迁移库未应用 V27 的 `data_purge_task_results` 表；测试未执行硬删除，清理逻辑对该可选表做存在性判断，临时账号、文档、hold、request、task 和审计数据均按唯一 ID 清理。 |
+| 结论 | Admin Retention 的页面消费者和治理接口状态闭环已获得本地真实证据；清理结果对账、对象/向量/数据库实际删除和生产迁移仍未标记完成。 |
+
+## D186 Model Governance 与 DLQ Replay 本地真实接口闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 容器均为 healthy；未执行付费模型调用。 |
+| 测试 | 新增 `foodmate-bootstrap/src/test/java/com/foodmate/bootstrap/e2e/M11ModelGovernanceAndDlqReplayE2ETest.java`；本地真实 HTTP E2E `2/2` 通过。 |
+| Model Governance 覆盖 | Admin 写权限拒绝；Superadmin 供应商状态变更、revision、相同幂等键回放、价格创建、预算创建；治理读取；数据库回读；审计记录；响应不暴露 `api_key`。 |
+| DLQ Replay 覆盖 | 非 Superadmin `403`；Superadmin 创建 `queued`；相同幂等键回放；活跃重放 `409`；响应不返回原始 payload；DLQ 保持 `needs_attention`；Replay Outbox 保持异步 `pending`。 |
+| 定向门禁 | Application `12/12`、API `8/8`、前端相关测试 `5` 个文件 `28/28`；新增测试 Spotless 通过；`git diff --check` 待提交前复核。 |
+| 协议边界 | 没有修改 Controller、DTO、错误码或 HTTP/SSE 协议；没有把 HTTP `queued` 当作最终成功；没有触发真实 RocketMQ Broker Relay。 |
+| 未完成范围 | 本地证据不包含真实 Broker 重放、下游消费、原消息对账、生产告警、长稳、故障恢复或部署环境联调；Retention V27 清理结果表和 iconfont 阻塞保持原状。 |
+
+## D187 Agent 接续与 checkpoint 恢复本地真实闭环（2026-09-16）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 容器均为 healthy。 |
+| 后端 E2E | `M14ContinuationE2ETest` 与 `M14RuntimeCheckpointRecoveryE2ETest` 共 `4/4` 通过；使用随机临时账号和本地 PostgreSQL 事实。 |
+| 接续验证 | `waiting_user` 旧 Run 变为 `superseded`；新 Run 写入 `parent_run_id`、`continuation_reason=clarification` 和 `superseded_by_run_id`；旧 active dispatch 和 pending outbox 出局，并产生 `run.superseded` SSE Outbox。 |
+| 预算与恢复验证 | 新 Run 存在 revision `1` 的 initial budget snapshot；`run.checkpoint_saved` 写入 Inbox 后，恢复服务创建 attempt `2`、新的 dispatch ID 和 deadline，并回读 checkpoint digest/budget revision。 |
+| 前端门禁 | `agentRunHttpService.test.ts`、`agentRunService.test.ts`、`ChatPage.real.test.tsx`、`ChatPage.agentState.real.test.tsx` 共 `4` 个文件、`67/67` 通过。 |
+| 代码边界 | 本批次没有修改 Java/前端生产代码、Controller、DTO、错误码或 HTTP/SSE 协议；不把恢复请求接受当作运行终态。 |
+| 未完成范围 | 未执行真实 Python/Java 进程重启、PostgreSQL 重启、RocketMQ ACK 丢失/重复投递、SSE 长稳、生产容量和部署环境联调；Figma 全量像素差异、花瓣像素对比和 iconfont 接入均不在本批次范围。 |
+
+## D188 M15 FoodLog Writer HTTP/RocketMQ 本地业务闭环复验（2026-09-17）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；本地 Docker `foodmate` 网络、PostgreSQL、Runtime 和 RocketMQ。 |
+| HTTP E2E | `M15FoodLogWriterHttpE2ETest` `11/11` 通过，覆盖创建、拒绝、失败回滚、superseded、更新、删除、恢复、revision 冲突、幂等重放、单位换算和 pending。 |
+| RocketMQ E2E | `M15FoodLogWriterProposalResultE2ETest` `11/11` 通过，覆盖正常 Proposal/Result、失败结果和重复消息幂等。 |
+| 测试配置修复 | HTTP 测试补充 `foodmate.runtime.agent-base-url=http://localhost:9002`，解决测试 fixture 创建阶段缺少 Runtime 地址的问题；没有修改生产业务协议。 |
+| 运行结果 | 两次测试均为 `BUILD SUCCESS`；测试完成后 `foodmate` 与 `foodmate-agent-runtime` 均恢复为 `healthy`。 |
+| 数据与安全边界 | 只验证本地受控业务状态，没有执行生产 Broker Relay、进程重启、长稳、付费模型或未经授权的硬删除；Figma 不执行全量像素差异，iconfont 继续为 `BLOCKED`。 |
+
+## D189 Admin 只读查询本地真实业务闭环（2026-09-17）
+
+| 项目 | 结果 |
+|---|---|
+| 执行环境 | Windows 工作区 `D:\develop\FoodMate`；分支 `codex/feat-non-production-business`；Docker PostgreSQL、Redis、RocketMQ、MinIO、Milvus 和 Agent Runtime 均为 healthy。 |
+| 测试范围 | 新增 `M16AdminReadQueriesE2ETest`，覆盖 Dashboard、11 类 Admin 分页查询、Trace Detail、Audit Report、筛选、分页、权限和敏感字段脱敏。 |
+| 真实 HTTP 结果 | Admin 查询 `1/1` 通过；普通用户访问全部 Admin 只读入口返回 `403`；SQL 原文、原始 Payload 和对象存储 Key 未出现在响应中。 |
+| 后端修复 | 资源默认排序与 Mapper 白名单统一；`countUsage` 改为同条件 `COUNT(*)`，不再把 usage 行映射为 `long`。 |
+| 定向验证 | Application `AdminOperationalQueryServiceImplTest` `11/11`；Infrastructure `AdminOperationalQueryMapperContractTest` `2/2`；Bootstrap `M16AdminReadQueriesE2ETest` `1/1`。 |
+| 代码门禁 | `-Palibaba-code-style -pl foodmate-bootstrap -am -DskipTests verify` 成功；Spotless clean，Checkstyle `0 violations`；`git diff --check` 通过。 |
+| 数据清理 | M16 临时账号及关联 Session、Run、事件、SSE outbox、审计数据已清理；`m16fault` 用户、Session、Run、事件、SSE、审计残留均为 `0`。 |
+| 边界 | 本批次没有新增浏览器接口，没有执行 Figma 105 画板像素差异或花瓣对比；生产外部依赖和 iconfont 资料仍未完成，iconfont 继续为 `BLOCKED`。 |

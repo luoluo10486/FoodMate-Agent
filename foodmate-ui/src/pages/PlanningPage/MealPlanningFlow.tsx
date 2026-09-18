@@ -1,12 +1,39 @@
-import { Check, CircleAlert, Download, Menu, Plus, Printer, Sparkles, X } from 'lucide-react';
+import {
+  ArchiveRestore,
+  Check,
+  CircleAlert,
+  Download,
+  Info,
+  Menu,
+  Pencil,
+  Plus,
+  Printer,
+  Sparkles,
+  Trash2,
+  X,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { MealPlan, MealPlanDraft } from '../../services/planningService';
+import type { MealPlan, MealPlanDraft, ShoppingList, ShoppingListItem } from '../../services/planningService';
 import styles from './MealPlanningFlow.module.css';
 
 export type MealPlanningFlowView =
@@ -63,6 +90,7 @@ type PlanCard = {
   budget: string;
   level: string;
   updated: string;
+  source?: MealPlan;
 };
 
 function realPlanCard(plan: MealPlan): PlanCard {
@@ -103,6 +131,7 @@ function realPlanCard(plan: MealPlan): PlanCard {
     budget: `预算: ¥${budget}/天`,
     level: '服务端计划',
     updated: `最后修改: ${updated}`,
+    source: plan,
   };
 }
 
@@ -112,7 +141,9 @@ function RealWizardStep({
   onDraftChange,
   onNavigate,
   onCreate,
+  onSaveDraft,
   creating,
+  savingDraft,
   error,
 }: {
   step: 1 | 2 | 3;
@@ -120,7 +151,9 @@ function RealWizardStep({
   onDraftChange: (patch: Partial<MealPlanDraft>) => void;
   onNavigate: NavigateToView;
   onCreate: () => void;
+  onSaveDraft: () => void;
   creating: boolean;
+  savingDraft: boolean;
   error?: string;
 }) {
   const updateList = (field: 'allergens' | 'dislikes', value: string) => {
@@ -294,9 +327,14 @@ function RealWizardStep({
             <FlowButton variant="outline" onClick={() => onNavigate('wizard-step2')}>
               上一步
             </FlowButton>
-            <FlowButton disabled={creating} onClick={onCreate}>
-              {creating ? '正在进入 Agent...' : '提交给 Agent 生成'}
-            </FlowButton>
+            <div className={styles.actionGroup}>
+              <FlowButton variant="outline" disabled={creating || savingDraft} onClick={onSaveDraft}>
+                {savingDraft ? '正在保存草稿...' : '保存为草稿'}
+              </FlowButton>
+              <FlowButton disabled={creating || savingDraft} onClick={onCreate}>
+                {creating ? '正在进入 Agent...' : '提交给 Agent 生成'}
+              </FlowButton>
+            </div>
           </div>
         </section>
       </div>
@@ -382,6 +420,104 @@ function FlowStepper({ currentStep, onNavigate }: { currentStep: number; onNavig
   );
 }
 
+type WizardContextPanelTone = 'body' | 'success' | 'accent' | 'warning' | 'muted';
+type WizardContextPanelHeight = '18' | '20' | '28' | '32' | '34' | '40';
+
+const wizardContextPanels = {
+  1: {
+    nodeId: '977:3',
+    name: 'meal-plan::draft-and-validation',
+    title: '草稿与必填校验',
+    surface: 'draft',
+    items: [
+      { text: '必填项  ✓  已完成', tone: 'success', height: '18' },
+      { text: '日期关系  ✓  06-01 至 06-07', tone: 'body', height: '18' },
+      { text: '能量 / 蛋白目标  ✓  2,200 / 130g', tone: 'body', height: '18' },
+      { text: '预算范围  ✓  ¥120 / 天', tone: 'body', height: '18' },
+      { text: '当前状态：草稿  ·  可保存后稍后继续', tone: 'muted', height: '28' },
+    ],
+  },
+  2: {
+    nodeId: '980:3',
+    name: 'meal-plan::constraint-summary',
+    title: '约束已记录',
+    surface: 'constraint',
+    items: [
+      { text: '偏好：低碳水  ·  高蛋白  ·  中 / 日轻食', tone: 'body', height: '32' },
+      { text: '过敏源：花生  ·  甲壳类  ·  乳制品', tone: 'accent', height: '28' },
+      { text: '单餐耗时上限：30 分钟', tone: 'body', height: '20' },
+      { text: '发现冲突时：展示影响范围与放宽建议，用户可选择后再生成。', tone: 'warning', height: '40' },
+      { text: '当前状态：草稿  ·  可保存后稍后继续', tone: 'muted', height: '28' },
+    ],
+  },
+  3: {
+    nodeId: '981:3',
+    name: 'meal-plan::generation-review',
+    title: '生成前检查',
+    surface: 'review',
+    items: [
+      { text: '✓ 目标、日期、预算、过敏源均已确认', tone: 'success', height: '34' },
+      { text: '生成将创建 7 天餐表、营养摘要和购物清单。', tone: 'body', height: '32' },
+      { text: '预计耗时：10–15 秒  ·  状态：queued → running', tone: 'body', height: '28' },
+      { text: '失败时保留约束草稿，可重试或返回修改约束。', tone: 'warning', height: '32' },
+      { text: '确认后进入生成中页面；生成完成可查看计划与购物清单。', tone: 'muted', height: '40' },
+    ],
+  },
+} as const satisfies Record<
+  1 | 2 | 3,
+  {
+    nodeId: string;
+    name: string;
+    title: string;
+    surface: 'draft' | 'constraint' | 'review';
+    items: Array<{ text: string; tone: WizardContextPanelTone; height: WizardContextPanelHeight }>;
+  }
+>;
+
+function WizardContextPanel({ currentStep }: { currentStep: 1 | 2 | 3 }) {
+  const panel = wizardContextPanels[currentStep];
+  const surfaceClass =
+    panel.surface === 'constraint'
+      ? styles.wizardContextPanelConstraint
+      : panel.surface === 'review'
+        ? styles.wizardContextPanelReview
+        : styles.wizardContextPanelDraft;
+  const toneClasses: Record<WizardContextPanelTone, string> = {
+    body: styles.wizardContextItemBody,
+    success: styles.wizardContextItemSuccess,
+    accent: styles.wizardContextItemAccent,
+    warning: styles.wizardContextItemWarning,
+    muted: styles.wizardContextItemMuted,
+  };
+  const heightClasses: Record<WizardContextPanelHeight, string> = {
+    '18': styles.wizardContextItem18,
+    '20': styles.wizardContextItem20,
+    '28': styles.wizardContextItem28,
+    '32': styles.wizardContextItem32,
+    '34': styles.wizardContextItem34,
+    '40': styles.wizardContextItem40,
+  };
+
+  return (
+    <aside
+      className={`${styles.wizardContextPanel} ${surfaceClass}`}
+      aria-label={panel.title}
+      data-figma-node-id={panel.nodeId}
+      data-name={panel.name}
+    >
+      <p className={styles.wizardContextTitle}>{panel.title}</p>
+      {panel.items.map((item) => (
+        <p
+          className={`${styles.wizardContextItem} ${toneClasses[item.tone]} ${heightClasses[item.height]}`}
+          key={item.text}
+        >
+          {item.text}
+        </p>
+      ))}
+    </aside>
+  );
+}
+
 function WizardShell({
   currentStep,
   onNavigate,
@@ -395,6 +531,7 @@ function WizardShell({
     <div className={styles.wizardPage}>
       <FlowStepper currentStep={currentStep} onNavigate={onNavigate} />
       <div className={styles.wizardGrid}>{children}</div>
+      <WizardContextPanel currentStep={currentStep} />
     </div>
   );
 }
@@ -616,12 +753,24 @@ function PlanListView({
   onNavigate,
   realPlans,
   onOpenPlan,
+  onEditPlan,
+  onDeletePlan,
+  onRestorePlan,
+  actionId,
+  actionError,
 }: {
   onNavigate: NavigateToView;
   realPlans?: MealPlan[];
   onOpenPlan?: (mealPlanId: string) => void;
+  onEditPlan?: (plan: MealPlan) => void;
+  onDeletePlan?: (plan: MealPlan) => Promise<void>;
+  onRestorePlan?: (plan: MealPlan) => Promise<void>;
+  actionId?: string;
+  actionError?: string;
 }) {
   const [tab, setTab] = useState<'active' | 'validated' | 'draft' | 'archived'>('active');
+  const [pendingDeletePlan, setPendingDeletePlan] = useState<MealPlan>();
+  const [deleting, setDeleting] = useState(false);
   const planCards: PlanCard[] = realPlans
     ? realPlans.map(realPlanCard)
     : plans.map((plan) => ({ ...plan, id: plan.name }));
@@ -640,6 +789,11 @@ function PlanListView({
         </div>
         <FlowButton onClick={() => onNavigate('wizard-step1')}>+ 新建膳食计划</FlowButton>
       </header>
+      {actionError ? (
+        <p className={styles.wizardIntro} role="alert">
+          {actionError}
+        </p>
+      ) : null}
       <Tabs className={styles.tabsRoot} value={tab} onValueChange={(value) => setTab(value as typeof tab)}>
         <TabsList aria-label="计划状态" className={styles.listTabs} data-figma-role="planning-list-tabs">
           {(realPlans
@@ -686,19 +840,65 @@ function PlanListView({
             <div className={styles.planListActions}>
               <FlowButton
                 variant="outline"
+                disabled={Boolean(plan.source?.deleted)}
                 onClick={() => (onOpenPlan && realPlans ? onOpenPlan(plan.id) : onNavigate('default'))}
               >
-                进入计划
+                {plan.source?.deleted ? '已删除' : '进入计划'}
               </FlowButton>
-              <Button
-                className={styles.iconAction}
-                variant="ghost"
-                size="icon"
-                type="button"
-                aria-label={`${plan.name}更多操作`}
-              >
-                <Menu aria-hidden="true" />
-              </Button>
+              {!plan.source ? (
+                <Button
+                  className={styles.iconAction}
+                  variant="ghost"
+                  size="icon"
+                  type="button"
+                  aria-label={`${plan.name}更多操作`}
+                >
+                  <Menu aria-hidden="true" />
+                </Button>
+              ) : null}
+              {plan.source ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      className={styles.iconAction}
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      aria-label={`${plan.name}更多操作`}
+                    >
+                      <Menu aria-hidden="true" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {!plan.source.deleted ? (
+                      <DropdownMenuItem onSelect={() => onOpenPlan?.(plan.id)}>进入计划</DropdownMenuItem>
+                    ) : null}
+                    {!plan.source.deleted ? (
+                      <DropdownMenuItem onSelect={() => onEditPlan?.(plan.source as MealPlan)}>
+                        <Pencil aria-hidden="true" />
+                        编辑计划
+                      </DropdownMenuItem>
+                    ) : null}
+                    {plan.source.deleted ? (
+                      <DropdownMenuItem
+                        disabled={actionId === plan.id}
+                        onSelect={() => void onRestorePlan?.(plan.source as MealPlan)}
+                      >
+                        <ArchiveRestore aria-hidden="true" />
+                        {actionId === plan.id ? '恢复中...' : '恢复计划'}
+                      </DropdownMenuItem>
+                    ) : (
+                      <DropdownMenuItem
+                        disabled={actionId === plan.id}
+                        onSelect={() => setPendingDeletePlan(plan.source)}
+                      >
+                        <Trash2 aria-hidden="true" />
+                        删除计划
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
             </div>
           </article>
         ))}
@@ -714,6 +914,47 @@ function PlanListView({
           新建流程支持：保存草稿 · 上一步 / 下一步 · 取消；生成失败时可重试或修改约束。
         </p>
       </aside>
+      <Dialog
+        open={Boolean(pendingDeletePlan)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setPendingDeletePlan(undefined);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除餐食计划</DialogTitle>
+            <DialogDescription>
+              {pendingDeletePlan
+                ? `将删除“${pendingDeletePlan.plan_name || '未命名计划'}”，计划可在已删除列表中恢复。`
+                : ''}
+            </DialogDescription>
+          </DialogHeader>
+          {actionError ? <p role="alert">{actionError}</p> : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" disabled={deleting} onClick={() => setPendingDeletePlan(undefined)}>
+              取消
+            </Button>
+            <Button
+              type="button"
+              disabled={deleting || !pendingDeletePlan || !onDeletePlan}
+              onClick={async () => {
+                if (!pendingDeletePlan || !onDeletePlan) return;
+                setDeleting(true);
+                try {
+                  await onDeletePlan(pendingDeletePlan);
+                  setPendingDeletePlan(undefined);
+                } catch {
+                  // 父级保留错误上下文，Dialog 必须继续打开以便用户重试或取消。
+                } finally {
+                  setDeleting(false);
+                }
+              }}
+            >
+              {deleting ? '删除中...' : '确认删除'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -941,6 +1182,143 @@ function ShoppingListView() {
   );
 }
 
+function RealShoppingListView({
+  plan,
+  shoppingList,
+  shoppingLoading = false,
+  shoppingError,
+  creatingShoppingList = false,
+  updatingItemId,
+  onCreateShoppingList,
+  onToggleShoppingItem,
+  onNavigate,
+}: {
+  plan?: MealPlan;
+  shoppingList?: ShoppingList;
+  shoppingLoading?: boolean;
+  shoppingError?: string;
+  creatingShoppingList?: boolean;
+  updatingItemId?: string;
+  onCreateShoppingList?: () => void;
+  onToggleShoppingItem?: (item: ShoppingListItem) => void;
+  onNavigate: NavigateToView;
+}) {
+  const items = shoppingList?.items ?? [];
+  const purchasedCount = items.filter((item) => item.purchased).length;
+  const purchasePercent = items.length ? Math.round((purchasedCount / items.length) * 100) : 0;
+  const planName = plan?.plan_name?.trim() || '当前餐食计划';
+
+  return (
+    <div className={`${styles.flowPage} ${styles.shoppingPage} ${styles.interPage}`}>
+      <header className={styles.shoppingHeader}>
+        <div>
+          <h1>{planName} - 购物清单</h1>
+          <p>清单数据来自已保存计划，勾选结果会通过服务端保存。</p>
+        </div>
+        <div className={styles.purchaseProgress}>
+          <div>
+            <strong>采购进度</strong>
+            <span>
+              已买 {purchasedCount} / {items.length} 项
+            </span>
+          </div>
+          <div className={styles.progressTrack} aria-label={`采购进度 ${purchasePercent}%`}>
+            <span style={{ width: `${purchasePercent}%` }} />
+          </div>
+        </div>
+        {plan && onCreateShoppingList ? (
+          <FlowButton
+            variant="outline"
+            disabled={shoppingLoading || creatingShoppingList}
+            onClick={onCreateShoppingList}
+          >
+            {creatingShoppingList ? '生成中...' : '刷新清单'}
+          </FlowButton>
+        ) : null}
+      </header>
+
+      {shoppingError ? (
+        <p className={styles.toolbarNotice} role="alert">
+          {shoppingError}
+        </p>
+      ) : null}
+      {shoppingLoading ? <p className={styles.toolbarNotice}>正在读取购物清单...</p> : null}
+      {!shoppingLoading && !shoppingError && !plan ? (
+        <section className={styles.wizardCard} aria-label="暂无可用餐食计划">
+          <Info aria-hidden="true" />
+          <h2>暂无可用餐食计划</h2>
+          <p>请先创建并保存一份餐食计划，再生成购物清单。</p>
+        </section>
+      ) : null}
+      {!shoppingLoading && !shoppingError && plan && !items.length ? (
+        <section className={styles.wizardCard} aria-label="暂无购物清单">
+          <Info aria-hidden="true" />
+          <h2>当前计划暂无购物清单</h2>
+          <p>点击“刷新清单”请求服务端生成当前计划的购物清单。</p>
+        </section>
+      ) : null}
+      {!shoppingLoading && items.length ? (
+        <section className={styles.shoppingGrid} aria-label="服务端购物清单">
+          <section className={styles.shoppingCategory}>
+            <h2 className={styles.categorygreen}>全部食材</h2>
+            <div className={styles.shoppingItemsFlow}>
+              {items.map((item, index) => {
+                const name = item.name?.trim() || '未命名食材';
+                const detail = [item.amount, item.unit].filter((value) => value != null && value !== '').join('');
+                const label = detail ? `${name} (${detail})` : name;
+                return (
+                  <Checkbox
+                    aria-label={label}
+                    checked={Boolean(item.purchased)}
+                    className={styles.shoppingRow}
+                    disabled={!item.shopping_list_item_id || Boolean(updatingItemId)}
+                    key={item.shopping_list_item_id ?? `${label}-${index}`}
+                    onCheckedChange={() => onToggleShoppingItem?.(item)}
+                  >
+                    <span className={styles.shoppingCopy}>
+                      <strong>{name}</strong>
+                      {detail ? <small>{detail}</small> : null}
+                    </span>
+                    <em className={`${styles.itemStatus} ${item.purchased ? styles.itemOwned : styles.itemPending}`}>
+                      {item.purchased ? '已买' : '待买'}
+                    </em>
+                  </Checkbox>
+                );
+              })}
+            </div>
+          </section>
+        </section>
+      ) : null}
+
+      <footer className={styles.shoppingToolbar}>
+        <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+          返回计划
+        </FlowButton>
+      </footer>
+    </div>
+  );
+}
+
+function RealPlanningStateView({ view, onNavigate }: { view: 'conflict' | 'generating'; onNavigate: NavigateToView }) {
+  const isConflict = view === 'conflict';
+  return (
+    <div className={`${styles.flowPage} ${styles.interPage}`}>
+      <section className={styles.wizardCard} aria-label={isConflict ? '计划冲突处理' : '计划生成状态'}>
+        <Info aria-hidden="true" />
+        <h1>{isConflict ? '计划约束需要由 Agent 确认' : '计划生成由 Chat Agent 处理'}</h1>
+        <p>
+          {isConflict
+            ? '真实模式下，冲突内容和可选解决方案必须来自服务端 AgentRun；此入口不展示静态冲突或替换结果。'
+            : '真实模式下，生成进度、失败原因和最终计划由当前 Chat AgentRun 返回；此入口不伪造本地进度。'}
+        </p>
+        <FlowButton variant="outline" onClick={() => onNavigate('default')}>
+          返回计划
+        </FlowButton>
+      </section>
+    </div>
+  );
+}
+
 function ShoppingRow({
   item,
   checked,
@@ -1004,8 +1382,24 @@ export function MealPlanningFlow({
   realDraft,
   onDraftChange,
   onCreatePlan,
+  onSaveDraft,
   creatingPlan = false,
+  savingDraft = false,
   createError,
+  onEditPlan,
+  onDeletePlan,
+  onRestorePlan,
+  actionId,
+  actionError,
+  realMode = false,
+  realPlan,
+  realShoppingList,
+  shoppingLoading,
+  shoppingError,
+  creatingShoppingList,
+  updatingShoppingItemId,
+  onCreateShoppingList,
+  onToggleShoppingItem,
 }: {
   view: MealPlanningFlowView;
   onNavigate: NavigateToView;
@@ -1014,11 +1408,39 @@ export function MealPlanningFlow({
   realDraft?: MealPlanDraft;
   onDraftChange?: (patch: Partial<MealPlanDraft>) => void;
   onCreatePlan?: () => void;
+  onSaveDraft?: () => void;
   creatingPlan?: boolean;
+  savingDraft?: boolean;
   createError?: string;
+  onEditPlan?: (plan: MealPlan) => void;
+  onDeletePlan?: (plan: MealPlan) => Promise<void>;
+  onRestorePlan?: (plan: MealPlan) => Promise<void>;
+  actionId?: string;
+  actionError?: string;
+  realMode?: boolean;
+  realPlan?: MealPlan;
+  realShoppingList?: ShoppingList;
+  shoppingLoading?: boolean;
+  shoppingError?: string;
+  creatingShoppingList?: boolean;
+  updatingShoppingItemId?: string;
+  onCreateShoppingList?: () => void;
+  onToggleShoppingItem?: (item: ShoppingListItem) => void;
 }) {
-  if (view === 'list') return <PlanListView onNavigate={onNavigate} realPlans={realPlans} onOpenPlan={onOpenPlan} />;
-  if (realPlans && realDraft && onDraftChange && onCreatePlan) {
+  if (view === 'list')
+    return (
+      <PlanListView
+        onNavigate={onNavigate}
+        realPlans={realPlans}
+        onOpenPlan={onOpenPlan}
+        onEditPlan={onEditPlan}
+        onDeletePlan={onDeletePlan}
+        onRestorePlan={onRestorePlan}
+        actionId={actionId}
+        actionError={actionError}
+      />
+    );
+  if (realPlans && realDraft && onDraftChange && onCreatePlan && onSaveDraft) {
     if (view === 'wizard-step1' || view === 'wizard-step2' || view === 'wizard-step3')
       return (
         <RealWizardStep
@@ -1027,11 +1449,29 @@ export function MealPlanningFlow({
           onDraftChange={onDraftChange}
           onNavigate={onNavigate}
           onCreate={onCreatePlan}
+          onSaveDraft={onSaveDraft}
           creating={creatingPlan}
+          savingDraft={savingDraft}
           error={createError}
         />
       );
   }
+  if (realMode && view === 'shopping-list')
+    return (
+      <RealShoppingListView
+        plan={realPlan}
+        shoppingList={realShoppingList}
+        shoppingLoading={shoppingLoading}
+        shoppingError={shoppingError}
+        creatingShoppingList={creatingShoppingList}
+        updatingItemId={updatingShoppingItemId}
+        onCreateShoppingList={onCreateShoppingList}
+        onToggleShoppingItem={onToggleShoppingItem}
+        onNavigate={onNavigate}
+      />
+    );
+  if (realMode && (view === 'conflict' || view === 'generating'))
+    return <RealPlanningStateView view={view} onNavigate={onNavigate} />;
   if (view === 'wizard-step1') return <WizardStepOne onNavigate={onNavigate} />;
   if (view === 'wizard-step2') return <WizardStepTwo onNavigate={onNavigate} />;
   if (view === 'wizard-step3') return <WizardStepThree onNavigate={onNavigate} />;

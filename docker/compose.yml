@@ -114,8 +114,8 @@ services:
         condition: service_healthy
     command: ["sh", "/home/rocketmq/start-broker.sh"]
     environment:
-      # Broker 返回给 Java/Python 客户端的可达地址；本地网络变化时只改 .env，不改 broker.conf。
-      ROCKETMQ_BROKER_IP1: ${ROCKETMQ_BROKER_IP1:-host.docker.internal}
+      # 容器内 Java/Python 通过 Compose 网络访问 Broker；宿主机模式需显式覆盖此值。
+      ROCKETMQ_BROKER_IP1: ${FOODMATE_DOCKER_ROCKETMQ_BROKER_IP1:-foodmate-rocketmq-broker}
       # 本地单 Broker 默认堆大小；生产环境应按消息量和磁盘吞吐单独评估。
       JAVA_OPT_EXT: "-Xms${ROCKETMQ_BROKER_JAVA_XMS:-256m} -Xmx${ROCKETMQ_BROKER_JAVA_XMX:-512m} -Xmn${ROCKETMQ_BROKER_JAVA_XMN:-256m}"
       TZ: ${TZ:-Asia/Shanghai}

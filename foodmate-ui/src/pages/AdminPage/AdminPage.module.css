@@ -145,6 +145,17 @@
   color: #d67676;
 }
 
+/* Figma 用户详情画板的用户管理选中态使用暖黄色，不沿用通用红色强调。 */
+.userDetailFixtureShell .navButton:hover,
+.userDetailFixtureShell .navButtonActive {
+  background: #fffaf0;
+  color: #c79654;
+}
+
+.userDetailFixtureShell .navButtonActive svg {
+  color: #c79654;
+}
+
 .navButtonLocked {
   opacity: 0.72;
   cursor: not-allowed;
@@ -913,6 +924,197 @@
   line-height: 18px;
 }
 
+.auditReportCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f4f6f5;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.auditReportHeader {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.auditReportHeader > div {
+  min-width: 0;
+}
+
+.auditReportHeader strong {
+  color: #333333;
+  font-size: 15px;
+  font-weight: 900;
+  line-height: 20px;
+}
+
+.auditReportHeader p {
+  margin: 5px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.auditReportHeader > button {
+  flex: 0 0 auto;
+}
+
+.auditReportLoading {
+  margin: 0;
+  padding: 14px 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+  text-align: center;
+}
+
+.auditReportError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgba(214, 118, 118, 0.25);
+  border-radius: 8px;
+  background: rgba(255, 117, 118, 0.08);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.auditReportError > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.auditReportError > button {
+  flex: 0 0 auto;
+}
+
+.auditReportMeta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.auditReportMeta > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #f4f6f5;
+  border-radius: 6px;
+  background: #fcfcfc;
+}
+
+.auditReportMeta dt,
+.auditReportMeta dd {
+  margin: 0;
+}
+
+.auditReportMeta dt {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.auditReportMeta dd {
+  display: flex;
+  min-height: 24px;
+  align-items: center;
+  margin-top: 4px;
+  overflow-wrap: anywhere;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.auditReportChecks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.auditReportCheck {
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.auditReportCheckHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.auditReportCheckHeader strong {
+  min-width: 0;
+  overflow: hidden;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auditReportCheck > dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 0;
+}
+
+.auditReportCheck > dl > div {
+  min-width: 0;
+}
+
+.auditReportCheck dt,
+.auditReportCheck dd {
+  margin: 0;
+}
+
+.auditReportCheck dt {
+  color: #6b7280;
+  font-size: 10px;
+  line-height: 14px;
+}
+
+.auditReportCheck dd {
+  margin-top: 3px;
+  overflow: hidden;
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.auditReportReasons,
+.auditReportPassed {
+  margin: 10px 0 0;
+  overflow-wrap: anywhere;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.auditReportReasons {
+  color: #b85454;
+}
+
+.auditReportPassed {
+  color: #478052;
+}
+
 .auditPagination {
   display: flex;
   min-height: 56px;
@@ -1363,6 +1565,7 @@
   align-items: center;
   min-height: 21px;
   padding: 4px 8px;
+  border: 0;
   border-radius: 4px;
   font-size: 11px;
   font-weight: 700;
@@ -1397,18 +1600,21 @@
 
 .overviewActionButton {
   display: inline-flex;
+  height: 28px !important;
   min-height: 28px;
   align-items: center;
   justify-content: center;
   padding: 6px 12px;
-  border: 1px solid #f4f6f5;
+  border: 1px solid #f4f6f5 !important;
   border-radius: 6px;
   background: #ffffff;
   color: #333333;
   font-size: 12px;
   font-weight: 700;
   line-height: 14px;
+  text-decoration: none;
   white-space: nowrap;
+  box-shadow: none !important;
 }
 
 .overviewActionButton:hover {
@@ -2648,6 +2854,62 @@
   line-height: 1.6;
 }
 
+.modelGovernanceHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.modelGovernanceHeaderActions button {
+  flex: 0 0 auto;
+}
+
+.modelGovernanceDialog {
+  width: min(680px, calc(100vw - 32px));
+  max-width: 680px;
+}
+
+.modelGovernanceForm {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px 16px;
+  max-height: min(58vh, 560px);
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.modelGovernanceField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.modelGovernanceField > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.modelGovernanceFieldWide {
+  grid-column: 1 / -1;
+}
+
+.modelGovernanceFormError {
+  padding: 10px 12px;
+  border: 1px solid rgb(214 118 118 / 28%);
+  border-radius: 8px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
 .modelGovernanceGrid,
 .modelGovernanceSummaryGrid {
   display: grid;
@@ -3551,6 +3813,14 @@
   border: 1px solid #f4f6f5 !important;
 }
 
+.userCredentialHint {
+  margin: -4px 0 0;
+  color: #858c85;
+  font-size: 12px;
+  line-height: 16px;
+  text-align: center;
+}
+
 .userRevokeButton {
   border: 1px solid #ff7576 !important;
   color: #d67676 !important;
@@ -3628,6 +3898,20 @@
   gap: 12px;
 }
 .uploadMock span {
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.uploadModes {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.uploadModes button {
+  min-width: 0;
+}
+.uploadModeHint {
+  margin: 0;
   color: #6b7280;
   font-size: 12px;
   line-height: 1.6;
@@ -3803,6 +4087,40 @@
   gap: 20px;
   padding: 20px;
   border-radius: 16px !important;
+}
+
+.knowledgeStreamStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.knowledgeStreamStatus[data-stream-state='connected'] {
+  color: #4caf50;
+}
+
+.knowledgeStreamStatus[data-stream-state='reconnecting'],
+.knowledgeStreamStatus[data-stream-state='exhausted'] {
+  color: #c79654;
+}
+
+.knowledgeBatchItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.knowledgeBatchActions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .knowledgeFixtureWorkspace .knowledgeDropZone {
@@ -4441,6 +4759,20 @@
     grid-template-columns: 1fr;
     align-items: stretch;
   }
+  .auditReportHeader {
+    flex-direction: column;
+  }
+  .auditReportHeader > button {
+    align-self: flex-start;
+  }
+  .auditReportMeta,
+  .auditReportChecks {
+    grid-template-columns: 1fr;
+  }
+  .auditReportError {
+    align-items: flex-start;
+    flex-direction: column;
+  }
   .auditTableHeader {
     flex-direction: column;
   }
@@ -4477,6 +4809,17 @@
   }
   .header h1 {
     font-size: 24px;
+  }
+  .modelGovernanceHeaderActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  .modelGovernanceForm {
+    grid-template-columns: 1fr;
+    max-height: 52vh;
+  }
+  .modelGovernanceFieldWide {
+    grid-column: auto;
   }
   .metrics,
   .actionGrid,
@@ -4614,6 +4957,43 @@
 .usageSearchInput::placeholder {
   color: #6b7280;
   opacity: 1;
+}
+
+.usageFilterActions {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.usageFilterActions > button {
+  flex: 0 0 auto;
+}
+
+.usageExportStatus {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #fbfcfb;
+  color: #4b5563;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.usageExportStatus > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.usageExportStatus > button {
+  flex: 0 0 auto;
 }
 
 .usageStats {
@@ -4911,6 +5291,42 @@
   text-align: center !important;
 }
 
+.usageLoadingState,
+.usageErrorState {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.usageLoadingState svg,
+.usageErrorMessage svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+}
+
+.usageLoadingState svg {
+  animation: usage-loading-spin 1s linear infinite;
+}
+
+.usageErrorState {
+  flex-direction: column;
+  color: #d67676;
+}
+
+.usageErrorMessage {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+@keyframes usage-loading-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .usagePagination {
   display: flex;
   align-items: center;
@@ -5026,7 +5442,7 @@
   line-height: 16px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 900px) {
   .usageFilters {
     height: auto;
     flex-wrap: wrap;
@@ -5040,6 +5456,16 @@
   .usageSearch {
     width: 100%;
     flex-basis: 100%;
+  }
+
+  .usageFilterActions {
+    width: 100%;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+  }
+
+  .usageFilterActions .usageSearch {
+    flex: 1 1 240px;
   }
 
   .usageStats {
@@ -6268,7 +6694,7 @@
   gap: 8px;
   padding: 16px;
   border: 1px solid #f4f6f5;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #ffffff;
   box-shadow: none;
 }
@@ -6302,10 +6728,10 @@
   flex: 0 0 444px;
   min-width: 0;
   overflow: hidden;
-  border: 0;
-  border-radius: 12px;
+  border: 1px solid #f4f6f5;
+  border-radius: 16px;
   background: #ffffff;
-  box-shadow: inset 0 0 0 1px #f4f6f5;
+  box-shadow: none;
 }
 
 .auditFigmaTable {
@@ -6318,6 +6744,11 @@
 
 .auditFigmaTableHeader {
   background: #f4f6f5;
+}
+
+/* Figma 表头只使用浅灰表面，不保留 shadcn TableHeader 默认的深色下边框。 */
+.auditFigmaTable :global(thead tr) {
+  border-bottom: 0 !important;
 }
 
 .auditFigmaTable :global(th),
@@ -6409,9 +6840,18 @@
 }
 
 .auditFigmaTimeCell strong,
-.auditFigmaRequest,
+.auditFigmaOperator,
 .auditFigmaTrace,
 .auditFigmaError {
+  font-family: var(--font-mono);
+}
+
+/* Figma 的 request_id 使用正文体，结果字段与 trace/error 使用 Space Mono。 */
+.auditFigmaRequest {
+  font-family: var(--font-ui);
+}
+
+.auditFigmaResult {
   font-family: var(--font-mono);
 }
 
@@ -6453,7 +6893,7 @@
 .auditFigmaRequest,
 .auditFigmaTrace,
 .auditFigmaError {
-  font-size: 11px !important;
+  font-size: 13px !important;
 }
 
 .auditFigmaAction,
@@ -6670,5 +7110,440 @@
     height: auto;
     align-items: flex-start;
     flex-direction: column;
+  }
+}
+
+.retentionSurface {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.retentionIntro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f1ddaf;
+  border-radius: 10px;
+  background: #fffaf0;
+}
+
+.retentionIntro > div {
+  min-width: 0;
+}
+
+.retentionIntroTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #c79654;
+}
+
+.retentionIntroTitle svg {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+}
+
+.retentionIntroTitle h2 {
+  margin: 0;
+  color: #333333;
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 22px;
+}
+
+.retentionIntro p,
+.retentionCardHint,
+.retentionFixtureNote {
+  margin: 6px 0 0;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.retentionCard {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+  padding: 18px 20px;
+  border: 1px solid #f4f6f5;
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: none;
+}
+
+.retentionCard .cardHead {
+  align-items: flex-start;
+  margin-bottom: 0;
+}
+
+.retentionCard .cardHead > div {
+  min-width: 0;
+}
+
+.retentionCard .cardHead strong {
+  color: #333333;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 20px;
+}
+
+.retentionCardIcon {
+  width: 18px;
+  height: 18px;
+  flex: 0 0 auto;
+  color: #c79654;
+}
+
+.retentionReadOnly {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 11px 13px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #f7faf7;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionReadOnly svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  color: #5da9b2;
+}
+
+.retentionForm,
+.retentionQueryForm {
+  display: grid;
+  min-width: 0;
+  gap: 12px 14px;
+}
+
+.retentionForm {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.retentionQueryForm {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.retentionField {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 6px;
+  color: #333333;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.retentionField > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retentionFormActions {
+  display: flex;
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+
+.retentionFormActions button,
+.retentionQueryForm > button,
+.retentionHeaderActions button {
+  gap: 6px;
+}
+
+.retentionFormActions svg,
+.retentionQueryForm svg,
+.retentionHeaderActions svg {
+  width: 15px;
+  height: 15px;
+}
+
+.retentionFormError {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 9px 11px;
+  border: 1px solid rgb(214 118 118 / 28%);
+  border-radius: 8px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionError {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid rgb(214 118 118 / 28%);
+  border-radius: 8px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionError > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.retentionHeaderActions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.retentionDetailGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.retentionDetailGrid > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #f0f2f1;
+  border-radius: 7px;
+  background: #fbfcfb;
+}
+
+.retentionDetailGrid dt,
+.retentionDetailGrid dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.retentionDetailGrid dt {
+  color: #6b7280;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.retentionDetailGrid dd {
+  margin-top: 4px;
+  color: #333333;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 18px;
+}
+
+.retentionFlags {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.retentionFlag {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f0f2f1;
+  border-radius: 7px;
+  background: #fbfcfb;
+  color: #6b7280;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionFlag strong {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.retentionFlagYes {
+  color: #478052;
+}
+
+.retentionFlagNo {
+  color: #b85454;
+}
+
+.retentionPreflightColumns {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(0, 1.3fr);
+  gap: 20px;
+}
+
+.retentionPreflightColumns section {
+  min-width: 0;
+}
+
+.retentionPreflightColumns h3 {
+  margin: 0 0 10px;
+  color: #333333;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 18px;
+}
+
+.retentionEmpty {
+  margin: 0;
+  color: #8a918d;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionCodeList {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.retentionCodeList li {
+  padding: 9px 10px;
+  border-radius: 6px;
+  background: rgb(255 117 118 / 8%);
+  color: #b85454;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+.retentionTaskTable {
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.retentionTaskHeader,
+.retentionTaskRow {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) 90px 84px minmax(90px, 1fr);
+  gap: 10px;
+  min-width: 430px;
+  align-items: center;
+  padding: 9px 10px;
+}
+
+.retentionTaskHeader {
+  background: #f4f6f5;
+  color: #6b7280;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 16px;
+}
+
+.retentionTaskRow {
+  min-height: 44px;
+  border-bottom: 1px solid #f0f2f1;
+  color: #555c58;
+  font-size: 11px;
+  line-height: 16px;
+}
+
+.retentionTaskRow:last-child {
+  border-bottom: 0;
+}
+
+.retentionTaskRow > * {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.retentionTaskRow strong {
+  color: #333333;
+  font-weight: 800;
+}
+
+.retentionTaskRow code {
+  color: #6b7280;
+  font-family: var(--font-mono);
+}
+
+.retentionHoldResult {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 12px;
+  border: 1px solid #e8ecea;
+  border-radius: 8px;
+  background: #fbfcfb;
+}
+
+.retentionHoldResult > div:first-child {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.retentionHoldResult strong {
+  color: #333333;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.retentionHoldResult span {
+  color: #6b7280;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 16px;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .retentionGrid,
+  .retentionPreflightColumns {
+    grid-template-columns: 1fr;
+  }
+
+  .retentionDetailGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .retentionIntro,
+  .retentionHoldResult {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .retentionForm,
+  .retentionQueryForm,
+  .retentionFlags,
+  .retentionDetailGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .retentionQueryForm > button {
+    justify-self: start;
+  }
+
+  .retentionHeaderActions {
+    justify-content: flex-start;
   }
 }

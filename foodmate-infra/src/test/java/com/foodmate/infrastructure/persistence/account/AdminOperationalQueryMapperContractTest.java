@@ -1,5 +1,6 @@
 package com.foodmate.infrastructure.persistence.account;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Arrays;
@@ -24,5 +25,20 @@ class AdminOperationalQueryMapperContractTest {
         assertTrue(sql.contains("count(*) from agent_run_sse_outbox"));
         assertTrue(sql.contains("count(*) from sql_query_audits"));
         assertTrue(sql.contains("count(*) from operation_audits"));
+    }
+
+    @Test
+    void usageCountReturnsScalarCountInsteadOfUsageRows() {
+        String sql =
+                Arrays.stream(AdminOperationalQueryMapper.class.getDeclaredMethods())
+                        .filter(method -> method.getName().equals("countUsage"))
+                        .flatMap(method -> Stream.of(method.getAnnotation(Select.class)))
+                        .map(Select::value)
+                        .flatMap(Arrays::stream)
+                        .reduce("", (left, right) -> left + " " + right)
+                        .toLowerCase();
+
+        assertTrue(sql.contains("select count(*) from model_usage_logs"));
+        assertFalse(sql.contains("provider_code as provider"));
     }
 }

@@ -28,6 +28,7 @@ import org.springframework.test.context.ActiveProfiles;
 @SpringBootTest(
         properties = {
             "foodmate.runtime.transport=rocketmq",
+            "foodmate.id.worker-id=2",
             "foodmate.runtime.dispatch-poll-ms=3600000",
             "foodmate.runtime.dlq-reconcile-ms=3600000"
         })
@@ -61,8 +62,9 @@ class M15FoodLogWriterProposalResultE2ETest extends M15FoodLogWriterE2ETestSuppo
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                        Long.parseLong(foodLogId)));
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=?",
+                        Long.parseLong(foodLogId),
+                        TEST_NUTRITION_FOOD_ID));
         assertEquals(
                 1,
                 count(

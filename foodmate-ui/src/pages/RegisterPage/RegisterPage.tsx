@@ -1,10 +1,11 @@
 import { CheckCircle2 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthBrand, AuthCard, AuthDivider, AuthField, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { register } from '../../services/authService';
 import styles from '../LoginPage/LoginPage.module.css';
 
@@ -32,29 +33,57 @@ const rules = [
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController>();
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [values, setValues] = useState<RegisterValues>(() => (isRealMode ? emptyRegisterValues : figmaRegisterValues));
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Partial<Record<keyof RegisterValues, string>>>({});
 
-  const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) =>
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
+
+  const update = (key: keyof RegisterValues) => (event: ChangeEvent<HTMLInputElement>) => {
     setValues((current) => ({ ...current, [key]: event.target.value }));
+    setFieldErrors((current) => {
+      const next = { ...current };
+      delete next[key];
+      return next;
+    });
+  };
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (values.password !== values.confirmPassword) {
+      setFieldErrors({ confirmPassword: '两次输入的密码不一致。' });
       notify('两次输入的密码不一致。', 'error');
       return;
     }
+    setFieldErrors({});
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await register(values);
+      await register(values, controller.signal);
+      if (controller.signal.aborted) return;
       navigate('/');
     } catch (error) {
-      notify(error instanceof Error ? error.message : '注册失败', 'error');
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const nextErrors = {
+        username: apiFieldError(error, 'username'),
+        email: apiFieldError(error, 'email'),
+        password: apiFieldError(error, 'password'),
+      };
+      if (Object.values(nextErrors).some(Boolean)) setFieldErrors(nextErrors);
+      else notify(error instanceof Error ? error.message : '注册失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 
@@ -75,6 +104,7 @@ export function RegisterPage() {
               placeholder="麦克斯"
               leadingIcon="user"
               value={values.username}
+              error={fieldErrors.username}
               onChange={update('username')}
             />
             <AuthField
@@ -85,6 +115,7 @@ export function RegisterPage() {
               placeholder="max@foodmate.com"
               leadingIcon="mail"
               value={values.email}
+              error={fieldErrors.email}
               onChange={update('email')}
             />
             <PasswordField
@@ -94,6 +125,7 @@ export function RegisterPage() {
               placeholder="Foodmate123"
               value={values.password}
               show={showPassword}
+              error={fieldErrors.password}
               onToggle={() => setShowPassword((current) => !current)}
               onChange={update('password')}
             />
@@ -104,6 +136,7 @@ export function RegisterPage() {
               placeholder="Foodmate123"
               value={values.confirmPassword}
               show={showConfirmPassword}
+              error={fieldErrors.confirmPassword}
               onToggle={() => setShowConfirmPassword((current) => !current)}
               onChange={update('confirmPassword')}
             />

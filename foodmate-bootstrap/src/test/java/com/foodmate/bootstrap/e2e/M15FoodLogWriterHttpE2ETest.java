@@ -31,6 +31,9 @@ import org.springframework.test.context.DynamicPropertySource;
         properties = {
             "foodmate.runtime.transport=http",
             "foodmate.runtime.admission.enabled=false",
+            "foodmate.runtime.agent-base-url=http://localhost:9002",
+            "foodmate.runtime.dispatch-poll-ms=3600000",
+            "foodmate.id.worker-id=2",
             "spring.data.redis.url=redis://:foodmate-redis-change-me@localhost:6380"
         })
 @ActiveProfiles("local")
@@ -80,8 +83,9 @@ class M15FoodLogWriterHttpE2ETest extends M15FoodLogWriterE2ETestSupport {
         assertEquals(
                 1,
                 count(
-                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=510001",
-                        Long.parseLong(foodLogId)));
+                        "SELECT COUNT(*) FROM food_log_items WHERE food_log_id=? AND nutrition_status='matched' AND nutrition_food_id=?",
+                        Long.parseLong(foodLogId),
+                        TEST_NUTRITION_FOOD_ID));
     }
 
     @Test

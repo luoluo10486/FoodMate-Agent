@@ -53,6 +53,30 @@ class NutritionAnalysisServiceImplTest {
     }
 
     @Test
+    void supportsTodayRange() {
+        NutritionAnalysisRepository repository = mock(NutritionAnalysisRepository.class);
+        when(repository.aggregate(
+                        ArgumentMatchers.eq(7L), ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(
+                        new NutritionAnalysisRepository.NutrientAggregate(
+                                0, 0, null, null, null, null));
+        when(repository.unmatchedNames(
+                        ArgumentMatchers.eq(7L), ArgumentMatchers.any(), ArgumentMatchers.any()))
+                .thenReturn(List.of());
+        when(repository.findTargets(7L)).thenReturn(null);
+
+        NutritionAnalysisService.Analysis result =
+                new NutritionAnalysisServiceImpl(repository).analyze(7L, "today");
+
+        assertEquals("today", result.range());
+        assertEquals(0, result.totalItems());
+        assertEquals(new BigDecimal("0.0000"), result.coverage());
+        assertEquals(new BigDecimal("0.00"), result.caloriesKcal());
+        assertEquals(new BigDecimal("0.0000"), result.proteinG());
+        assertEquals(false, result.incomplete());
+    }
+
+    @Test
     void rejectsUnsupportedRange() {
         NutritionAnalysisRepository repository = mock(NutritionAnalysisRepository.class);
 

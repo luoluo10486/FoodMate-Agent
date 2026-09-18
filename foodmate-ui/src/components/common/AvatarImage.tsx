@@ -24,7 +24,8 @@ type AvatarImageProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
 export function AvatarImage({
   avatarUrl,
   gender,
-  defaultOnly = false,
+  // 默认拒绝所有非登记头像；真实上传预览必须由调用方显式授权。
+  defaultOnly = true,
   allowUploaded = false,
   onError,
   ...props
@@ -46,6 +47,8 @@ export function AvatarImage({
   const displaySource = effectiveDefaultOnly || failed ? genderDefault : safeSource;
   const sourceKind = getAvatarSourceKind(displaySource);
   const isRegisteredDefault = isRegisteredDefaultAvatar(displaySource);
+  const isUploadedAvatar = sourceKind === 'uploaded';
+  const isTemporaryUpload = isUploadedAvatar && displaySource.startsWith('blob:');
 
   return (
     <img
@@ -54,7 +57,12 @@ export function AvatarImage({
       data-avatar-source={sourceKind}
       data-avatar-policy={effectiveDefaultOnly ? 'default-only' : 'uploaded-allowed'}
       data-avatar-asset={displaySource}
-      data-avatar-contract={isRegisteredDefault ? 'registered-default-svg' : 'trusted-upload'}
+      data-avatar-kind={
+        isRegisteredDefault ? 'person-default' : isTemporaryUpload ? 'temporary-upload-preview' : 'persisted-upload'
+      }
+      data-avatar-contract={
+        isRegisteredDefault ? 'registered-default-svg' : isUploadedAvatar ? 'trusted-upload' : 'registered-default-svg'
+      }
       data-avatar-registered={isRegisteredDefault ? 'true' : 'false'}
       onError={(event) => {
         setFailure({ key: avatarKey, failed: true });

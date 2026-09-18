@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -8,6 +8,7 @@ import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { notify } from '../../lib/notice';
 import { isVisualQaEnabled } from '../../lib/visualQa';
+import { apiFieldError, ApiError, isAbortError } from '../../services/apiClient';
 import { getLoginDefaults, login } from '../../services/authService';
 import styles from './LoginPage.module.css';
 
@@ -89,6 +90,27 @@ const loginStates = new Set<LoginState>([
   'service-unavailable',
 ]);
 
+function safeRedirectPath(value: string | null): string {
+  if (!value || !value.startsWith('/') || value.startsWith('//')) return '/';
+  try {
+    const target = new URL(value, window.location.origin);
+    if (target.origin !== window.location.origin) return '/';
+    return `${target.pathname}${target.search}${target.hash}`;
+  } catch {
+    return '/';
+  }
+}
+
+function mapLoginErrorState(error: unknown): Exclude<LoginState, 'default' | 'submitting'> | undefined {
+  if (!(error instanceof ApiError)) return undefined;
+  if (error.code === 'AUTH_INVALID_CREDENTIALS') return 'credential-error';
+  if (error.code === 'AUTH_ACCOUNT_LOCKED') return 'account-locked';
+  if (error.code === 'AUTH_ACCOUNT_DISABLED') return 'account-disabled';
+  if (error.code === 'NETWORK_ERROR' || (error.status !== undefined && error.status >= 500))
+    return 'service-unavailable';
+  return undefined;
+}
+
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className={styles.field}>
@@ -119,21 +141,34 @@ function LoginBrand({ state }: { state: LoginState }) {
 export function LoginPage() {
   const navigate = useNavigate();
   const pageRef = useRef<HTMLElement>(null);
+  const requestControllerRef = useRef<AbortController>();
   const [searchParams] = useSearchParams();
   const visualQaEnabled = isVisualQaEnabled(searchParams.toString());
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const defaults = getLoginDefaults();
   const requestedState = searchParams.get('state') as LoginState | null;
-  const state = requestedState && loginStates.has(requestedState) ? requestedState : 'default';
+  const fixtureState = !isRealMode && requestedState && loginStates.has(requestedState) ? requestedState : 'default';
+  const redirectTarget = safeRedirectPath(searchParams.get('redirect'));
+  const [runtimeState, setRuntimeState] = useState<LoginState>('default');
+  const state = fixtureState !== 'default' ? fixtureState : runtimeState;
   const [submitting, setSubmitting] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<{ username?: string; password?: string }>({});
   const visualState: LoginState = state === 'default' && submitting ? 'submitting' : state;
   const [loginValues, setLoginValues] = useState<LoginValues>(() => {
-    if (state === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
-    if (state === 'credential-error') return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
-    if (state === 'account-locked') return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
-    if (state === 'account-disabled') return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
+    if (fixtureState === 'submitting') return { ...defaults, username: 'alex@foodmate.com', password: 'password' };
+    if (fixtureState === 'credential-error')
+      return { ...defaults, username: 'wrong@foodmate.com', password: 'password' };
+    if (fixtureState === 'account-locked')
+      return { ...defaults, username: 'locked@foodmate.com', password: 'password' };
+    if (fixtureState === 'account-disabled')
+      return { ...defaults, username: 'disabled@foodmate.com', password: 'password' };
     return defaults;
   });
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   useGSAP(
     () => {
@@ -182,15 +217,39 @@ export function LoginPage() {
 
   const handleLogin = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (state !== 'default') return;
+    if (
+      fixtureState !== 'default' ||
+      submitting ||
+      ['account-locked', 'account-disabled', 'service-unavailable'].includes(state)
+    )
+      return;
+    setRuntimeState('default');
+    setFieldErrors({});
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await login(loginValues);
-      navigate('/');
+      await login(loginValues, controller.signal);
+      if (controller.signal.aborted) return;
+      navigate(redirectTarget, { replace: true });
     } catch (error) {
-      notify(error instanceof Error ? error.message : '登录失败', 'error');
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const usernameError = apiFieldError(error, 'usernameOrEmail') ?? apiFieldError(error, 'username');
+      const passwordError = apiFieldError(error, 'password');
+      if (usernameError || passwordError) {
+        setFieldErrors({ username: usernameError, password: passwordError });
+        setRuntimeState('field-error');
+        return;
+      }
+      const mappedState = mapLoginErrorState(error);
+      if (mappedState) setRuntimeState(mappedState);
+      else notify(error instanceof Error ? error.message : '登录失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 
@@ -248,7 +307,14 @@ export function LoginPage() {
               <div>
                 <strong>账号已禁用</strong>
                 <span>你的账号已被管理员禁用。如有疑问，请联系客服支持。</span>
-                <Button className={styles.loginAlertAction} variant="ghost" type="button" onClick={() => undefined}>
+                <Button
+                  className={styles.loginAlertAction}
+                  variant="ghost"
+                  type="button"
+                  disabled
+                  aria-label="联系客服（入口暂未配置）"
+                  title="客服入口暂未配置"
+                >
                   联系客服
                 </Button>
               </div>
@@ -274,7 +340,7 @@ export function LoginPage() {
           <div className={styles.loginFields} data-login-motion="fields">
             <Field label="">
               <Input
-                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
+                className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.username ? styles.figmaInputError : ''}`}
                 name="username"
                 autoComplete="username"
                 placeholder={
@@ -292,13 +358,25 @@ export function LoginPage() {
                 leadingIcon={<img src={loginAsset(visualState, 'user')} alt="" />}
                 value={loginValues.username}
                 required
-                onChange={(event) => setLoginValues((current) => ({ ...current, username: event.target.value }))}
+                aria-invalid={fieldErrors.username ? true : undefined}
+                aria-describedby={fieldErrors.username ? 'login-username-error' : undefined}
+                onChange={(event) => {
+                  setLoginValues((current) => ({ ...current, username: event.target.value }));
+                  setFieldErrors((current) => ({ ...current, username: undefined }));
+                  if (isRealMode) setRuntimeState('default');
+                }}
               />
-              {state === 'field-error' ? <span className={styles.loginFieldError}>请输入有效的邮箱地址</span> : null}
+              {fieldErrors.username ? (
+                <span id="login-username-error" className={styles.loginFieldError} role="alert">
+                  {fieldErrors.username}
+                </span>
+              ) : state === 'field-error' ? (
+                <span className={styles.loginFieldError}>请输入有效的邮箱地址</span>
+              ) : null}
             </Field>
             <Field label="">
               <Input
-                className={`${styles.figmaInput} ${state === 'field-error' ? styles.figmaInputError : ''}`}
+                className={`${styles.figmaInput} ${state === 'field-error' || fieldErrors.password ? styles.figmaInputError : ''}`}
                 name="password"
                 type={showPassword ? 'text' : 'password'}
                 autoComplete="current-password"
@@ -325,9 +403,21 @@ export function LoginPage() {
                 }
                 value={loginValues.password}
                 required
-                onChange={(event) => setLoginValues((current) => ({ ...current, password: event.target.value }))}
+                aria-invalid={fieldErrors.password ? true : undefined}
+                aria-describedby={fieldErrors.password ? 'login-password-error' : undefined}
+                onChange={(event) => {
+                  setLoginValues((current) => ({ ...current, password: event.target.value }));
+                  setFieldErrors((current) => ({ ...current, password: undefined }));
+                  if (isRealMode) setRuntimeState('default');
+                }}
               />
-              {state === 'field-error' ? <span className={styles.loginFieldError}>密码不能为空</span> : null}
+              {fieldErrors.password ? (
+                <span id="login-password-error" className={styles.loginFieldError} role="alert">
+                  {fieldErrors.password}
+                </span>
+              ) : state === 'field-error' ? (
+                <span className={styles.loginFieldError}>密码不能为空</span>
+              ) : null}
             </Field>
             <div className={styles.options}>
               <Button

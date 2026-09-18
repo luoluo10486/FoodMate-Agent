@@ -129,6 +129,23 @@ class DockerComposeContractTests(TestCase):
         self.assertIn('timeout 30 "$MQADMIN" updateTopic', script)
         self.assertIn("跳过重复创建", script)
 
+    def test_docker_broker_advertise_address_defaults_to_compose_hostname(self):
+        compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
+        example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
+
+        self.assertIn(
+            "ROCKETMQ_BROKER_IP1: ${FOODMATE_DOCKER_ROCKETMQ_BROKER_IP1:-foodmate-rocketmq-broker}",
+            compose,
+        )
+        self.assertIn(
+            "FOODMATE_DOCKER_ROCKETMQ_BROKER_IP1=foodmate-rocketmq-broker",
+            example,
+        )
+        self.assertNotIn(
+            "ROCKETMQ_BROKER_IP1: ${ROCKETMQ_BROKER_IP1:-host.docker.internal}",
+            compose,
+        )
+
     def test_java_governance_fallback_is_explicitly_mapped_from_docker_scope(self):
         compose = (self.ROOT / "docker" / "compose.yml").read_text(encoding="utf-8")
         example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")

@@ -48,6 +48,11 @@ public class AdminManagementRepositoryAdapter implements AdminManagementReposito
     }
 
     @Override
+    public int bumpUserRevision(long userId, long operatorId, long revision) {
+        return mapper.bumpUserRevision(userId, operatorId, revision);
+    }
+
+    @Override
     public int updateToolStatus(String name, ToolStatus status, long operatorId, long revision) {
         return mapper.updateToolStatus(name, status.code(), operatorId, revision);
     }

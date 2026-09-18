@@ -70,6 +70,38 @@ class NutritionAnalysisControllerTest {
                 .andExpect(jsonPath("$.data.incomplete", is(false)));
     }
 
+    @Test
+    void usesTodayAsTheDefaultRange() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user());
+        when(analysis.analyze(7L, "today"))
+                .thenReturn(
+                        new NutritionAnalysisService.Analysis(
+                                "today",
+                                Instant.parse("2026-08-22T00:00:00Z"),
+                                Instant.parse("2026-08-23T00:00:00Z"),
+                                0,
+                                0,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                BigDecimal.ZERO,
+                                null,
+                                null,
+                                false,
+                                List.of(),
+                                "disclaimer"));
+
+        mvc.perform(
+                        get("/api/nutrition-analysis")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.range", is("today")))
+                .andExpect(jsonPath("$.data.total_items", is(0)));
+    }
+
     private UserAccountService.UserRecord user() {
         return new UserAccountService.UserRecord(
                 7L, "user", "user@example.com", "hash", "user", "User", "active");

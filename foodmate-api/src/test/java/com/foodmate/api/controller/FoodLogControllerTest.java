@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -100,6 +101,61 @@ class FoodLogControllerTest {
                 .andExpect(jsonPath("$.data[0].food_log_id", is("100")));
 
         verify(foods).listDeleted(7L);
+    }
+
+    @Test
+    void listsFoodLogsWithinTheRequestedWindow() throws Exception {
+        Instant from = Instant.parse("2026-08-12T00:00:00Z");
+        Instant to = Instant.parse("2026-08-13T00:00:00Z");
+        when(accounts.requireSessionUser("session-1")).thenReturn(user(7L));
+        when(foods.list(7L, from, to)).thenReturn(List.of(view()));
+
+        mvc.perform(
+                        get("/api/food-logs")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1"))
+                                .param("from", from.toString())
+                                .param("to", to.toString()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].food_log_id", is("100")));
+
+        verify(foods).list(7L, from, to);
+    }
+
+    @Test
+    void deletesFoodLogWithRevisionAndIdempotencyKey() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user(7L));
+
+        mvc.perform(
+                        delete("/api/food-logs/100")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1"))
+                                .param("revision", "1")
+                                .header("Idempotency-Key", "delete-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)));
+
+        verify(foods).delete(7L, 100L, 1L, "delete-1");
+    }
+
+    @Test
+    void restoresFoodLogWithRevisionAndIdempotencyKey() throws Exception {
+        when(accounts.requireSessionUser("session-1")).thenReturn(user(7L));
+        when(foods.restore(7L, 100L, 1L, "restore-1")).thenReturn(view());
+
+        mvc.perform(
+                        post("/api/food-logs/100/restore")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "session-1"))
+                                .param("revision", "1")
+                                .header("Idempotency-Key", "restore-1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.food_log_id", is("100")));
+
+        verify(foods).restore(7L, 100L, 1L, "restore-1");
     }
 
     private UserAccountService.UserRecord user(long id) {

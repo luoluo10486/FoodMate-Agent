@@ -821,15 +821,25 @@ public class ApprovalServiceImpl implements ApprovalService {
         List<FoodLogService.ItemCommand> items = new ArrayList<>();
         for (JsonNode item : parameters.path("items")) {
             JsonNode name = item.has("name") ? item.get("name") : item.get("raw_name");
+            Long nutritionFoodId = nutritionFoodId(item);
             items.add(
                     new FoodLogService.ItemCommand(
                             name == null ? null : name.asText(),
                             item.has("amount") && item.get("amount").isNumber()
                                     ? item.get("amount").decimalValue()
                                     : null,
-                            text(item, "unit")));
+                            text(item, "unit"),
+                            nutritionFoodId));
         }
         return items;
+    }
+
+    private static Long nutritionFoodId(JsonNode item) {
+        JsonNode value = item.get("nutrition_food_id");
+        if (value == null || value.isNull()) return null;
+        if (!value.canConvertToLong() || value.asLong() <= 0)
+            throw new BusinessException(ErrorCode.INVALID_ARGUMENT, "nutrition_food_id 无效");
+        return value.asLong();
     }
 
     private TraceContext trace(ApprovalRequestRepository.ApprovalSnapshot approval) {

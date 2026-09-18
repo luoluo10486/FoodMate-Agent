@@ -1,5 +1,5 @@
 export type AdminSectionKey =
-  'overview' | 'users' | 'runs' | 'tools' | 'usage' | 'knowledge' | 'deleted' | 'audit' | 'model';
+  'overview' | 'users' | 'runs' | 'tools' | 'usage' | 'knowledge' | 'deleted' | 'audit' | 'model' | 'retention';
 
 export type AdminOperationState = 'idle' | 'no-permission' | 'confirm' | 'submitting' | 'success' | 'failed';
 
@@ -15,5 +15,5 @@ export type AdminActionPayload = {
   targetType: string;
   targetId: string;
   onApply?: () => void;
-  execute?: () => Promise<void>;
+  execute?: (signal?: AbortSignal) => Promise<void>;
 };

@@ -166,8 +166,8 @@
 .planningUserBubble {
   padding: 16px;
   border-radius: 16px 16px 0;
-  background: #fff6e2;
-  color: #333;
+  background: var(--fm-figma-chat-user-bubble-surface);
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;
@@ -251,7 +251,7 @@
   min-width: 186px;
   max-width: 186px;
   box-sizing: border-box;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
 }
 
 .planningTitle {
@@ -315,7 +315,7 @@
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;
@@ -474,7 +474,7 @@
   padding: 16px;
   border-radius: 16px 16px 0;
   background: #fff6e2;
-  color: #333;
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   white-space: nowrap;
@@ -613,10 +613,10 @@
 
 .user .messageBubble {
   width: min(452px, calc(100% - 48px));
-  height: 49px;
+  min-height: 49px;
   padding: 16px;
   border-radius: 16px 16px 0 16px;
-  background: #fff6e2;
+  background: var(--fm-figma-chat-user-bubble-surface);
   color: var(--fm-ink);
   line-height: 17px;
 }
@@ -628,7 +628,7 @@
   gap: 12px;
   padding: 16px;
   border-radius: 16px 16px 16px 0;
-  background: var(--fm-bg-soft);
+  background: var(--fm-figma-chat-assistant-surface);
 }
 
 .designChatPage {
@@ -645,6 +645,12 @@
 
 .designChatPage .assistant .messageBubble {
   background: var(--fm-fixture-assistant-surface);
+}
+
+/* 设计稿的浅黄用户气泡需要明确的黑色前景，避免用户消息在浅色表面上失焦。 */
+.designChatPage .user .messageBubble,
+.designChatPage .fixtureUserBubble {
+  color: var(--fm-figma-chat-user-text);
 }
 
 .designChatPage .messages {
@@ -697,10 +703,10 @@
   white-space: nowrap;
 }
 
-/* Figma 节点 640:428 的助手内容区固定为 560px，右侧空白属于画板布局。 */
+/* Figma 节点 640:428 的助手内容区最大为 560px，窄视口下允许收缩避免文字裁切。 */
 .figmaDefaultPage .assistantBody {
-  width: 560px;
-  flex: 0 0 560px;
+  width: min(560px, calc(100% - 48px));
+  flex: 0 1 min(560px, calc(100% - 48px));
 }
 
 .figmaDefaultPage .assistant .messageBubble {
@@ -794,13 +800,71 @@
   display: flex;
   height: 13px;
   align-items: center;
-  color: var(--fm-muted);
+  color: var(--fm-figma-chat-meta-text);
   font-size: 11px;
   line-height: 13px;
 }
 
 .user .messageMeta {
   padding-right: 48px;
+}
+
+.userMessageActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  padding-right: 48px;
+}
+
+.messageActionButton {
+  width: 32px;
+  height: 32px;
+  color: var(--fm-muted);
+}
+
+.messageActionButton:hover {
+  color: var(--fm-ink);
+}
+
+.messageEditor {
+  width: 100%;
+}
+
+.messageEditor textarea {
+  min-height: 84px;
+  color: var(--fm-ink);
+  background: var(--fm-surface);
+}
+
+.messageEditorActions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.messageMutationNotice {
+  margin: 0;
+}
+
+.messageMutationSuccess {
+  margin: 0;
+  color: var(--fm-green-dark);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.messageDeleteQuote {
+  max-height: 160px;
+  margin: 0;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--fm-border-soft);
+  border-radius: var(--fm-radius-sm);
+  background: var(--fm-bg-soft);
+  color: var(--fm-ink);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .source {
@@ -1028,7 +1092,7 @@
 
 .traceTabs button[data-state='active'] {
   background: var(--fm-figma-chat-trace-tab-active-surface);
-  color: #b58cc4;
+  color: var(--fm-figma-chat-trace-active-text);
   box-shadow: none;
 }
 
@@ -1089,8 +1153,8 @@
   height: 19px;
   padding: 2px 6px;
   border-radius: 4px;
-  background: rgba(166, 217, 151, 0.1);
-  color: #89b27c;
+  background: var(--fm-figma-chat-trace-success-surface);
+  color: var(--fm-figma-chat-trace-success-text);
   font-family: var(--fm-font-mono);
   font-size: 10px;
   font-weight: 700;
@@ -1098,17 +1162,17 @@
 }
 
 .traceStepActive span {
-  background: rgba(255, 246, 226, 0.1);
-  color: #c79654;
+  background: var(--fm-figma-chat-trace-warning-surface);
+  color: var(--fm-figma-chat-trace-warning-text);
 }
 
 .traceStepActive {
-  border-color: #c79654;
+  border-color: var(--fm-figma-chat-trace-warning-text);
 }
 
 .traceStepPending span {
-  background: rgba(255, 246, 226, 0.1);
-  color: #c79654;
+  background: var(--fm-figma-chat-trace-warning-surface);
+  color: var(--fm-figma-chat-trace-warning-text);
 }
 
 .traceEmpty {
@@ -1382,10 +1446,11 @@
 .fixtureUserBubble {
   min-width: 0;
   max-width: min(560px, calc(100% - 48px));
+  min-height: 49px;
   padding: 16px;
   border-radius: 16px 16px 0;
-  background: #fff6e2;
-  color: #333;
+  background: var(--fm-figma-chat-user-bubble-surface);
+  color: var(--fm-figma-chat-user-text);
   font-size: 14px;
   line-height: 17px;
   overflow-wrap: anywhere;
@@ -1411,7 +1476,7 @@
 
 .fixtureMessageMeta {
   padding-right: 48px;
-  color: #6b7280;
+  color: var(--fm-figma-chat-meta-text);
   font-size: 11px;
   line-height: 13px;
 }
@@ -2189,6 +2254,21 @@
   line-height: 18px;
 }
 
+.runtimeErrorBlock,
+.safetyDegradedNotice {
+  width: min(560px, calc(100% - 48px));
+  margin-left: 48px;
+}
+
+.runtimeErrorBlock {
+  display: grid;
+  gap: 8px;
+}
+
+.runtimeErrorBlock > button {
+  justify-self: start;
+}
+
 .connectionNotice {
   display: flex;
   width: min(560px, calc(100% - 48px));
@@ -2234,6 +2314,8 @@
   .fixtureCancelledWrap,
   .fixtureReconnectWrap,
   .fixtureActionMessage,
+  .runtimeErrorBlock,
+  .safetyDegradedNotice,
   .connectionNotice {
     width: calc(100% - 48px);
   }
@@ -2892,6 +2974,142 @@
   line-height: 20px;
 }
 
+/* 真实 Agent 状态页只展示服务端事实，不复用 Figma Fixture 的绝对定位样式。 */
+.realStateNotice,
+.realStateCard,
+.realStateSummary,
+.realStateConnection,
+.realStateActionMessage {
+  width: min(720px, calc(100% - 48px));
+  margin-left: 48px;
+}
+
+.realStateNotice {
+  box-sizing: border-box;
+}
+
+.realStateSummary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--fm-border);
+  border-radius: 12px;
+  background: var(--fm-border);
+}
+
+.realStateSummary div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--fm-surface);
+}
+
+.realStateSummary strong,
+.realStateSummary span {
+  overflow-wrap: anywhere;
+}
+
+.realStateSummary strong {
+  color: var(--fm-muted);
+  font-family: var(--fm-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+}
+
+.realStateSummary span {
+  color: var(--fm-ink);
+  font-size: 13px;
+}
+
+.realStateCard {
+  display: grid;
+  box-sizing: border-box;
+  gap: 14px;
+  padding: 18px 20px;
+  border: 1px solid var(--fm-border);
+  border-radius: 12px;
+  background: var(--fm-surface);
+}
+
+.realStateCard h2 {
+  margin: 0;
+  color: var(--fm-ink);
+  font-size: 16px;
+  line-height: 22px;
+}
+
+.realStateDetails {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.realStateDetails div {
+  display: grid;
+  grid-template-columns: 104px minmax(0, 1fr);
+  gap: 12px;
+  align-items: baseline;
+}
+
+.realStateDetails dt {
+  color: var(--fm-muted);
+  font-size: 12px;
+}
+
+.realStateDetails dd {
+  min-width: 0;
+  margin: 0;
+  color: var(--fm-ink);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.realStateMeta {
+  margin: 0;
+  color: var(--fm-muted);
+  font-size: 12px;
+  line-height: 18px;
+  overflow-wrap: anywhere;
+}
+
+.realStateActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.realStateConnection {
+  display: grid;
+  gap: 4px;
+  box-sizing: border-box;
+  padding: 14px 16px;
+  border: 1px solid #f0c98a;
+  border-radius: 10px;
+  background: #fff8eb;
+  color: #8b5e24;
+}
+
+.realStateConnection strong {
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.realStateConnection span {
+  font-size: 12px;
+  line-height: 17px;
+  overflow-wrap: anywhere;
+}
+
+.realStateActionMessage {
+  margin-top: 0;
+  margin-bottom: 0;
+  color: var(--fm-muted);
+  font-size: 12px;
+  line-height: 18px;
+}
+
 @media (max-width: 1100px) {
   .sessionActionsOverlay {
     left: 50%;
@@ -2912,5 +3130,25 @@
   .sessionTrashCard {
     left: 50%;
     transform: translateX(-50%);
+  }
+}
+
+@media (max-width: 720px) {
+  .realStateNotice,
+  .realStateCard,
+  .realStateSummary,
+  .realStateConnection,
+  .realStateActionMessage {
+    width: calc(100% - 32px);
+    margin-left: 16px;
+  }
+
+  .realStateSummary {
+    grid-template-columns: 1fr;
+  }
+
+  .realStateDetails div {
+    grid-template-columns: 1fr;
+    gap: 3px;
   }
 }

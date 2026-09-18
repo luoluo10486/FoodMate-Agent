@@ -69,6 +69,9 @@ public interface AdminOperationalQueryRepository {
             String from,
             String action,
             String targetType,
+            String resultType,
+            String errorCode,
+            Boolean degraded,
             int limit,
             int offset) {}
 
@@ -81,7 +84,9 @@ public interface AdminOperationalQueryRepository {
             String status,
             String traceId,
             BigDecimal durationMs,
-            String actorRef) {}
+            String actorRef,
+            String resultType,
+            String errorCode) {}
 
     record TraceRow(
             String traceId,

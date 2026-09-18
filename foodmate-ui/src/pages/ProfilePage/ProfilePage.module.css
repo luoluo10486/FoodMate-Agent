@@ -459,6 +459,15 @@
   outline: none;
 }
 
+/* Figma Basic 的选择字段保留 Radix 交互，但画板没有右侧 Chevron。 */
+.figmaSelect > [data-radix-select-icon] {
+  display: none;
+}
+
+.figmaSelect {
+  justify-content: flex-start;
+}
+
 .field input:focus-visible,
 .select:focus-visible,
 .dialogTextarea:focus-visible {
@@ -720,6 +729,13 @@
   gap: 16px;
 }
 
+.memoryFilters {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 12px;
+}
+
 .memoryConflictCount {
   align-self: center;
   color: #b45309;
@@ -730,6 +746,14 @@
 .filterGroup {
   display: flex;
   gap: 8px;
+  align-items: center;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 0;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  color: inherit;
 }
 
 .filterButton,
@@ -748,6 +772,13 @@
   height: auto;
   min-width: 0;
   padding: 0 16px;
+  background: #fff;
+  box-shadow: none;
+}
+
+.filterButton[data-state='active'] {
+  background: #fff;
+  box-shadow: none;
 }
 
 .filterButtonActive {
@@ -912,6 +943,33 @@
   border-radius: 18px;
   background: #fcfffc;
   text-align: left;
+}
+
+.memoryError {
+  display: flex;
+  min-height: 100px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px;
+  border-color: #f1c6c8;
+  background: #fff7f7;
+  color: #b83d40;
+}
+
+.memoryErrorMessage {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.memoryErrorMessage svg {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
 }
 
 .emptyEyebrow {
@@ -1230,6 +1288,18 @@
   display: grid;
   gap: 12px;
   margin-top: 17px;
+}
+
+.activityEmpty {
+  display: flex;
+  min-height: 46px;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px dashed #d9e1e4;
+  border-radius: 10px;
+  background: #f7fafb;
+  color: #6b7280;
+  font-size: 13px;
 }
 
 .activityCard > .securityHint {
@@ -1609,6 +1679,11 @@
   }
 
   .filterGroup {
+    overflow-x: auto;
+  }
+
+  .memoryFilters {
+    width: 100%;
     overflow-x: auto;
   }
 

@@ -11,24 +11,41 @@ import {
   SendHorizontal,
   Utensils,
 } from 'lucide-react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { FigmaWorkspaceAsset } from '../../components/workspace/FigmaWorkspaceAsset';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
 import { FIXTURE_WORKSPACE_AVATARS } from '../../lib/avatar';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
+import { isAbortError } from '../../services/apiClient';
 import { getAuthUser } from '../../services/authService';
-import { getHomeSessions, getRecommendedPrompts, getTaskCards } from '../../services/sessionService';
+import { loadNutritionAnalysis, type NutritionAnalysis } from '../../services/analysisService';
+import {
+  getHomeSessions,
+  getRecommendedPrompts,
+  getTaskCards,
+  loadSessionSummariesPage,
+} from '../../services/sessionService';
 import type { SessionSummary } from '../../types/session';
 import styles from './HomePage.module.css';
 
-const metricCards = [
-  { label: '热量', value: '1,850', unit: '千卡', progress: '74', tone: 'green', figmaAsset: 'metricEnergy' },
-  { label: '蛋白质', value: '120', unit: 'g', progress: '80', tone: 'purple', figmaAsset: 'metricProtein' },
-  { label: '碳水', value: '210', unit: 'g', progress: '65', tone: 'orange', figmaAsset: 'metricCarbs' },
-  { label: '脂肪', value: '58', unit: 'g', progress: '55', tone: 'red', figmaAsset: 'metricFat' },
-] as const;
+type HomeMetric = {
+  label: string;
+  value: string;
+  unit: string;
+  progress: number | null;
+  tone: 'green' | 'purple' | 'orange' | 'red';
+  figmaAsset: 'metricEnergy' | 'metricProtein' | 'metricCarbs' | 'metricFat';
+};
+
+const metricCards: HomeMetric[] = [
+  { label: '热量', value: '1,850', unit: '千卡', progress: 74, tone: 'green', figmaAsset: 'metricEnergy' },
+  { label: '蛋白质', value: '120', unit: 'g', progress: 80, tone: 'purple', figmaAsset: 'metricProtein' },
+  { label: '碳水', value: '210', unit: 'g', progress: 65, tone: 'orange', figmaAsset: 'metricCarbs' },
+  { label: '脂肪', value: '58', unit: 'g', progress: 55, tone: 'red', figmaAsset: 'metricFat' },
+];
 
 const pendingItems = [
   {
@@ -68,6 +85,55 @@ const FIXTURE_HOME_SIDEBAR_AVATAR = FIXTURE_WORKSPACE_AVATARS.sidebar;
 const FIXTURE_HOME_TOPBAR_AVATAR = FIXTURE_WORKSPACE_AVATARS.topbar;
 
 type HomeState = 'default' | 'loading' | 'empty' | 'error' | 'input-states';
+
+function numericValue(value: number | string | null | undefined): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function formatMetricValue(value: number | undefined): string {
+  return value === undefined ? '--' : value.toLocaleString('zh-CN', { maximumFractionDigits: 1 });
+}
+
+function targetProgress(value: number | undefined, target: number | undefined): number | null {
+  if (value === undefined || target === undefined || target <= 0) return null;
+  return Math.max(0, Math.min(100, Math.round((value / target) * 100)));
+}
+
+function realMetricCards(analysis?: NutritionAnalysis): HomeMetric[] {
+  const calories = numericValue(analysis?.calories_kcal);
+  const protein = numericValue(analysis?.protein_g);
+  const carbs = numericValue(analysis?.carbs_g);
+  const fat = numericValue(analysis?.fat_g);
+  return [
+    {
+      label: '热量',
+      value: formatMetricValue(calories),
+      unit: '千卡',
+      progress: targetProgress(calories, numericValue(analysis?.calorie_target)),
+      tone: 'green',
+      figmaAsset: 'metricEnergy',
+    },
+    {
+      label: '蛋白质',
+      value: formatMetricValue(protein),
+      unit: 'g',
+      progress: targetProgress(protein, numericValue(analysis?.protein_target)),
+      tone: 'purple',
+      figmaAsset: 'metricProtein',
+    },
+    {
+      label: '碳水',
+      value: formatMetricValue(carbs),
+      unit: 'g',
+      progress: null,
+      tone: 'orange',
+      figmaAsset: 'metricCarbs',
+    },
+    { label: '脂肪', value: formatMetricValue(fat), unit: 'g', progress: null, tone: 'red', figmaAsset: 'metricFat' },
+  ];
+}
 
 function getHomeState(value: string | null): HomeState {
   return value === 'loading' || value === 'empty' || value === 'error' || value === 'input-states' ? value : 'default';
@@ -201,50 +267,110 @@ export function HomePage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const homeState = getHomeState(searchParams.get('state'));
+  const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   // Home 的四个状态画板都来自 Figma，不能只有默认态使用设计稿壳层。
-  const isFigmaFixture = searchParams.get('state') === 'figma-v2' || homeState !== 'default';
-  const isHomeStateFixture = homeState !== 'default';
+  const isFigmaFixture = !isRealMode && (isFigmaFixtureState(searchParams.get('state')) || homeState !== 'default');
+  const isHomeStateFixture = !isRealMode && homeState !== 'default';
+  const fixtureHomeState = isHomeStateFixture ? homeState : 'default';
   const [prompt, setPrompt] = useState('');
   const [confirmedItems, setConfirmedItems] = useState<string[]>([]);
   const [attachmentName, setAttachmentName] = useState('');
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const currentUser = getAuthUser();
+  const [realSessions, setRealSessions] = useState<SessionSummary[]>([]);
+  const [realAnalysis, setRealAnalysis] = useState<NutritionAnalysis>();
+  const [realLoading, setRealLoading] = useState(isRealMode);
+  const [realError, setRealError] = useState('');
+  const [realReloadNonce, setRealReloadNonce] = useState(0);
+  const homeRequestIdRef = useRef(0);
+
+  useEffect(() => {
+    if (!isRealMode) return undefined;
+    const requestId = ++homeRequestIdRef.current;
+    const controller = new AbortController();
+    const sessionsRequest = loadSessionSummariesPage({ page: 1, size: 5 }, controller.signal);
+    const analysisRequest = loadNutritionAnalysis('today', controller.signal);
+    void Promise.allSettled([sessionsRequest, analysisRequest]).then(([sessionsResult, analysisResult]) => {
+      if (controller.signal.aborted || requestId !== homeRequestIdRef.current) return;
+      const errors: string[] = [];
+      if (sessionsResult.status === 'fulfilled') {
+        setRealSessions(sessionsResult.value.items);
+      } else if (!isAbortError(sessionsResult.reason)) {
+        setRealSessions([]);
+        errors.push(sessionsResult.reason instanceof Error ? sessionsResult.reason.message : '会话摘要加载失败。');
+      }
+      if (analysisResult.status === 'fulfilled') {
+        setRealAnalysis(analysisResult.value);
+      } else if (!isAbortError(analysisResult.reason)) {
+        setRealAnalysis(undefined);
+        errors.push(analysisResult.reason instanceof Error ? analysisResult.reason.message : '营养摘要加载失败。');
+      }
+      setRealError(errors.join('；'));
+      setRealLoading(false);
+    });
+    return () => {
+      controller.abort();
+    };
+  }, [isRealMode, realReloadNonce]);
+
+  const reloadRealHome = () => {
+    setRealError('');
+    setRealLoading(true);
+    setRealReloadNonce((value) => value + 1);
+  };
+
   const taskCards = getTaskCards();
   const recommendedPrompts = getRecommendedPrompts();
-  const sessions = getHomeSessions();
+  const sessions = isRealMode ? realSessions : getHomeSessions();
+  const visibleMetrics = isRealMode ? realMetricCards(realAnalysis) : metricCards;
   const stateSessions = isHomeStateFixture ? figmaHomeStateSidebarSessions : figmaSidebarSessions;
-  const greetingName = homeState === 'empty' ? '新用户' : 'Anddy';
+  const realHasData = realSessions.length > 0 || realAnalysis !== undefined;
+  const realHasNoData =
+    isRealMode && !realLoading && !realError && realSessions.length === 0 && realAnalysis?.total_items === 0;
+  const realOnlyError = isRealMode && !realLoading && Boolean(realError) && !realHasData;
+  const greetingName = fixtureHomeState === 'empty' ? '新用户' : 'Anddy';
   const introTitle =
-    homeState === 'loading'
+    fixtureHomeState === 'loading'
       ? '工作台正在加载'
       : `👋 早上好，${isFigmaFixture ? greetingName : currentUser.displayName}！`;
   const introSubtitle =
-    homeState === 'loading' ? '正在同步今日营养摘要、近期任务和待确认记录' : '今天是 2024年3月14日 星期二';
-  const introEnvironment = homeState === 'loading' ? '加载中' : '生产环境';
+    fixtureHomeState === 'loading' ? '正在同步今日营养摘要、近期任务和待确认记录' : '今天是 2024年3月14日 星期二';
+  const introEnvironment = fixtureHomeState === 'loading' ? '加载中' : '生产环境';
 
   const quickActions = useMemo(
     () => [
-      { label: '记录饮食', prompt: recommendedPrompts[0], icon: Utensils, figmaIcon: '🍽', tone: 'green' },
+      {
+        label: '记录饮食',
+        prompt: recommendedPrompts[0],
+        icon: Utensils,
+        figmaIconSrc: '/assets/figma/workspace/home/diet-records.svg',
+        tone: 'green',
+      },
       {
         label: '分析摄入',
         prompt: taskCards.find((task) => task.id === 'analysis')?.prompt ?? recommendedPrompts[2],
         icon: BarChart3,
-        figmaIcon: '📊',
+        figmaIconSrc: '/assets/figma/workspace/home/intake-analysis.svg',
         tone: 'purple',
       },
       {
         label: '创建计划',
         prompt: taskCards.find((task) => task.id === 'planning')?.prompt ?? recommendedPrompts[1],
         icon: CalendarDays,
-        figmaIcon: '📋',
+        figmaIconSrc: '/assets/figma/workspace/home/meal-planning.svg',
         tone: 'red',
       },
-      { label: '搜索知识', prompt: recommendedPrompts[3], icon: Search, figmaIcon: '🔍', tone: 'blue' },
+      {
+        label: '搜索知识',
+        prompt: recommendedPrompts[3],
+        icon: Search,
+        figmaIconSrc: '/assets/figma/workspace/home/knowledge.svg',
+        tone: 'blue',
+      },
       {
         label: '快速计算',
         prompt: taskCards.find((task) => task.id === 'calorie')?.prompt ?? '计算这份食物的热量',
         icon: Calculator,
-        figmaIcon: '🧮',
         tone: 'orange',
       },
     ],
@@ -280,7 +406,7 @@ export function HomePage() {
         <section className={styles.intro}>
           <div>
             <h1>{introTitle}</h1>
-            <p>{introSubtitle}</p>
+            <p>{isRealMode ? '今日营养摘要与近期任务' : introSubtitle}</p>
           </div>
           <span className={styles.introEnvironment}>{introEnvironment}</span>
         </section>
@@ -299,7 +425,7 @@ export function HomePage() {
               <Paperclip aria-hidden="true" />
             )}
           </Button>
-          <input
+          <Input
             ref={attachmentInputRef}
             className={styles.fileInput}
             type="file"
@@ -311,7 +437,7 @@ export function HomePage() {
             className={styles.taskInput}
             value={prompt}
             placeholder={
-              homeState === 'loading'
+              fixtureHomeState === 'loading'
                 ? '正在准备工作台数据，稍后可创建新任务...'
                 : '分析早餐照片，计算热量摄入并记录营养指标...'
             }
@@ -346,22 +472,34 @@ export function HomePage() {
           </span>
         ) : null}
 
-        {homeState === 'loading' || homeState === 'empty' || homeState === 'error' ? (
-          <HomeStatePanel state={homeState} onRetry={() => navigate('/')} />
+        {isRealMode && realLoading ? (
+          <HomeStatePanel state="loading" onRetry={() => undefined} />
+        ) : isRealMode && realOnlyError ? (
+          <HomeStatePanel state="error" onRetry={reloadRealHome} />
+        ) : isRealMode && realHasNoData ? (
+          <HomeStatePanel state="empty" onRetry={() => navigate('/chat')} />
+        ) : fixtureHomeState === 'loading' || fixtureHomeState === 'empty' || fixtureHomeState === 'error' ? (
+          <HomeStatePanel state={fixtureHomeState} onRetry={() => navigate('/')} />
         ) : (
           <>
+            {isRealMode && realError ? (
+              <div className={styles.realDataNotice} role="alert">
+                <span>{realError}</span>
+                <Button variant="outline" size="sm" type="button" onClick={reloadRealHome}>
+                  重新加载
+                </Button>
+              </div>
+            ) : null}
             <section className={styles.quickActions} aria-label="快速操作">
-              {quickActions.map(({ icon: Icon, figmaIcon, label, prompt: actionPrompt, tone }) => (
+              {quickActions.map(({ icon: Icon, figmaIconSrc, label, prompt: actionPrompt, tone }) => (
                 <Button
                   className={`${styles.quickButton} ${styles[`quick${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
                   key={label}
                   variant="outline"
                   onClick={() => setPrompt(actionPrompt)}
                 >
-                  {isFigmaFixture ? (
-                    <span className={styles.quickEmoji} aria-hidden="true">
-                      {figmaIcon}
-                    </span>
+                  {isFigmaFixture && figmaIconSrc ? (
+                    <img className={styles.quickIcon} src={figmaIconSrc} alt="" aria-hidden="true" />
                   ) : (
                     <Icon aria-hidden="true" />
                   )}
@@ -371,7 +509,7 @@ export function HomePage() {
             </section>
 
             <section className={styles.metrics} aria-label="今日营养指标">
-              {metricCards.map((metric) => (
+              {visibleMetrics.map((metric) => (
                 <article className={styles.metricCard} key={metric.label}>
                   <div>
                     <span className={styles.metricLabel}>{metric.label}</span>
@@ -382,11 +520,12 @@ export function HomePage() {
                   </div>
                   <span
                     className={`${styles.progress} ${styles[`progress${metric.tone[0].toUpperCase()}${metric.tone.slice(1)}`]}`}
+                    style={{ '--progress': metric.progress ?? 0 } as CSSProperties}
                   >
                     {isFigmaFixture ? (
                       <FigmaWorkspaceAsset className={styles.figmaMetricRing} variant="home" name={metric.figmaAsset} />
                     ) : null}
-                    <span>{metric.progress}%</span>
+                    <span>{metric.progress == null ? '--' : `${metric.progress}%`}</span>
                   </span>
                 </article>
               ))}
@@ -436,28 +575,34 @@ export function HomePage() {
                   <h2>待确认队列</h2>
                 </div>
                 <div className={styles.pendingCards}>
-                  {pendingItems.map((item) => {
-                    const confirmed = confirmedItems.includes(item.id);
-                    return (
-                      <div
-                        className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`}
-                        key={item.id}
-                      >
-                        <span>
-                          <strong>{item.title}</strong>
-                          <small>{confirmed ? '已提交确认' : isFigmaFixture ? item.figmaDetail : item.detail}</small>
-                        </span>
-                        <Button
-                          className={styles.confirmButton}
-                          size="sm"
-                          onClick={() => confirmItem(item.id, item.prompt)}
+                  {isRealMode ? (
+                    <div className={styles.pendingEmpty} role="status">
+                      暂无待确认事项
+                    </div>
+                  ) : (
+                    pendingItems.map((item) => {
+                      const confirmed = confirmedItems.includes(item.id);
+                      return (
+                        <div
+                          className={`${styles.pendingCard} ${confirmed ? styles.pendingConfirmed : ''}`}
+                          key={item.id}
                         >
-                          {confirmed ? <Check aria-hidden="true" /> : null}
-                          {confirmed ? '已确认' : '确认'}
-                        </Button>
-                      </div>
-                    );
-                  })}
+                          <span>
+                            <strong>{item.title}</strong>
+                            <small>{confirmed ? '已提交确认' : isFigmaFixture ? item.figmaDetail : item.detail}</small>
+                          </span>
+                          <Button
+                            className={styles.confirmButton}
+                            size="sm"
+                            onClick={() => confirmItem(item.id, item.prompt)}
+                          >
+                            {confirmed ? <Check aria-hidden="true" /> : null}
+                            {confirmed ? '已确认' : '确认'}
+                          </Button>
+                        </div>
+                      );
+                    })
+                  )}
                 </div>
               </article>
             </section>

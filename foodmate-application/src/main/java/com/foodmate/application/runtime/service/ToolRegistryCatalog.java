@@ -24,6 +24,7 @@ public final class ToolRegistryCatalog {
                         1000,
                         true,
                         true,
+                        true,
                         "{\"expression\":{\"type\":\"string\",\"maxLength\":256}}",
                         "{\"result\":{\"type\":\"number\"}}"),
                 definition(
@@ -36,6 +37,7 @@ public final class ToolRegistryCatalog {
                         "user",
                         "none",
                         1000,
+                        true,
                         true,
                         true,
                         "{\"question\":{\"type\":\"string\",\"maxLength\":512},\"timezone\":{\"type\":\"string\",\"maxLength\":64}}",
@@ -52,6 +54,7 @@ public final class ToolRegistryCatalog {
                         3000,
                         true,
                         true,
+                        true,
                         "{\"query\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":512},\"limit\":{\"type\":\"integer\",\"minimum\":1,\"maximum\":12}}",
                         "{\"citations\":{\"type\":\"array\"}}"),
                 definition(
@@ -65,6 +68,7 @@ public final class ToolRegistryCatalog {
                         "none",
                         5000,
                         false,
+                        true,
                         true,
                         "{\"intent\":{\"type\":\"string\"},\"time_range\":{\"type\":\"object\"},\"metrics\":{\"type\":\"array\"},\"dimensions\":{\"type\":\"array\"},\"filters\":{\"type\":\"object\"},\"candidate_sql\":{\"type\":\"string\",\"maxLength\":8192},\"planner_mode\":{\"type\":\"string\"},\"planner_version\":{\"type\":\"string\"}}",
                         "{\"rows\":{\"type\":\"array\"},\"sql_audit_id\":{\"type\":\"string\"}}",
@@ -81,6 +85,7 @@ public final class ToolRegistryCatalog {
                         10000,
                         false,
                         true,
+                        false,
                         "{\"meal_time\":{\"type\":\"string\"},\"meal_type\":{\"type\":\"string\"},\"notes\":{\"type\":\"string\",\"maxLength\":2000},\"items\":{\"type\":\"array\",\"maxItems\":50},\"revision\":{\"type\":\"integer\",\"minimum\":1}}",
                         "{\"status\":{\"type\":\"string\"},\"resourceId\":{\"type\":\"string\"}}"),
                 definition(
@@ -93,6 +98,7 @@ public final class ToolRegistryCatalog {
                         "user",
                         "none",
                         5000,
+                        true,
                         true,
                         true,
                         "{\"plan\":{\"type\":\"object\"}}",
@@ -109,6 +115,7 @@ public final class ToolRegistryCatalog {
                         10000,
                         false,
                         true,
+                        false,
                         "{\"plan\":{\"type\":\"object\"}}",
                         "{\"status\":{\"type\":\"string\"},\"resourceId\":{\"type\":\"string\"}}"));
     }
@@ -125,6 +132,7 @@ public final class ToolRegistryCatalog {
             int timeoutMs,
             boolean retryable,
             boolean idempotent,
+            boolean skippable,
             String inputSchema,
             String outputSchema) {
         return definition(
@@ -139,6 +147,7 @@ public final class ToolRegistryCatalog {
                 timeoutMs,
                 retryable,
                 idempotent,
+                skippable,
                 inputSchema,
                 outputSchema,
                 "v1");
@@ -156,6 +165,7 @@ public final class ToolRegistryCatalog {
             int timeoutMs,
             boolean retryable,
             boolean idempotent,
+            boolean skippable,
             String inputSchema,
             String outputSchema,
             String version) {
@@ -185,6 +195,7 @@ public final class ToolRegistryCatalog {
                 retryable,
                 idempotent,
                 PUBLISHED_AT,
-                1L);
+                1L,
+                skippable);
     }
 }

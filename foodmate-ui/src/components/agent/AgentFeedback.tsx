@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Button } from '../ui/button';
 import { Checkbox } from '../ui/checkbox';
 import { Textarea } from '../ui/textarea';
-import { apiRequest } from '../../services/apiClient';
+import { submitAgentFeedback } from '../../services/agentRunService';
 import styles from './AgentFeedback.module.css';
 
 type AgentFeedbackProps = {
@@ -38,14 +38,11 @@ export function AgentFeedback({ runId, messageId }: AgentFeedbackProps) {
     setSubmitting(true);
     setError('');
     try {
-      await apiRequest(
-        `/api/agent-runs/${encodeURIComponent(runId)}/messages/${encodeURIComponent(messageId)}/feedback`,
-        {
-          method: 'POST',
-          headers: { 'Idempotency-Key': `agent-feedback-${runId}-${messageId}` },
-          body: JSON.stringify({ helpful: value, reason_codes: reasonCodes, comment: comment || undefined }),
-        },
-      );
+      await submitAgentFeedback(runId, messageId, {
+        helpful: value,
+        reasonCodes,
+        comment: comment || undefined,
+      });
       setHelpful(value);
       setSubmitted(true);
     } catch (reason) {

@@ -2,6 +2,7 @@ package com.foodmate.application.runtime.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.foodmate.shared.runtime.V1RunEvent;
+import java.time.Instant;
 import java.util.List;
 
 /** 校验、持久化并提供已确认的 V1 Runtime 事件。 */
@@ -31,6 +32,9 @@ public interface V1RuntimeEventService {
 
     List<V1RunEvent> events(String runId);
 
+    /** 返回 Chat 历史事件及其可用于 SSE 续接的持久化游标。 */
+    List<ChatEvent> chatEvents(String runId);
+
     boolean exists(String runId);
 
     List<SseRecord> sseEvents(String runId, long afterSequence);
@@ -49,4 +53,16 @@ public interface V1RuntimeEventService {
             String eventType,
             JsonNode payload,
             boolean terminal) {}
+
+    /** Chat 历史事件视图，区分 Runtime 事件 ID 和 SSE 游标。 */
+    record ChatEvent(
+            String eventId,
+            String sseEventId,
+            String runId,
+            String dispatchId,
+            int attempt,
+            long eventSeq,
+            String eventType,
+            JsonNode payload,
+            Instant occurredAt) {}
 }

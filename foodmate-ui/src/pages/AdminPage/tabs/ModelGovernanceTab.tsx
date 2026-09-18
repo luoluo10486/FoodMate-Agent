@@ -1,19 +1,34 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { LoaderCircle, RefreshCw } from 'lucide-react';
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { LoaderCircle, Plus, RefreshCw } from 'lucide-react';
+import {
+  createModelBudget,
+  createModelPrice,
   loadModelGovernance,
   updateModelCatalogStatus,
   updateModelProviderStatus,
   updateModelRoute,
+  type CreateModelBudgetRequest,
+  type CreateModelPriceRequest,
   type ModelGovernanceModel,
   type ModelGovernanceProvider,
   type ModelGovernanceRoute,
   type ModelGovernanceView,
 } from '../../../services/adminService';
-import { getAuthUser } from '../../../services/authService';
+import { useAuth } from '../../../auth/AuthContext';
+import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
 
@@ -21,6 +36,87 @@ type ModelGovernanceSectionProps = {
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce: number;
 };
+
+type GovernanceFormKind = 'price' | 'budget';
+
+type PriceFormState = {
+  providerCode: string;
+  modelName: string;
+  priceVersion: string;
+  inputPricePerMillion: string;
+  outputPricePerMillion: string;
+  currency: string;
+  effectiveAt: string;
+  revision: string;
+};
+
+type BudgetFormState = {
+  policyKey: string;
+  scene: string;
+  scopeType: string;
+  maxTotalTokens: string;
+  maxCostCny: string;
+  maxModelCalls: string;
+  maxStepRetries: string;
+  windowType: string;
+  policyVersion: string;
+  revision: string;
+};
+
+function initialPriceForm(): PriceFormState {
+  return {
+    providerCode: '',
+    modelName: '',
+    priceVersion: '',
+    inputPricePerMillion: '',
+    outputPricePerMillion: '',
+    currency: 'CNY',
+    effectiveAt: '',
+    revision: '1',
+  };
+}
+
+function initialBudgetForm(): BudgetFormState {
+  return {
+    policyKey: '',
+    scene: 'chat',
+    scopeType: 'global',
+    maxTotalTokens: '50000',
+    maxCostCny: '0',
+    maxModelCalls: '10',
+    maxStepRetries: '2',
+    windowType: 'run',
+    policyVersion: '',
+    revision: '1',
+  };
+}
+
+function requiredValue(value: string, label: string) {
+  return value.trim() ? undefined : `${label}不能为空`;
+}
+
+function nonNegativeNumber(value: string, label: string) {
+  if (!value.trim()) return `${label}不能为空`;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed >= 0 ? undefined : `${label}必须是大于等于 0 的数字`;
+}
+
+function positiveInteger(value: string, label: string) {
+  if (!value.trim()) return `${label}不能为空`;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 1 ? undefined : `${label}必须是大于等于 1 的整数`;
+}
+
+function nonNegativeInteger(value: string, label: string) {
+  if (!value.trim()) return `${label}不能为空`;
+  const parsed = Number(value);
+  return Number.isInteger(parsed) && parsed >= 0 ? undefined : `${label}必须是大于等于 0 的整数`;
+}
+
+function toInstant(value: string) {
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : parsed.toISOString();
+}
 
 function formatNumber(value: number | string | null | undefined) {
   if (value == null || value === '') return '-';
@@ -45,28 +141,59 @@ function ToggleButton({ status, disabled, onClick }: { status: string; disabled:
 
 export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernanceSectionProps) {
   const isReal = import.meta.env.VITE_AGENT_MODE === 'real';
-  const isSuperadmin = getAuthUser().role === 'superadmin';
+  const { user } = useAuth();
+  const isSuperadmin = user?.role === 'superadmin';
   const [data, setData] = useState<ModelGovernanceView>();
   const [loading, setLoading] = useState(isReal);
   const [error, setError] = useState('');
+  const [formKind, setFormKind] = useState<GovernanceFormKind>();
+  const [formError, setFormError] = useState('');
+  const [priceForm, setPriceForm] = useState<PriceFormState>(initialPriceForm);
+  const [budgetForm, setBudgetForm] = useState<BudgetFormState>(initialBudgetForm);
+  const requestVersion = useRef(0);
+  const requestController = useRef<AbortController>();
+  const mountedRef = useRef(true);
 
-  const refresh = useCallback(async () => {
-    if (!isReal) return;
-    setLoading(true);
-    setError('');
-    try {
-      setData(await loadModelGovernance());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '模型治理数据加载失败');
-    } finally {
-      setLoading(false);
-    }
-  }, [isReal]);
+  const refresh = useCallback(
+    async (signal?: AbortSignal) => {
+      if (!isReal) return;
+      requestController.current?.abort();
+      const controller = new AbortController();
+      requestController.current = controller;
+      const version = ++requestVersion.current;
+      const abortFromAction = () => controller.abort();
+      signal?.addEventListener('abort', abortFromAction, { once: true });
+      if (signal?.aborted) controller.abort();
+      setLoading(true);
+      setError('');
+      setData(undefined);
+      try {
+        const nextData = await loadModelGovernance({}, controller.signal);
+        if (controller.signal.aborted || version !== requestVersion.current) return;
+        setData(nextData);
+      } catch (cause) {
+        if (controller.signal.aborted || version !== requestVersion.current || isAbortError(cause)) return;
+        setData(undefined);
+        setError(cause instanceof Error ? cause.message : '模型治理数据加载失败');
+      } finally {
+        signal?.removeEventListener('abort', abortFromAction);
+        if (requestController.current === controller) requestController.current = undefined;
+        if (mountedRef.current && version === requestVersion.current) setLoading(false);
+      }
+    },
+    [isReal],
+  );
 
   useEffect(() => {
-    // Refresh is an external data subscription whose initial state is intentionally set by the loader.
+    // 读取请求属于页面生命周期，切换刷新批次或卸载页面时必须取消旧请求。
+    mountedRef.current = true;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void refresh();
+    return () => {
+      mountedRef.current = false;
+      requestController.current?.abort();
+      requestVersion.current += 1;
+    };
   }, [refresh, refreshNonce]);
 
   const requestProviderStatus = (provider: ModelGovernanceProvider) => {
@@ -76,9 +203,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: provider.provider_code,
       targetType: 'model_provider',
       targetId: provider.provider_code,
-      execute: async () => {
-        await updateModelProviderStatus(provider, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelProviderStatus(provider, status, signal);
+        await refresh(signal);
       },
     });
   };
@@ -90,9 +217,9 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: `${model.provider_code}/${model.model_name}`,
       targetType: 'model_catalog',
       targetId: String(model.model_id),
-      execute: async () => {
-        await updateModelCatalogStatus(model, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelCatalogStatus(model, status, signal);
+        await refresh(signal);
       },
     });
   };
@@ -104,9 +231,109 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       targetLabel: `${route.scene}/${route.model_type}`,
       targetType: 'model_route_rule',
       targetId: String(route.route_id),
-      execute: async () => {
-        await updateModelRoute(route, status);
-        await refresh();
+      execute: async (signal) => {
+        await updateModelRoute(route, status, signal);
+        await refresh(signal);
+      },
+    });
+  };
+
+  const closeForm = () => {
+    setFormKind(undefined);
+    setFormError('');
+  };
+
+  const openPriceForm = () => {
+    setPriceForm(initialPriceForm());
+    setFormError('');
+    setFormKind('price');
+  };
+
+  const openBudgetForm = () => {
+    setBudgetForm(initialBudgetForm());
+    setFormError('');
+    setFormKind('budget');
+  };
+
+  const submitPrice = () => {
+    const validationError =
+      requiredValue(priceForm.providerCode, '供应商代码') ??
+      requiredValue(priceForm.modelName, '模型名称') ??
+      requiredValue(priceForm.priceVersion, '价格版本') ??
+      nonNegativeNumber(priceForm.inputPricePerMillion, '输入价格') ??
+      nonNegativeNumber(priceForm.outputPricePerMillion, '输出价格') ??
+      requiredValue(priceForm.currency, '币种') ??
+      requiredValue(priceForm.effectiveAt, '生效时间') ??
+      positiveInteger(priceForm.revision, 'revision');
+    const effectiveAt = toInstant(priceForm.effectiveAt);
+    if (validationError || !effectiveAt) {
+      setFormError(validationError ?? '生效时间格式无效');
+      return;
+    }
+
+    const request: CreateModelPriceRequest = {
+      providerCode: priceForm.providerCode.trim(),
+      modelName: priceForm.modelName.trim(),
+      priceVersion: priceForm.priceVersion.trim(),
+      inputPricePerMillion: priceForm.inputPricePerMillion.trim(),
+      outputPricePerMillion: priceForm.outputPricePerMillion.trim(),
+      currency: priceForm.currency.trim(),
+      effectiveAt,
+      revision: Number(priceForm.revision),
+    };
+    const targetLabel = `${request.providerCode}/${request.modelName} · ${request.priceVersion}`;
+    closeForm();
+    onAction({
+      action: '新增模型价格',
+      targetLabel,
+      targetType: 'model_price_version',
+      targetId: targetLabel,
+      execute: async (signal) => {
+        await createModelPrice(request, signal);
+        await refresh(signal);
+      },
+    });
+  };
+
+  const submitBudget = () => {
+    const validationError =
+      requiredValue(budgetForm.policyKey, '策略键') ??
+      requiredValue(budgetForm.scene, '场景') ??
+      requiredValue(budgetForm.scopeType, '作用域') ??
+      positiveInteger(budgetForm.maxTotalTokens, '最大 Token 数') ??
+      nonNegativeNumber(budgetForm.maxCostCny, '最大费用') ??
+      positiveInteger(budgetForm.maxModelCalls, '最大模型调用次数') ??
+      nonNegativeInteger(budgetForm.maxStepRetries, '最大步骤重试次数') ??
+      requiredValue(budgetForm.windowType, '窗口') ??
+      requiredValue(budgetForm.policyVersion, '策略版本') ??
+      positiveInteger(budgetForm.revision, 'revision');
+    if (validationError) {
+      setFormError(validationError);
+      return;
+    }
+
+    const request: CreateModelBudgetRequest = {
+      policyKey: budgetForm.policyKey.trim(),
+      scene: budgetForm.scene.trim(),
+      scopeType: budgetForm.scopeType,
+      maxTotalTokens: Number(budgetForm.maxTotalTokens),
+      maxCostCny: budgetForm.maxCostCny.trim(),
+      maxModelCalls: Number(budgetForm.maxModelCalls),
+      maxStepRetries: Number(budgetForm.maxStepRetries),
+      windowType: budgetForm.windowType,
+      policyVersion: budgetForm.policyVersion.trim(),
+      revision: Number(budgetForm.revision),
+    };
+    const targetLabel = `${request.policyKey} · ${request.policyVersion}`;
+    closeForm();
+    onAction({
+      action: '新增模型预算',
+      targetLabel,
+      targetType: 'model_budget_policy',
+      targetId: targetLabel,
+      execute: async (signal) => {
+        await createModelBudget(request, signal);
+        await refresh(signal);
       },
     });
   };
@@ -286,10 +513,24 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
       <Card className={styles.wideCard}>
         <div className={styles.cardHead}>
           <strong>价格、预算与调用汇总</strong>
-          <Button size="sm" variant="outline" onClick={() => void refresh()}>
-            <RefreshCw aria-hidden="true" />
-            刷新
-          </Button>
+          <div className={styles.modelGovernanceHeaderActions}>
+            {isSuperadmin ? (
+              <>
+                <Button size="sm" variant="outline" onClick={openPriceForm}>
+                  <Plus aria-hidden="true" />
+                  新增价格
+                </Button>
+                <Button size="sm" variant="outline" onClick={openBudgetForm}>
+                  <Plus aria-hidden="true" />
+                  新增预算
+                </Button>
+              </>
+            ) : null}
+            <Button size="sm" variant="outline" onClick={() => void refresh()}>
+              <RefreshCw aria-hidden="true" />
+              刷新
+            </Button>
+          </div>
         </div>
         <div className={styles.modelGovernanceSummaryGrid}>
           <div>
@@ -343,6 +584,235 @@ export function ModelGovernanceSection({ onAction, refreshNonce }: ModelGovernan
           </div>
         </div>
       </Card>
+      <Dialog open={Boolean(formKind)} onOpenChange={(open) => !open && closeForm()}>
+        <DialogContent className={styles.modelGovernanceDialog}>
+          <DialogHeader>
+            <DialogTitle>{formKind === 'price' ? '新增价格版本' : '新增预算策略'}</DialogTitle>
+            <DialogDescription>
+              {formKind === 'price'
+                ? '新增价格会写入模型治理历史，生效时间和价格版本提交后不可在本表单内修改。'
+                : '新增预算策略会影响后续 Agent Run，提交前请核对作用域、窗口和上限。'}
+            </DialogDescription>
+          </DialogHeader>
+          {formKind === 'price' ? (
+            <div className={styles.modelGovernanceForm}>
+              <label className={styles.modelGovernanceField}>
+                <span>供应商代码</span>
+                <Input
+                  value={priceForm.providerCode}
+                  aria-label="供应商代码"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, providerCode: event.target.value }))}
+                  placeholder="cloud_primary"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>模型名称</span>
+                <Input
+                  value={priceForm.modelName}
+                  aria-label="模型名称"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, modelName: event.target.value }))}
+                  placeholder="模型名称"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>价格版本</span>
+                <Input
+                  value={priceForm.priceVersion}
+                  aria-label="价格版本"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, priceVersion: event.target.value }))}
+                  placeholder="price-v1"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>币种</span>
+                <Input
+                  value={priceForm.currency}
+                  aria-label="币种"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, currency: event.target.value }))}
+                  placeholder="CNY"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>输入价格 / 百万 Token</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.000001"
+                  value={priceForm.inputPricePerMillion}
+                  aria-label="输入价格 / 百万 Token"
+                  onChange={(event) =>
+                    setPriceForm((current) => ({ ...current, inputPricePerMillion: event.target.value }))
+                  }
+                  placeholder="0"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>输出价格 / 百万 Token</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.000001"
+                  value={priceForm.outputPricePerMillion}
+                  aria-label="输出价格 / 百万 Token"
+                  onChange={(event) =>
+                    setPriceForm((current) => ({ ...current, outputPricePerMillion: event.target.value }))
+                  }
+                  placeholder="0"
+                />
+              </label>
+              <label className={`${styles.modelGovernanceField} ${styles.modelGovernanceFieldWide}`}>
+                <span>生效时间</span>
+                <Input
+                  type="datetime-local"
+                  value={priceForm.effectiveAt}
+                  aria-label="生效时间"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, effectiveAt: event.target.value }))}
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>revision</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={priceForm.revision}
+                  aria-label="价格 revision"
+                  onChange={(event) => setPriceForm((current) => ({ ...current, revision: event.target.value }))}
+                />
+              </label>
+            </div>
+          ) : (
+            <div className={styles.modelGovernanceForm}>
+              <label className={styles.modelGovernanceField}>
+                <span>策略键</span>
+                <Input
+                  value={budgetForm.policyKey}
+                  aria-label="策略键"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, policyKey: event.target.value }))}
+                  placeholder="agent-default"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>场景</span>
+                <Input
+                  value={budgetForm.scene}
+                  aria-label="预算场景"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, scene: event.target.value }))}
+                  placeholder="chat"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>作用域</span>
+                <Select
+                  value={budgetForm.scopeType}
+                  onValueChange={(value) => setBudgetForm((current) => ({ ...current, scopeType: value }))}
+                >
+                  <SelectTrigger aria-label="预算作用域">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="global">global · 全局</SelectItem>
+                    <SelectItem value="scene">scene · 场景</SelectItem>
+                    <SelectItem value="user">user · 用户</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>窗口</span>
+                <Select
+                  value={budgetForm.windowType}
+                  onValueChange={(value) => setBudgetForm((current) => ({ ...current, windowType: value }))}
+                >
+                  <SelectTrigger aria-label="预算窗口">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="run">run · 单次运行</SelectItem>
+                    <SelectItem value="day">day · 每日</SelectItem>
+                  </SelectContent>
+                </Select>
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>最大 Token 数</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={budgetForm.maxTotalTokens}
+                  aria-label="最大 Token 数"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, maxTotalTokens: event.target.value }))}
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>最大费用（CNY）</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={budgetForm.maxCostCny}
+                  aria-label="最大费用（CNY）"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, maxCostCny: event.target.value }))}
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>最大模型调用次数</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={budgetForm.maxModelCalls}
+                  aria-label="最大模型调用次数"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, maxModelCalls: event.target.value }))}
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>最大步骤重试次数</span>
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={budgetForm.maxStepRetries}
+                  aria-label="最大步骤重试次数"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, maxStepRetries: event.target.value }))}
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>策略版本</span>
+                <Input
+                  value={budgetForm.policyVersion}
+                  aria-label="策略版本"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, policyVersion: event.target.value }))}
+                  placeholder="budget-v1"
+                />
+              </label>
+              <label className={styles.modelGovernanceField}>
+                <span>revision</span>
+                <Input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={budgetForm.revision}
+                  aria-label="预算 revision"
+                  onChange={(event) => setBudgetForm((current) => ({ ...current, revision: event.target.value }))}
+                />
+              </label>
+            </div>
+          )}
+          {formError ? (
+            <div className={styles.modelGovernanceFormError} role="alert">
+              {formError}
+            </div>
+          ) : null}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={closeForm}>
+              取消
+            </Button>
+            <Button type="button" onClick={formKind === 'price' ? submitPrice : submitBudget}>
+              {formKind === 'price' ? '提交新增价格' : '提交新增预算'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

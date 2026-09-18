@@ -14,6 +14,7 @@ import java.time.Instant;
 import java.util.List;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -69,8 +70,9 @@ public interface UserAccountMapper {
     void revokeRefreshToken(String tokenHash);
 
     @Select(
-            "SELECT auth_session_id AS authSessionId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress,expires_at AS expiresAt,last_seen_at AS lastSeenAt,created_at AS createdAt,revoked_at AS revokedAt FROM user_auth_sessions WHERE user_id=#{userId} AND is_deleted=FALSE ORDER BY last_seen_at DESC")
-    List<AuthSessionView> authSessions(long userId);
+            "SELECT auth_session_id AS authSessionId,device_id AS deviceId,user_agent AS userAgent,ip_address AS ipAddress,expires_at AS expiresAt,last_seen_at AS lastSeenAt,created_at AS createdAt,revoked_at AS revokedAt,CASE WHEN session_token_hash=COALESCE(CAST(#{currentSessionHash} AS varchar),'') THEN TRUE ELSE FALSE END AS current FROM user_auth_sessions WHERE user_id=#{userId} AND is_deleted=FALSE AND revoked_at IS NULL AND expires_at>CURRENT_TIMESTAMP ORDER BY last_seen_at DESC")
+    List<AuthSessionView> authSessions(
+            @Param("userId") long userId, @Param("currentSessionHash") String currentSessionHash);
 
     @Select(
             "SELECT user_id AS userId,username,CASE WHEN email IS NULL THEN NULL ELSE CONCAT('email-',MD5(email)) END AS email,nickname,role,status,revision FROM users WHERE is_deleted=FALSE ORDER BY created_at DESC")
@@ -109,7 +111,7 @@ public interface UserAccountMapper {
     void ensureProfile(long id, long userId);
 
     @Update(
-            "UPDATE user_profiles SET display_name=COALESCE(#{update.displayName},display_name),gender=COALESCE(#{update.gender},gender),height_cm=COALESCE(#{update.heightCm},height_cm),weight_kg=COALESCE(#{update.weightKg},weight_kg),activity_level=COALESCE(#{update.activityLevel},activity_level),diet_goal=COALESCE(#{update.dietGoal},diet_goal),calorie_target=COALESCE(#{update.calorieTarget},calorie_target),protein_target=COALESCE(#{update.proteinTarget},protein_target),updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND is_deleted=FALSE")
+            "UPDATE user_profiles SET display_name=COALESCE(#{update.displayName},display_name),gender=COALESCE(#{update.gender},gender),height_cm=COALESCE(#{update.heightCm},height_cm),weight_kg=COALESCE(#{update.weightKg},weight_kg),activity_level=COALESCE(#{update.activityLevel},activity_level),diet_goal=COALESCE(#{update.dietGoal},diet_goal),calorie_target=COALESCE(#{update.calorieTarget},calorie_target),protein_target=COALESCE(#{update.proteinTarget},protein_target),allergens=COALESCE(CAST(#{update.allergensJson} AS jsonb),allergens),dislikes=COALESCE(CAST(#{update.dislikesJson} AS jsonb),dislikes),preferred_units=COALESCE(CAST(#{update.preferredUnitsJson} AS jsonb),preferred_units),updated_at=CURRENT_TIMESTAMP WHERE user_id=#{userId} AND is_deleted=FALSE")
     void updateProfile(long userId, ProfileUpdate update);
 
     @Insert(
@@ -131,6 +133,10 @@ public interface UserAccountMapper {
     @Select(
             "SELECT session_id AS sessionId,user_id AS userId,title,mode,'deleted' AS status,last_message_at AS lastMessageAt FROM sessions WHERE user_id=#{userId} AND is_deleted=TRUE AND deleted_at>CURRENT_TIMESTAMP-INTERVAL '30 days' ORDER BY deleted_at DESC LIMIT #{limit} OFFSET #{offset}")
     List<SessionRecord> deletedSessions(long userId, int limit, int offset);
+
+    @Select(
+            "SELECT COUNT(*) FROM sessions s WHERE s.user_id=#{userId} AND s.is_deleted=FALSE AND (s.title ILIKE CONCAT('%',#{query},'%') OR EXISTS (SELECT 1 FROM messages m WHERE m.session_id=s.session_id AND m.is_deleted=FALSE AND m.content ILIKE CONCAT('%',#{query},'%')))")
+    long countSearchSessions(long userId, String query);
 
     @Select(
             "SELECT EXISTS(SELECT 1 FROM sessions WHERE session_id=#{sessionId} AND user_id=#{userId} AND is_deleted=FALSE)")

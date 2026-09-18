@@ -1,5 +1,5 @@
 import { AlertTriangle, ArrowLeft, CheckCircle2, Folder, Plus, RefreshCw, ShieldAlert, X, XCircle } from 'lucide-react';
-import { useEffect, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,11 +9,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { ROUTES } from '../../constants/routes';
 import { FIXTURE_ADMIN_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
 import { AvatarImage } from '../../components/common/AvatarImage';
+import { isAbortError } from '../../services/apiClient';
 import { adminOperationAuditRows } from '../../services/adminService';
 import { getAuthUser } from '../../services/authService';
+import { useAuth } from '../../auth/AuthContext';
 import styles from './AdminPage.module.css';
 import { AdminHeader } from './tabs/AdminComponents';
-import { adminNavItems, canAccessAdmin, canManage, getSectionKey, isAdminNavItemActive } from './tabs/AdminShared';
+import { adminNavItems, getSectionKey, isAdminNavItemActive, useAdminAccess } from './tabs/AdminShared';
 import { DeletedSection } from './tabs/DeletedResourcesTab';
 import { KnowledgeSection } from './tabs/KnowledgeTab';
 import { OverviewSection } from './tabs/OverviewTab';
@@ -21,6 +23,7 @@ import { RunsSection } from './tabs/RunsTab';
 import { ToolsSection } from './tabs/ToolsTab';
 import { UsageSection } from './tabs/UsageTab';
 import { ModelGovernanceSection } from './tabs/ModelGovernanceTab';
+import { RetentionSection } from './tabs/RetentionTab';
 import { UsersSection } from './tabs/UsersTab';
 import { AdminOperationStatus } from './tabs/AdminOperationStatus';
 import { OperationAuditSection } from './tabs/OperationAuditTab';
@@ -38,6 +41,22 @@ const figmaOperationAction: AdminActionPayload = {
   targetType: 'tool',
   targetId: 'nutrition_lookup',
 };
+
+function waitForAdminFixtureOperation(signal: AbortSignal) {
+  return new Promise<void>((resolve) => {
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', finish);
+      resolve();
+    }, 280);
+    const finish = () => {
+      window.clearTimeout(timer);
+      signal.removeEventListener('abort', finish);
+      resolve();
+    };
+    signal.addEventListener('abort', finish, { once: true });
+    if (signal.aborted) finish();
+  });
+}
 
 type AdminFixtureState =
   | 'overview'
@@ -72,6 +91,24 @@ const knowledgeFixtureNavKeys = new Set([
   'deleted',
   'audit',
 ]);
+
+// Figma 用户详情画板只展示与当前详情上下文直接相关的八个导航项。
+const userDetailFixtureNavKeys = new Set([
+  'overview',
+  'users',
+  'runs',
+  'tools',
+  'usage',
+  'knowledge',
+  'deleted',
+  'audit',
+]);
+
+const userDetailFixtureNavLabels: Record<string, string> = {
+  tools: '工具调用与 SQL',
+  knowledge: '知识库',
+  audit: '审计日志',
+};
 
 type KnowledgeFixtureCopy = {
   title: string;
@@ -726,19 +763,34 @@ function appendOperationAudit(
   if (adminOperationAuditRows.length > 8) adminOperationAuditRows.splice(8);
 }
 
-function renderSection(
-  sectionKey: AdminSectionKey,
-  onAction: (payload: AdminActionPayload) => void,
-  refreshNonce: number,
-  operationStatus: AdminOperationState,
-  figmaFixture: boolean,
-  knowledgeUploadRequest: number,
-) {
+type AdminSectionRendererProps = {
+  sectionKey: AdminSectionKey;
+  onAction: (payload: AdminActionPayload) => void;
+  refreshNonce: number;
+  operationStatus: AdminOperationState;
+  figmaFixture: boolean;
+  userDetailFixture: boolean;
+  knowledgeUploadRequest: number;
+  canReplayDlq: boolean;
+  canManageAccess: boolean;
+};
+
+function AdminSectionRenderer({
+  sectionKey,
+  onAction,
+  refreshNonce,
+  operationStatus,
+  figmaFixture,
+  userDetailFixture,
+  knowledgeUploadRequest,
+  canReplayDlq,
+  canManageAccess,
+}: AdminSectionRendererProps) {
   switch (sectionKey) {
     case 'users':
-      return <UsersSection onAction={onAction} />;
+      return <UsersSection figmaFixture={userDetailFixture} onAction={onAction} refreshNonce={refreshNonce} />;
     case 'runs':
-      return <RunsSection refreshNonce={refreshNonce} />;
+      return <RunsSection refreshNonce={refreshNonce} onAction={onAction} canReplayDlq={canReplayDlq} />;
     case 'tools':
       return <ToolsSection onAction={onAction} operationStatus={operationStatus} refreshNonce={refreshNonce} />;
     case 'usage':
@@ -752,10 +804,13 @@ function renderSection(
           onAction={onAction}
           openUploadRequest={knowledgeUploadRequest}
           refreshNonce={refreshNonce}
+          canManageAccess={canManageAccess}
         />
       );
     case 'deleted':
       return <DeletedSection onAction={onAction} refreshNonce={refreshNonce} />;
+    case 'retention':
+      return <RetentionSection onAction={onAction} refreshNonce={refreshNonce} />;
     case 'audit':
       return <OperationAuditSection refreshNonce={refreshNonce} />;
     default:
@@ -764,11 +819,14 @@ function renderSection(
 }
 
 export function AdminPage() {
-  const authUser = getAuthUser();
+  const auth = useAuth();
+  const authUser = auth.user ?? getAuthUser();
+  const { canAccess, canManage } = useAdminAccess();
   const isMockMode = import.meta.env.VITE_AGENT_MODE !== 'real';
   const { pathname, search } = useLocation();
   const navigate = useNavigate();
-  const requestedFixture = getAdminFixtureState(new URLSearchParams(search).get('state'));
+  // Fixture query 只服务于本地画板预览，真实模式必须完全由路由和服务端数据驱动。
+  const requestedFixture = isMockMode ? getAdminFixtureState(new URLSearchParams(search).get('state')) : undefined;
   const fixtureNavKey = getFixtureNavKey(requestedFixture);
   const sectionKey = (
     requestedFixture?.startsWith('op-')
@@ -788,8 +846,10 @@ export function AdminPage() {
     requestedFixture === 'tool-registry' ||
     (pathname.endsWith('/tools') && new URLSearchParams(search).get('tab') === 'registry');
   const isDeletedRoute = pathname.endsWith('/deleted') || requestedFixture === 'deleted-resources';
+  const isRetentionRoute = pathname.endsWith('/data-retention');
   const isUsageRoute = sectionKey === 'usage';
   const isAuditFigmaRoute = sectionKey === 'audit' && import.meta.env.VITE_AGENT_MODE !== 'real';
+  const isUserDetailFixture = requestedFixture === 'user-detail';
   const isDetailFixture =
     requestedFixture === 'run-detail' ||
     requestedFixture === 'tool-calls' ||
@@ -805,14 +865,20 @@ export function AdminPage() {
   const [notice, setNotice] = useState('');
   const [refreshNonce, setRefreshNonce] = useState(0);
   const [knowledgeUploadRequest, setKnowledgeUploadRequest] = useState(0);
-  const fixtureUser = requestedFixture
-    ? { displayName: 'Anddy', id: '1234567' }
-    : { displayName: authUser.displayName, id: authUser.id };
+  const actionControllerRef = useRef<AbortController>();
+  const actionExecutionRef = useRef<{ requestId: number; controller: AbortController }>();
+  const actionRequestIdRef = useRef(0);
+  const mountedRef = useRef(true);
+  const isAuditFigmaFixture = isAuditFigmaRoute;
+  const fixtureUser =
+    requestedFixture || isAuditFigmaFixture
+      ? { displayName: 'Anddy', id: '1234567' }
+      : { displayName: authUser.displayName, id: authUser.id };
   // Figma 管理台示例账号固定使用男性默认头像，不受登录缓存性别影响。
-  const adminAvatarGender = requestedFixture ? '男' : authUser.gender;
+  const adminAvatarGender = requestedFixture || isAuditFigmaFixture ? '男' : authUser.gender;
   // 管理后台的 Fixture 和真实用户头像都统一从解析层进入 DOM。
   const adminAvatarSource = resolveAvatarUrl(
-    requestedFixture ? FIXTURE_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
+    requestedFixture || isAuditFigmaFixture ? FIXTURE_ADMIN_AVATARS.sidebar : authUser.avatarUrl,
     adminAvatarGender,
   );
   const fixtureOperationStatus: AdminOperationState | undefined = requestedFixture?.startsWith('op-')
@@ -836,7 +902,21 @@ export function AdminPage() {
     return () => window.removeEventListener('foodmate:admin-notice', handleNotice);
   }, []);
 
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      actionControllerRef.current?.abort();
+      actionExecutionRef.current = undefined;
+      actionRequestIdRef.current += 1;
+    };
+  }, []);
+
   const requestAdminAction = (payload: AdminActionPayload) => {
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    actionExecutionRef.current = undefined;
+    actionRequestIdRef.current += 1;
     setOperationError(undefined);
     setNotice('');
     setPendingAction(payload);
@@ -848,15 +928,23 @@ export function AdminPage() {
   };
 
   const executePendingAction = async () => {
-    if (!pendingAction) return;
-    const { action, targetType, targetId, onApply, execute } = pendingAction;
+    // 先用同步引用抢占执行权，避免状态更新完成前的重复确认创建多个请求。
+    if (!pendingAction || actionExecutionRef.current) return;
+    const actionPayload = pendingAction;
+    const { action, targetType, targetId, onApply, execute } = actionPayload;
+    actionControllerRef.current?.abort();
+    const controller = new AbortController();
+    const requestId = ++actionRequestIdRef.current;
+    actionExecutionRef.current = { requestId, controller };
+    actionControllerRef.current = controller;
     setOperationStatus('submitting');
     try {
       if (import.meta.env.VITE_AGENT_MODE === 'real') {
-        await execute?.();
+        await execute?.(controller.signal);
       } else {
-        await new Promise<void>((resolve) => window.setTimeout(resolve, 280));
+        await waitForAdminFixtureOperation(controller.signal);
       }
+      if (!mountedRef.current || controller.signal.aborted || requestId !== actionRequestIdRef.current) return;
       onApply?.();
       if (import.meta.env.VITE_AGENT_MODE !== 'real') {
         appendOperationAudit(authUser, action, targetType, targetId);
@@ -864,6 +952,13 @@ export function AdminPage() {
       setRefreshNonce((current) => current + 1);
       setOperationStatus('success');
     } catch (error) {
+      if (
+        !mountedRef.current ||
+        controller.signal.aborted ||
+        requestId !== actionRequestIdRef.current ||
+        isAbortError(error)
+      )
+        return;
       const candidate = (error ?? {}) as {
         code?: unknown;
         message?: unknown;
@@ -894,10 +989,17 @@ export function AdminPage() {
         appendOperationAudit(authUser, action, targetType, targetId, 'failed', failedRequestId);
       }
       setOperationStatus('failed');
+    } finally {
+      if (actionExecutionRef.current?.requestId === requestId) actionExecutionRef.current = undefined;
+      if (actionControllerRef.current === controller) actionControllerRef.current = undefined;
     }
   };
 
   const dismissOperation = () => {
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    actionExecutionRef.current = undefined;
+    actionRequestIdRef.current += 1;
     setPendingAction(undefined);
     setOperationError(undefined);
     setOperationStatus('idle');
@@ -905,26 +1007,36 @@ export function AdminPage() {
 
   const handleRefresh = () => setRefreshNonce((current) => current + 1);
 
-  if (!canAccessAdmin) {
+  if (!canAccess) {
     return (
       <div className={styles.authShell}>
         <Card className={styles.noAccessCard}>
           <Badge variant="destructive">AUTH_FORBIDDEN</Badge>
           <h1>无权访问管理后台</h1>
           <p>管理后台仅对 admin/operator 开放，普通用户不会看到入口。</p>
-          <Link to="/">
-            <Button variant="outline">
+          <Button asChild variant="outline">
+            <Link to="/">
               <ArrowLeft aria-hidden="true" />
               返回工作台
-            </Button>
-          </Link>
+            </Link>
+          </Button>
         </Card>
       </div>
     );
   }
 
+  const visibleAdminNavItems = isUserDetailFixture
+    ? adminNavItems
+        .filter((item) => userDetailFixtureNavKeys.has(item.key))
+        .map((item) => ({ ...item, label: userDetailFixtureNavLabels[item.key] ?? item.label }))
+    : isKnowledgeFixture
+      ? adminNavItems
+          .filter((item) => knowledgeFixtureNavKeys.has(item.key))
+          .map((item) => (item.key === 'tools' ? { ...item, label: '工具调用与 SQL' } : item))
+      : adminNavItems;
+
   return (
-    <div className={styles.adminShell}>
+    <div className={`${styles.adminShell} ${isUserDetailFixture ? styles.userDetailFixtureShell : ''}`}>
       <aside className={styles.adminSidebar}>
         <div className={styles.brandBlock}>
           <div className={styles.adminBrand}>
@@ -937,12 +1049,7 @@ export function AdminPage() {
           <span className={styles.adminTag}>FoodMate 管理</span>
         </div>
         <nav className={styles.adminNav} aria-label="管理后台导航">
-          {(isKnowledgeFixture
-            ? adminNavItems
-                .filter((item) => knowledgeFixtureNavKeys.has(item.key))
-                .map((item) => (item.key === 'tools' ? { ...item, label: '工具调用与 SQL' } : item))
-            : adminNavItems
-          ).map((item) => {
+          {visibleAdminNavItems.map((item) => {
             const isActive = fixtureNavKey
               ? item.key === fixtureNavKey
               : isAdminNavItemActive(item.path, pathname, search);
@@ -993,7 +1100,7 @@ export function AdminPage() {
               />
             </div>
             <div className={styles.userMetadata}>
-              <strong>{fixtureUser.displayName}&apos;s Lab</strong>
+              <strong>{isUserDetailFixture ? 'Anddy 实验室' : `${fixtureUser.displayName}'s Lab`}</strong>
               <small>ID: {fixtureUser.id}</small>
             </div>
           </div>
@@ -1013,7 +1120,7 @@ export function AdminPage() {
           <AdminFixtureOverlay state={requestedFixture} onDismiss={dismissFixture} />
         ) : null}
         <header
-          className={`${styles.topbar} ${isKnowledgeFixture ? styles.knowledgeFixtureTopbar : ''} ${isDetailFixture ? styles.fixtureDetailTopbar : ''}`}
+          className={`${styles.topbar} ${isKnowledgeFixture ? styles.knowledgeFixtureTopbar : ''} ${isDetailFixture || isUserDetailFixture ? styles.fixtureDetailTopbar : ''}`}
         >
           <div className={styles.topbarTitle}>
             <h1>
@@ -1025,17 +1132,19 @@ export function AdminPage() {
                     ? '工具注册表'
                     : isDeletedRoute
                       ? '删除资源管理'
-                      : sectionKey === 'users'
-                        ? '用户管理'
-                        : sectionKey === 'knowledge'
-                          ? '知识库管理'
-                          : sectionKey === 'usage'
-                            ? '模型用量'
-                            : sectionKey === 'model'
-                              ? '模型治理'
-                              : sectionKey === 'audit'
-                                ? '操作审计'
-                                : '管理控制台'}
+                      : isRetentionRoute
+                        ? '数据保留'
+                        : sectionKey === 'users'
+                          ? '用户管理'
+                          : sectionKey === 'knowledge'
+                            ? '知识库管理'
+                            : sectionKey === 'usage'
+                              ? '模型用量'
+                              : sectionKey === 'model'
+                                ? '模型治理'
+                                : sectionKey === 'audit'
+                                  ? '操作审计'
+                                  : '管理控制台'}
             </h1>
             {isDetailFixture ||
             sectionKey === 'overview' ||
@@ -1067,15 +1176,17 @@ export function AdminPage() {
                       ? '服务节点：healthy-cluster-0'
                       : isDeletedRoute
                         ? '存档保留时长：90天安全窗口'
-                        : isUsageRoute
-                          ? '数据刷新：刚刚'
-                          : sectionKey === 'users'
-                            ? '刷新时间：刚刚'
-                            : isAuditFigmaRoute
-                              ? '数据刷新：刚刚'
-                              : sectionKey === 'audit'
-                                ? '审计记录只读'
-                                : '数据刷新：刚刚'}
+                        : isRetentionRoute
+                          ? '保留策略：服务端裁决'
+                          : isUsageRoute
+                            ? '数据刷新：刚刚'
+                            : sectionKey === 'users'
+                              ? '刷新时间：刚刚'
+                              : isAuditFigmaRoute
+                                ? '数据刷新：刚刚'
+                                : sectionKey === 'audit'
+                                  ? '审计记录只读'
+                                  : '数据刷新：刚刚'}
                 </span>
                 <Button
                   variant="outline"
@@ -1083,11 +1194,15 @@ export function AdminPage() {
                   onClick={
                     isDeletedRoute
                       ? () => setNotice('合规性审计记录仅供查看，恢复操作会写入审计。')
-                      : isUsageRoute
-                        ? () => setNotice('模型用量 CSV 已生成。')
-                        : isAuditFigmaRoute
-                          ? () => setNotice('审计导出已准备。')
-                          : handleRefresh
+                      : isRetentionRoute
+                        ? handleRefresh
+                        : isUsageRoute
+                          ? isMockMode
+                            ? () => setNotice('模型用量 CSV 已生成。')
+                            : handleRefresh
+                          : isAuditFigmaRoute
+                            ? () => setNotice('审计导出已准备。')
+                            : handleRefresh
                   }
                 >
                   {isDetailFixture
@@ -1096,15 +1211,19 @@ export function AdminPage() {
                       ? '更新状态'
                       : isDeletedRoute
                         ? '合规性审计'
-                        : isUsageRoute
-                          ? '导出 CSV'
-                          : isAuditFigmaRoute
-                            ? '导出审计'
-                            : sectionKey === 'users'
-                              ? '刷新'
-                              : sectionKey === 'audit'
-                                ? '刷新审计'
-                                : '刷新数据'}
+                        : isRetentionRoute
+                          ? '刷新状态'
+                          : isUsageRoute
+                            ? isMockMode
+                              ? '导出 CSV'
+                              : '刷新'
+                            : isAuditFigmaRoute
+                              ? '导出审计'
+                              : sectionKey === 'users'
+                                ? '刷新'
+                                : sectionKey === 'audit'
+                                  ? '刷新审计'
+                                  : '刷新数据'}
                 </Button>
               </>
             )}
@@ -1130,14 +1249,17 @@ export function AdminPage() {
           {isDetailFixture ? (
             <AdminFixtureOverlay state={requestedFixture} onDismiss={() => navigate('/admin', { replace: true })} />
           ) : (
-            renderSection(
-              sectionKey,
-              requestAdminAction,
-              refreshNonce,
-              activeOperationStatus,
-              isKnowledgeFixture,
-              knowledgeUploadRequest,
-            )
+            <AdminSectionRenderer
+              sectionKey={sectionKey}
+              onAction={requestAdminAction}
+              refreshNonce={refreshNonce}
+              operationStatus={activeOperationStatus}
+              figmaFixture={isKnowledgeFixture}
+              userDetailFixture={isUserDetailFixture}
+              knowledgeUploadRequest={knowledgeUploadRequest}
+              canReplayDlq={authUser.role === 'superadmin'}
+              canManageAccess={canManage}
+            />
           )}
         </div>
       </main>

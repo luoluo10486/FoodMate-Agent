@@ -1,5 +1,7 @@
 package com.foodmate.api.controller.account;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foodmate.api.request.account.DeletionRequest;
 import com.foodmate.api.request.account.PasswordChangeRequest;
 import com.foodmate.api.request.account.ProfileRequest;
@@ -25,14 +27,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/users/me")
 public class UserController extends AuthenticatedControllerSupport {
     private final com.foodmate.application.account.service.PersonalDataService personal;
+    private final ObjectMapper objectMapper;
 
     public UserController(
             UserAccountService accounts,
             org.springframework.beans.factory.ObjectProvider<
                             com.foodmate.application.account.service.PersonalDataService>
-                    personal) {
+                    personal,
+            ObjectMapper objectMapper) {
         super(accounts);
         this.personal = personal.getIfAvailable();
+        this.objectMapper = objectMapper;
     }
 
     @GetMapping
@@ -75,8 +80,20 @@ public class UserController extends AuthenticatedControllerSupport {
                                 request.activityLevel(),
                                 request.dietGoal(),
                                 request.calorieTarget(),
-                                request.proteinTarget())),
+                                request.proteinTarget(),
+                                json(request.allergens()),
+                                json(request.dislikes()),
+                                json(request.preferredUnits()))),
                 TraceContextHolder.currentOrNew());
+    }
+
+    private String json(Object value) {
+        if (value == null) return null;
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalArgumentException("profile JSON field is invalid", exception);
+        }
     }
 
     @PostMapping("/password")
@@ -91,7 +108,7 @@ public class UserController extends AuthenticatedControllerSupport {
     public ApiResponse<java.util.List<UserAccountService.AuthSessionView>> authSessions(
             jakarta.servlet.http.HttpServletRequest request) {
         return ApiResponse.success(
-                accounts.listAuthSessions(user(request).userId()),
+                accounts.listAuthSessions(user(request).userId(), sessionToken(request)),
                 TraceContextHolder.currentOrNew());
     }
 

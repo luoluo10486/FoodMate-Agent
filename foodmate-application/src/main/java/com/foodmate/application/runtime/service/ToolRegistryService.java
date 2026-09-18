@@ -29,5 +29,48 @@ public interface ToolRegistryService {
             boolean retryable,
             boolean idempotent,
             Instant publishedAt,
-            long revision) {}
+            long revision,
+            boolean skippable) {
+        /** 保持现有调用方兼容；未声明的工具默认不可跳过。 */
+        public ToolView(
+                long toolId,
+                String name,
+                String displayName,
+                String description,
+                String category,
+                String riskLevel,
+                String availabilityScope,
+                String status,
+                String currentVersion,
+                String version,
+                JsonNode inputSchema,
+                JsonNode outputSchema,
+                JsonNode permissions,
+                int timeoutMs,
+                boolean retryable,
+                boolean idempotent,
+                Instant publishedAt,
+                long revision) {
+            this(
+                    toolId,
+                    name,
+                    displayName,
+                    description,
+                    category,
+                    riskLevel,
+                    availabilityScope,
+                    status,
+                    currentVersion,
+                    version,
+                    inputSchema,
+                    outputSchema,
+                    permissions,
+                    timeoutMs,
+                    retryable,
+                    idempotent,
+                    publishedAt,
+                    revision,
+                    false);
+        }
+    }
 }

@@ -29,13 +29,16 @@ describe('TokenStatusPage', () => {
     ).toBeInTheDocument();
   });
 
-  it('keeps the support action only for the used-token state', () => {
+  it('keeps the unavailable support action only for the used-token state', () => {
     render(
       <MemoryRouter initialEntries={['/token-status?state=used']}>
         <TokenStatusPage />
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole('button', { name: '联系客服' })).toBeInTheDocument();
+    const supportAction = screen.getByRole('button', { name: '联系客服（入口暂未配置）' });
+    expect(supportAction).toBeInTheDocument();
+    expect(supportAction).toBeDisabled();
+    expect(supportAction).toHaveAttribute('title', '客服入口暂未配置');
   });
 });

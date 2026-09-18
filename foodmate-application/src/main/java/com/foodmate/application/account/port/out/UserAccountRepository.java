@@ -42,7 +42,7 @@ public interface UserAccountRepository {
 
     void revokeRefreshToken(String tokenHash);
 
-    List<AuthSessionView> authSessions(long userId);
+    List<AuthSessionView> authSessions(long userId, String currentSessionHash);
 
     List<AdminUserView> adminUsers();
 
@@ -73,6 +73,8 @@ public interface UserAccountRepository {
     long countDeletedSessions(long userId);
 
     List<SessionRecord> deletedSessions(long userId, int limit, int offset);
+
+    long countSearchSessions(long userId, String query);
 
     boolean sessionExists(long userId, long sessionId);
 

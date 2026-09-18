@@ -13,10 +13,14 @@ public record RuntimeProposalRequest(
         String runId,
         String proposalType,
         String schemaVersion,
+        boolean requiresConfirmation,
         String toolName,
         String confirmationRef,
         JsonNode input,
-        Payload payload) {
+        Payload payload,
+        String requestHash,
+        String dispatchId,
+        int attempt) {
     /** 工具提案中的调用载荷。 */
     @JsonIgnoreProperties(ignoreUnknown = true)
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)

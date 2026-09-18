@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { notify } from '../../lib/notice';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { confirmPasswordReset } from '../../services/authService';
 import { AuthBrand, AuthCard, AuthShell, AuthSubmit, PasswordField } from '../Auth/AuthVisual';
 import { Button } from '../../components/ui/button';
@@ -14,6 +15,7 @@ const figmaResetValues: ResetValues = { password: 'StrongPass99', confirmPasswor
 
 export function ResetPasswordPage() {
   const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController>();
   const [params] = useSearchParams();
   const token = params.get('token') ?? '';
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
@@ -21,6 +23,11 @@ export function ResetPasswordPage() {
   const [submitting, setSubmitting] = useState(false);
   const [showPassword, setShowPassword] = useState(() => !isRealMode);
   const [showConfirmPassword, setShowConfirmPassword] = useState(() => !isRealMode);
+  const [fieldErrors, setFieldErrors] = useState<{ password?: string; confirmPassword?: string }>({});
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -29,18 +36,30 @@ export function ResetPasswordPage() {
       return;
     }
     if (values.password !== values.confirmPassword) {
+      setFieldErrors({ confirmPassword: '两次输入的密码不一致。' });
       notify('两次输入的密码不一致。', 'error');
       return;
     }
+    setFieldErrors({});
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await confirmPasswordReset(token, values.password);
+      await confirmPasswordReset(token, values.password, controller.signal);
+      if (controller.signal.aborted) return;
       notify('密码已重置，请重新登录。', 'success');
       navigate('/login', { replace: true });
     } catch (error) {
-      notify(error instanceof Error ? error.message : '密码重置失败', 'error');
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const passwordError = apiFieldError(error, 'newPassword') ?? apiFieldError(error, 'password');
+      if (passwordError) setFieldErrors({ password: passwordError });
+      else notify(error instanceof Error ? error.message : '密码重置失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 
@@ -59,8 +78,12 @@ export function ResetPasswordPage() {
               visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.password}
               show={showPassword}
+              error={fieldErrors.password}
               onToggle={() => setShowPassword((current) => !current)}
-              onChange={(event) => setValues((current) => ({ ...current, password: event.target.value }))}
+              onChange={(event) => {
+                setValues((current) => ({ ...current, password: event.target.value }));
+                setFieldErrors((current) => ({ ...current, password: undefined }));
+              }}
             />
             <PasswordField
               label="确认新密码"
@@ -71,8 +94,12 @@ export function ResetPasswordPage() {
               visibleIconSrc="/assets/figma/auth/foodmate-reset-eye.svg"
               value={values.confirmPassword}
               show={showConfirmPassword}
+              error={fieldErrors.confirmPassword}
               onToggle={() => setShowConfirmPassword((current) => !current)}
-              onChange={(event) => setValues((current) => ({ ...current, confirmPassword: event.target.value }))}
+              onChange={(event) => {
+                setValues((current) => ({ ...current, confirmPassword: event.target.value }));
+                setFieldErrors((current) => ({ ...current, confirmPassword: undefined }));
+              }}
             />
           </div>
           <div className={styles.passwordStrength} data-node-id="680:331">

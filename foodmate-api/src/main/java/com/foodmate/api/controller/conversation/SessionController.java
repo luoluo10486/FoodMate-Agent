@@ -17,7 +17,6 @@ import com.foodmate.shared.conversation.enums.SessionStatus;
 import com.foodmate.shared.trace.TraceContextHolder;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
-import java.util.List;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -67,15 +66,19 @@ public class SessionController extends AuthenticatedControllerSupport {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<SearchResponse>> search(
+    public ApiResponse<UserAccountService.PageResult<SearchResponse>> search(
             HttpServletRequest request,
             @RequestParam String q,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "50") int size) {
+        UserAccountService.PageResult<UserAccountService.SearchResult> result =
+                accounts.searchSessions(user(request).userId(), q, page, size);
         return ok(
-                accounts.searchSessions(user(request).userId(), q, page, size).stream()
-                        .map(this::toSearchResponse)
-                        .toList());
+                new UserAccountService.PageResult<>(
+                        result.items().stream().map(this::toSearchResponse).toList(),
+                        result.total(),
+                        result.page(),
+                        result.size()));
     }
 
     @PostMapping

@@ -2,6 +2,7 @@ package com.foodmate.api.controller;
 
 import static org.hamcrest.Matchers.is;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
@@ -90,6 +91,52 @@ class AdminOperationalQueryControllerTest {
                                                 "foodmate_session", "user-session")))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.error.code", is("FORBIDDEN")));
+    }
+
+    @Test
+    void operatorCanFilterRunsByResultErrorAndDegradedState() throws Exception {
+        when(accounts.requireSessionUser("operator-session")).thenReturn(user("operator"));
+        doReturn(
+                        new AdminOperationalQueryService.Page<AdminOperationalQueryService.Run>(
+                                List.of(
+                                        new AdminOperationalQueryService.Run(
+                                                42L,
+                                                7L,
+                                                "planning",
+                                                "completed",
+                                                "trace-42",
+                                                new java.math.BigDecimal("12.5"),
+                                                "user-42",
+                                                "safety_degraded",
+                                                "KNOWLEDGE_TIMEOUT",
+                                                true)),
+                                1,
+                                1,
+                                20))
+                .when(queries)
+                .query(eq("runs"), any(AdminOperationalQueryService.Request.class));
+
+        mvc.perform(
+                        get("/api/admin/queries/runs")
+                                .param("result_type", "safety_degraded")
+                                .param("error_code", "TIMEOUT")
+                                .param("degraded", "true")
+                                .cookie(
+                                        new jakarta.servlet.http.Cookie(
+                                                "foodmate_session", "operator-session")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].result_type", is("safety_degraded")))
+                .andExpect(jsonPath("$.data.items[0].error_code", is("KNOWLEDGE_TIMEOUT")))
+                .andExpect(jsonPath("$.data.items[0].degraded", is(true)));
+
+        verify(queries)
+                .query(
+                        eq("runs"),
+                        argThat(
+                                request ->
+                                        "safety_degraded".equals(request.resultType())
+                                                && "TIMEOUT".equals(request.errorCode())
+                                                && Boolean.TRUE.equals(request.degraded())));
     }
 
     @Test

@@ -134,10 +134,27 @@ public class ToolGatewayServiceImpl implements ToolGatewayService {
         long started = System.nanoTime();
         ProposalResult result = null;
         try {
-            result = executeInternal(proposal);
+            result = withToolMetadata(proposal, executeInternal(proposal));
             return result;
         } finally {
             recordToolCallFact(proposal, result, (System.nanoTime() - started) / 1_000_000);
+        }
+    }
+
+    /** 工具是否可跳过只能由 Java 注册表裁决，不能由 Runtime 或浏览器根据名称推断。 */
+    private ProposalResult withToolMetadata(ProposalCommand proposal, ProposalResult result) {
+        if (proposal == null || result == null || registry == null) return result;
+        String toolName = text(result.toolName());
+        if (toolName == null)
+            toolName =
+                    "sql_read".equals(proposal.proposalType())
+                            ? "database_query"
+                            : text(proposal.toolName());
+        if (toolName == null) return result;
+        try {
+            return result.withSkippable(registry.resolve(toolName, null).skippable());
+        } catch (BusinessException ignored) {
+            return result;
         }
     }
 

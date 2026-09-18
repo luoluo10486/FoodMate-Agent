@@ -5,6 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -94,5 +95,81 @@ class CompositeDishServiceImplTest {
         assertEquals(100L, item.getValue().compositeDishId());
         assertEquals(7L, item.getValue().userId());
         verify(audit).complete(7L, "dish-1", "{\"resource_id\":100,\"revision\":1}");
+    }
+
+    @Test
+    void updatesAndDeletesWithTheAuthoritativeRevision() {
+        CompositeDishRepository dishes = Mockito.mock(CompositeDishRepository.class);
+        FoodLogRepository foods = Mockito.mock(FoodLogRepository.class);
+        OperationAuditService audit = Mockito.mock(OperationAuditService.class);
+        when(dishes.findIdempotency(7L, "update-1")).thenReturn(null);
+        when(dishes.findIdempotency(7L, "delete-1")).thenReturn(null);
+        when(dishes.findOwned(7L, 100L, false))
+                .thenReturn(snapshot("鸡肉饭", 1L), snapshot("更新后的鸡肉饭", 2L), snapshot("更新后的鸡肉饭", 2L));
+        when(audit.reserve(
+                        anyLong(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyMap()))
+                .thenReturn(1);
+        when(foods.findNutritionFoodById(171477L))
+                .thenReturn(
+                        new FoodLogRepository.NutritionFoodLookup(
+                                171477L,
+                                "Chicken breast",
+                                "g",
+                                new BigDecimal("165"),
+                                new BigDecimal("31"),
+                                new BigDecimal("3.6"),
+                                BigDecimal.ZERO,
+                                "USDA",
+                                "2025"));
+        when(dishes.updateDish(any())).thenReturn(1);
+        when(dishes.softDelete(7L, 100L, 2L)).thenReturn(1);
+
+        AtomicLong nextId = new AtomicLong(99);
+        CompositeDishService service =
+                new CompositeDishServiceImpl(
+                        dishes, foods, nextId::incrementAndGet, new ObjectMapper(), audit);
+
+        CompositeDishService.CompositeDishView updated =
+                service.update(
+                        7L,
+                        100L,
+                        1L,
+                        new CompositeDishService.UpdateCommand(
+                                "更新后的鸡肉饭",
+                                new BigDecimal("2"),
+                                List.of(
+                                        new CompositeDishService.ComponentCommand(
+                                                171477L, "熟鸡胸肉", new BigDecimal("200"), "g")),
+                                "update-1"));
+        service.delete(7L, 100L, 2L, "delete-1");
+
+        assertEquals("更新后的鸡肉饭", updated.dishName());
+        assertEquals(2L, updated.revision());
+        verify(dishes, times(2)).softDeleteItems(7L, 100L);
+        verify(dishes).softDelete(7L, 100L, 2L);
+    }
+
+    private CompositeDishRepository.DishSnapshot snapshot(String name, long revision) {
+        return new CompositeDishRepository.DishSnapshot(
+                100L,
+                7L,
+                name,
+                new BigDecimal("2"),
+                new BigDecimal("165.0000"),
+                new BigDecimal("31.0000"),
+                new BigDecimal("3.6000"),
+                BigDecimal.ZERO.setScale(4),
+                "USDA:2025",
+                revision,
+                false,
+                Instant.parse("2026-08-12T12:00:00Z"),
+                Instant.parse("2026-08-12T12:00:00Z"),
+                List.of());
     }
 }

@@ -1,20 +1,24 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [string]$JavaBaseUrl = "http://127.0.0.1:8080",
     [string]$SourceDirectory = "",
     [int]$BatchTimeoutSeconds = 600,
     [string]$SourceVersion = "",
-    [string]$IdempotencyKey = ""
+    [string]$IdempotencyKey = "",
+    [ValidateSet("stub", "local", "unknown")]
+    [string]$RuntimeMode = "unknown"
 )
 
 $ErrorActionPreference = "Stop"
+# 显式加载 HTTP 类型，保证 Windows PowerShell 5.1 与 PowerShell 7 使用同一入口。
+Add-Type -AssemblyName System.Net.Http -ErrorAction Stop
 $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "../..")).Path
 if ([string]::IsNullOrWhiteSpace($SourceDirectory)) {
     $SourceDirectory = Join-Path $repoRoot "script/data/knowledge/public"
 }
 $SourceDirectory = (Resolve-Path -LiteralPath $SourceDirectory).Path
 $manifestPath = Join-Path $SourceDirectory "manifest.json"
-$manifest = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+$manifest = Get-Content -Raw -Encoding UTF8 -LiteralPath $manifestPath | ConvertFrom-Json
 $documents = @($manifest.documents)
 
 if ($documents.Count -eq 0) { throw "公共知识库 manifest 没有文档" }
@@ -135,7 +139,7 @@ try {
     try {
         $headers = @{
             "X-CSRF-Token" = $csrf
-            "Idempotency-Key" = $idempotencyKey
+            "Idempotency-Key" = $effectiveIdempotencyKey
         }
         $upload = Invoke-JsonApi "POST" "$JavaBaseUrl/api/admin/knowledge-documents/upload-batches" $null $multipart $headers
     } finally {
@@ -174,7 +178,7 @@ try {
 
     $result = [ordered]@{
         status = "published"
-        mode = "local-stub"
+        mode = $RuntimeMode
         dataset = [string]$manifest.dataset
         dataset_version = [string]$manifest.dataset_version
         document_count = $documentIds.Count

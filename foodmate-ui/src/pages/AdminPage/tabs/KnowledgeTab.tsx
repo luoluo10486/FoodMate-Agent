@@ -1,5 +1,5 @@
 import { FileText, Search, UploadCloud } from 'lucide-react';
-import { ChangeEvent, DragEvent, useEffect, useId, useState } from 'react';
+import { ChangeEvent, DragEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -13,17 +13,21 @@ import {
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ApiError, isAbortError } from '../../../services/apiClient';
 import styles from '../AdminPage.module.css';
-import { type KnowledgeRow, canManage } from './AdminShared';
+import { type KnowledgeRow, useAdminAccess } from './AdminShared';
 import type { AdminActionPayload } from './types';
+import type { AgentStreamConnection } from '../../../types/agent';
 import {
   changeKnowledgeVisibility,
   loadAdminKnowledge,
   loadKnowledgeBatch,
+  reindexKnowledgeItem,
   retryKnowledgeItem,
   streamKnowledgeBatch,
   updateKnowledgeStatus,
   uploadKnowledgeBatch,
+  uploadKnowledgeDocument,
 } from '../../../services/adminService';
 
 const figmaKnowledgeRows: KnowledgeRow[] = [
@@ -99,22 +103,51 @@ function documentStatus(document: KnowledgeRow, figmaFixture: boolean) {
   return <span className={`${styles.knowledgeStatus} ${styles[`knowledgeStatus${styleKey}`] ?? ''}`}>{label}</span>;
 }
 
+function batchStatusLabel(status: string | undefined) {
+  switch (status?.toLowerCase()) {
+    case 'uploaded':
+      return '已接收';
+    case 'indexing':
+      return '索引中';
+    case 'completed':
+      return '已完成';
+    case 'partial_failed':
+      return '部分失败';
+    case 'failed':
+      return '失败';
+    case 'expired':
+      return '已过期';
+    default:
+      return status || '上传已提交';
+  }
+}
+
+function knowledgeBatchErrorMessage(cause: unknown, fallback: string) {
+  if (cause instanceof ApiError) return `${cause.code}: ${cause.message}`;
+  return cause instanceof Error ? cause.message : fallback;
+}
+
 export function KnowledgeSection({
   onAction,
   figmaFixture = false,
   openUploadRequest = 0,
   refreshNonce = 0,
+  canManageAccess,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   figmaFixture?: boolean;
   openUploadRequest?: number;
   refreshNonce?: number;
+  canManageAccess?: boolean;
 }) {
+  const { canManage } = useAdminAccess();
+  const effectiveCanManageAccess = canManageAccess ?? canManage;
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [documents, setDocuments] = useState<KnowledgeRow[]>(isRealMode ? [] : figmaKnowledgeRows);
   const [selectedDoc, setSelectedDoc] = useState<KnowledgeRow | undefined>(documents[0]);
   const [uploadVisible, setUploadVisible] = useState(false);
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadMode, setUploadMode] = useState<'batch' | 'single'>('batch');
   const [batchId, setBatchId] = useState<string | undefined>(() =>
     isRealMode ? (window.localStorage.getItem('foodmate:admin:knowledge:last-batch') ?? undefined) : undefined,
   );
@@ -129,6 +162,14 @@ export function KnowledgeSection({
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [visibilityFilter, setVisibilityFilter] = useState('all');
+  const [uploading, setUploading] = useState(false);
+  const listRequestIdRef = useRef(0);
+  const listControllerRef = useRef<AbortController>();
+  const uploadRequestIdRef = useRef(0);
+  const uploadControllerRef = useRef<AbortController>();
+  const visibilityRequestIdRef = useRef(0);
+  const visibilityControllerRef = useRef<AbortController>();
+  const mountedRef = useRef(true);
   const pageSize = 20;
   const fileInputId = useId();
 
@@ -141,38 +182,57 @@ export function KnowledgeSection({
   }, [openUploadRequest]);
 
   useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      listControllerRef.current?.abort();
+      uploadControllerRef.current?.abort();
+      visibilityControllerRef.current?.abort();
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isRealMode) return;
     let active = true;
-    // The effect owns the request lifecycle, so loading/error reset belongs to this subscription boundary.
+    listControllerRef.current?.abort();
+    const requestId = ++listRequestIdRef.current;
+    const controller = new AbortController();
+    listControllerRef.current = controller;
+    // 当前订阅负责请求生命周期，因此加载和错误状态也在订阅边界内重置。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     setLoadError('');
-    loadAdminKnowledge({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: statusFilter,
-      visibility: visibilityFilter,
-    })
+    loadAdminKnowledge(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: statusFilter,
+        visibility: visibilityFilter,
+      },
+      controller.signal,
+    )
       .then((result) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted || requestId !== listRequestIdRef.current) return;
         const rows = result.items as KnowledgeRow[];
         setDocuments(rows);
         setTotalDocuments(result.total);
         setSelectedDoc(rows[0]);
       })
       .catch((cause) => {
-        if (!active) return;
+        if (!active || controller.signal.aborted || requestId !== listRequestIdRef.current || isAbortError(cause))
+          return;
         setDocuments([]);
         setTotalDocuments(0);
         setSelectedDoc(undefined);
         setLoadError(cause instanceof Error ? cause.message : '知识库数据加载失败');
       })
       .finally(() => {
-        if (active) setLoading(false);
+        if (active && !controller.signal.aborted && requestId === listRequestIdRef.current) setLoading(false);
       });
     return () => {
       active = false;
+      controller.abort();
+      if (listControllerRef.current === controller) listControllerRef.current = undefined;
     };
   }, [isRealMode, localRefreshNonce, page, query, refreshNonce, statusFilter, visibilityFilter]);
 
@@ -180,6 +240,9 @@ export function KnowledgeSection({
     window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone } }));
   };
   const selectFiles = (files: FileList | File[]) => {
+    if (isRealMode && !effectiveCanManageAccess) {
+      return notify('当前角色没有知识库上传权限。', 'warning');
+    }
     const selected = Array.from(files);
     // Figma fixture 只替换验收展示和对应的选择提示，真实模式继续遵循后端上传契约。
     const valid = figmaFixture
@@ -195,50 +258,112 @@ export function KnowledgeSection({
       );
     }
     setUploadFiles(selected);
+    if (selected.length > 1) setUploadMode('batch');
     if (selected.length) setUploadVisible(true);
   };
+  const closeUpload = () => {
+    uploadRequestIdRef.current += 1;
+    uploadControllerRef.current?.abort();
+    uploadControllerRef.current = undefined;
+    setUploading(false);
+    setUploadVisible(false);
+    setUploadFiles([]);
+    setUploadMode('batch');
+  };
   const submitUpload = async () => {
+    uploadControllerRef.current?.abort();
+    const requestId = ++uploadRequestIdRef.current;
+    const controller = new AbortController();
+    uploadControllerRef.current = controller;
+    setUploading(true);
     try {
+      if (isRealMode && !effectiveCanManageAccess) {
+        return notify('当前角色没有知识库上传权限。', 'warning');
+      }
+      if (!uploadFiles.length) {
+        return notify('请先选择要上传的文件。', 'warning');
+      }
+      if (uploadMode === 'single') {
+        if (uploadFiles.length !== 1) {
+          return notify('单文件上传只能选择一个文件。', 'warning');
+        }
+        const uploaded = await uploadKnowledgeDocument(uploadFiles[0], controller.signal);
+        if (controller.signal.aborted || requestId !== uploadRequestIdRef.current) return;
+        setLocalRefreshNonce((current) => current + 1);
+        closeUpload();
+        notify(`文档 ${uploaded.document_id} 已提交`, 'success');
+        return;
+      }
       if (isRealMode) {
-        if (!uploadFiles.length || !sourceName.trim() || !sourceVersion.trim() || !licenseNotice.trim()) {
+        if (!sourceName.trim() || !sourceVersion.trim() || !licenseNotice.trim()) {
           return notify('请完整填写来源、版本和授权说明。', 'warning');
         }
-        const uploaded = await uploadKnowledgeBatch({
-          files: uploadFiles,
-          sourceType: 'admin_upload',
-          sourceName,
-          sourceVersion,
-          licenseNotice,
-          idempotencyKey: crypto.randomUUID(),
-        });
+        const uploaded = await uploadKnowledgeBatch(
+          {
+            files: uploadFiles,
+            sourceType: 'admin_upload',
+            sourceName,
+            sourceVersion,
+            licenseNotice,
+            idempotencyKey: crypto.randomUUID(),
+          },
+          controller.signal,
+        );
+        if (controller.signal.aborted || requestId !== uploadRequestIdRef.current) return;
         setBatchId(uploaded.batch_id);
         window.localStorage.setItem('foodmate:admin:knowledge:last-batch', uploaded.batch_id);
         setLocalRefreshNonce((current) => current + 1);
       }
-      setUploadVisible(false);
-      setUploadFiles([]);
+      closeUpload();
       notify('文档上传已提交', 'success');
     } catch (cause) {
+      if (controller.signal.aborted || requestId !== uploadRequestIdRef.current || isAbortError(cause)) return;
       notify(cause instanceof Error ? cause.message : '文档上传失败，请重试。', 'warning');
+    } finally {
+      if (uploadControllerRef.current === controller) {
+        uploadControllerRef.current = undefined;
+        setUploading(false);
+      }
     }
   };
   const requestVisibilityChange = (visibility: 'published' | 'disabled' | 'draft' | 'deleted', label: string) => {
     if (!selectedDoc) return;
+    visibilityControllerRef.current?.abort();
+    const requestId = ++visibilityRequestIdRef.current;
+    const controller = new AbortController();
+    visibilityControllerRef.current = controller;
+    const selectedDocumentId = selectedDoc.documentId;
     onAction({
       action: label,
-      targetLabel: selectedDoc.documentId,
+      targetLabel: selectedDocumentId,
       targetType: 'knowledge_document',
-      targetId: selectedDoc.documentId,
-      execute: async () => {
-        if (isRealMode) await changeKnowledgeVisibility(selectedDoc.documentId, visibility);
-        else await updateKnowledgeStatus(selectedDoc.documentId, visibility === 'disabled' ? 'disabled' : 'indexed');
+      targetId: selectedDocumentId,
+      execute: async (signal) => {
+        const abortLocalController = () => controller.abort();
+        signal?.addEventListener('abort', abortLocalController, { once: true });
+        try {
+          const requestSignal = signal ?? controller.signal;
+          if (isRealMode) await changeKnowledgeVisibility(selectedDocumentId, visibility, requestSignal);
+          else
+            await updateKnowledgeStatus(
+              selectedDocumentId,
+              visibility === 'disabled' ? 'disabled' : 'indexed',
+              requestSignal,
+            );
+        } finally {
+          signal?.removeEventListener('abort', abortLocalController);
+        }
       },
       onApply: () => {
+        // 真实模式由服务端刷新提供最终文档状态，不能直接改写本地列表。
+        if (isRealMode) return;
+
+        if (!mountedRef.current || controller.signal.aborted || requestId !== visibilityRequestIdRef.current) return;
         setDocuments((current) =>
           visibility === 'deleted'
-            ? current.filter((document) => document.documentId !== selectedDoc.documentId)
+            ? current.filter((document) => document.documentId !== selectedDocumentId)
             : current.map((document) =>
-                document.documentId === selectedDoc.documentId
+                document.documentId === selectedDocumentId
                   ? {
                       ...document,
                       visibility,
@@ -283,12 +408,13 @@ export function KnowledgeSection({
               ? 'Max file size: 50MB. Allowed formats: PDF, CSV, XLSX, TXT.'
               : '最多 20 个文件，单个不超过 20 MB。支持 PDF、DOCX、Markdown、TXT。'}
           </span>
-          <input
+          <Input
             id={fileInputId}
             aria-label="选择知识库文件"
             type="file"
             multiple
             accept={figmaFixture ? '.pdf,.csv,.xlsx,.txt' : '.pdf,.docx,.md,.txt'}
+            disabled={isRealMode && !effectiveCanManageAccess}
             onChange={(event: ChangeEvent<HTMLInputElement>) => event.target.files && selectFiles(event.target.files)}
           />
         </label>
@@ -426,7 +552,7 @@ export function KnowledgeSection({
             {selectedVisibility === 'published' ? (
               <Button
                 className={styles.knowledgeManageButton}
-                disabled={!canManage}
+                disabled={!effectiveCanManageAccess}
                 variant="outline"
                 onClick={() => requestVisibilityChange('disabled', '下线文档')}
               >
@@ -436,7 +562,7 @@ export function KnowledgeSection({
               <>
                 <Button
                   className={styles.knowledgeManageButton}
-                  disabled={!canManage || selectedDoc.status !== 'indexed'}
+                  disabled={!effectiveCanManageAccess || selectedDoc.status !== 'indexed'}
                   variant="outline"
                   onClick={() => requestVisibilityChange('published', '发布文档')}
                 >
@@ -444,7 +570,7 @@ export function KnowledgeSection({
                 </Button>
                 <Button
                   className={styles.knowledgeManageButton}
-                  disabled={!canManage}
+                  disabled={!effectiveCanManageAccess}
                   variant="outline"
                   onClick={() => requestVisibilityChange('draft', '恢复草稿')}
                 >
@@ -454,7 +580,7 @@ export function KnowledgeSection({
             )}
             <Button
               className={styles.knowledgeManageButton}
-              disabled={!canManage}
+              disabled={!effectiveCanManageAccess}
               variant="destructive"
               onClick={() => requestVisibilityChange('deleted', '删除文档')}
             >
@@ -463,100 +589,296 @@ export function KnowledgeSection({
           </div>
         ) : null}
       </Card>
-      <Dialog open={uploadVisible} onOpenChange={setUploadVisible}>
+      <Dialog
+        open={uploadVisible}
+        onOpenChange={(open) => {
+          if (open) setUploadVisible(true);
+          else closeUpload();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>上传知识库文档</DialogTitle>
             <DialogDescription>上传后将在后台完成解析和向量索引。</DialogDescription>
           </DialogHeader>
+          {isRealMode ? (
+            <div className={styles.uploadModes} role="group" aria-label="上传方式">
+              <Button
+                type="button"
+                variant={uploadMode === 'batch' ? 'secondary' : 'outline'}
+                aria-pressed={uploadMode === 'batch'}
+                onClick={() => setUploadMode('batch')}
+              >
+                批量上传
+              </Button>
+              <Button
+                type="button"
+                variant={uploadMode === 'single' ? 'secondary' : 'outline'}
+                aria-pressed={uploadMode === 'single'}
+                onClick={() => setUploadMode('single')}
+                disabled={uploadFiles.length > 1}
+              >
+                单文件上传
+              </Button>
+            </div>
+          ) : null}
           <div className={styles.uploadMock}>
             <strong>{uploadFiles.length ? `已选择 ${uploadFiles.length} 个文件` : '选择文件'}</strong>
-            <Textarea
-              aria-label="来源名称"
-              value={sourceName}
-              onChange={(event) => setSourceName(event.target.value)}
-              placeholder="来源名称"
-            />
-            <Textarea
-              aria-label="来源版本"
-              value={sourceVersion}
-              onChange={(event) => setSourceVersion(event.target.value)}
-              placeholder="来源版本"
-            />
-            <Textarea
-              aria-label="授权说明"
-              value={licenseNotice}
-              onChange={(event) => setLicenseNotice(event.target.value)}
-              placeholder="授权说明"
-            />
+            {uploadMode === 'single' ? (
+              <p className={styles.uploadModeHint}>单文件接口只提交当前文件，不附带批量来源元数据。</p>
+            ) : (
+              <>
+                <Textarea
+                  aria-label="来源名称"
+                  value={sourceName}
+                  onChange={(event) => setSourceName(event.target.value)}
+                  placeholder="来源名称"
+                />
+                <Textarea
+                  aria-label="来源版本"
+                  value={sourceVersion}
+                  onChange={(event) => setSourceVersion(event.target.value)}
+                  placeholder="来源版本"
+                />
+                <Textarea
+                  aria-label="授权说明"
+                  value={licenseNotice}
+                  onChange={(event) => setLicenseNotice(event.target.value)}
+                  placeholder="授权说明"
+                />
+              </>
+            )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setUploadVisible(false)}>
+            <Button variant="outline" onClick={closeUpload}>
               取消
             </Button>
-            <Button onClick={() => void submitUpload()}>提交上传</Button>
+            <Button disabled={uploading} onClick={() => void submitUpload()}>
+              {uploading ? '上传中...' : '提交上传'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
       {isRealMode && batchId ? (
-        <BatchProgress batchId={batchId} onRetry={(itemId) => retryKnowledgeItem(batchId, itemId)} />
+        <BatchProgress
+          batchId={batchId}
+          canManageAccess={effectiveCanManageAccess}
+          onRetry={(documentId, signal) => retryKnowledgeItem(batchId, documentId, signal)}
+          onReindex={(documentId, signal) => reindexKnowledgeItem(batchId, documentId, signal)}
+        />
       ) : null}
     </section>
   );
 }
 
-function BatchProgress({ batchId, onRetry }: { batchId: string; onRetry: (documentId: string) => Promise<unknown> }) {
+function BatchProgress({
+  batchId,
+  canManageAccess,
+  onRetry,
+  onReindex,
+}: {
+  batchId: string;
+  canManageAccess: boolean;
+  onRetry: (documentId: string, signal?: AbortSignal) => Promise<unknown>;
+  onReindex: (documentId: string, signal?: AbortSignal) => Promise<unknown>;
+}) {
   const [detail, setDetail] = useState<Awaited<ReturnType<typeof loadKnowledgeBatch>>>();
   const [retryingItemId, setRetryingItemId] = useState<string>();
   const [retryError, setRetryError] = useState('');
-  const refresh = () =>
-    loadKnowledgeBatch(batchId)
-      .then(setDetail)
-      .catch(() => undefined);
+  const [reindexingItemId, setReindexingItemId] = useState<string>();
+  const [reindexError, setReindexError] = useState('');
+  const [detailError, setDetailError] = useState('');
+  const [detailReloadNonce, setDetailReloadNonce] = useState(0);
+  const [streamRetryNonce, setStreamRetryNonce] = useState(0);
+  const [streamConnection, setStreamConnection] = useState<AgentStreamConnection>({
+    state: 'connecting',
+    attempt: 1,
+    maxAttempts: 5,
+  });
+  const streamBatchRef = useRef<string>();
+  const streamCursorRef = useRef<string>();
+  const detailRequestIdRef = useRef(0);
+  const detailControllerRef = useRef<AbortController>();
+  const retryControllerRef = useRef<AbortController>();
+  const reindexControllerRef = useRef<AbortController>();
+  const lifecycleRef = useRef(0);
+  const mountedRef = useRef(true);
+  const refresh = useCallback(async () => {
+    detailControllerRef.current?.abort();
+    const requestId = ++detailRequestIdRef.current;
+    const controller = new AbortController();
+    detailControllerRef.current = controller;
+    try {
+      const next = await loadKnowledgeBatch(batchId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current || requestId !== detailRequestIdRef.current)
+        return undefined;
+      setDetail(next);
+      setDetailError('');
+      return next;
+    } catch (cause) {
+      if (
+        controller.signal.aborted ||
+        !mountedRef.current ||
+        requestId !== detailRequestIdRef.current ||
+        isAbortError(cause)
+      )
+        return undefined;
+      setDetailError(knowledgeBatchErrorMessage(cause, '批次详情读取失败，请重试。'));
+      throw cause;
+    } finally {
+      if (detailControllerRef.current === controller) detailControllerRef.current = undefined;
+    }
+  }, [batchId]);
   const retry = async (itemId: string, documentId: string) => {
+    retryControllerRef.current?.abort();
+    const controller = new AbortController();
+    retryControllerRef.current = controller;
     setRetryingItemId(itemId);
     setRetryError('');
     try {
-      await onRetry(documentId);
-      await refresh();
+      await onRetry(documentId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current) return;
+      const next = await refresh();
+      if (controller.signal.aborted || !mountedRef.current || !next) return;
+      setStreamRetryNonce((value) => value + 1);
     } catch (cause) {
+      if (controller.signal.aborted || !mountedRef.current || isAbortError(cause)) return;
       setRetryError(cause instanceof Error ? cause.message : '索引重试失败，请稍后重试');
     } finally {
-      setRetryingItemId(undefined);
+      if (retryControllerRef.current === controller) {
+        retryControllerRef.current = undefined;
+        setRetryingItemId(undefined);
+      }
+    }
+  };
+  const reindex = async (itemId: string, documentId: string) => {
+    reindexControllerRef.current?.abort();
+    const controller = new AbortController();
+    reindexControllerRef.current = controller;
+    setReindexingItemId(itemId);
+    setReindexError('');
+    try {
+      await onReindex(documentId, controller.signal);
+      if (controller.signal.aborted || !mountedRef.current) return;
+      const next = await refresh();
+      if (controller.signal.aborted || !mountedRef.current || !next) return;
+      setStreamRetryNonce((value) => value + 1);
+    } catch (cause) {
+      if (controller.signal.aborted || !mountedRef.current || isAbortError(cause)) return;
+      setReindexError(cause instanceof Error ? cause.message : '重新索引失败，请稍后重试');
+    } finally {
+      if (reindexControllerRef.current === controller) {
+        reindexControllerRef.current = undefined;
+        setReindexingItemId(undefined);
+      }
     }
   };
   useEffect(() => {
     let active = true;
-    const load = () =>
-      loadKnowledgeBatch(batchId)
-        .then((value) => active && setDetail(value))
-        .catch(() => undefined);
-    load();
-    const closeStream = streamKnowledgeBatch(batchId, load);
+    const lifecycle = ++lifecycleRef.current;
+    const streamController = new AbortController();
+    if (streamBatchRef.current !== batchId) {
+      streamBatchRef.current = batchId;
+      streamCursorRef.current = undefined;
+    }
+    // 每次批次订阅重建时重置连接状态，但保留已确认的 SSE 游标。
+    setStreamConnection({ state: 'connecting', attempt: 1, maxAttempts: 5, lastEventId: streamCursorRef.current });
+    void refresh().catch(() => undefined);
+    const stream = streamKnowledgeBatch(
+      batchId,
+      () => {
+        void refresh().catch(() => undefined);
+      },
+      {
+        lastEventId: streamCursorRef.current,
+        signal: streamController.signal,
+        onStateChange: (connection) => {
+          if (!active || lifecycle !== lifecycleRef.current) return;
+          streamCursorRef.current = connection.lastEventId;
+          setStreamConnection(connection);
+        },
+      },
+    );
     return () => {
       active = false;
-      closeStream();
+      if (lifecycle === lifecycleRef.current) lifecycleRef.current += 1;
+      streamController.abort();
+      stream.close();
+      detailControllerRef.current?.abort();
+      retryControllerRef.current?.abort();
+      reindexControllerRef.current?.abort();
     };
-  }, [batchId]);
+  }, [batchId, detailReloadNonce, refresh, streamRetryNonce]);
+  useEffect(() => {
+    return () => {
+      mountedRef.current = false;
+      detailControllerRef.current?.abort();
+      retryControllerRef.current?.abort();
+      reindexControllerRef.current?.abort();
+    };
+  }, []);
+  const streamLabel =
+    streamConnection.state === 'connecting'
+      ? '正在连接实时进度...'
+      : streamConnection.state === 'connected'
+        ? '实时进度已连接'
+        : streamConnection.state === 'reconnecting'
+          ? `实时进度重连中（${streamConnection.attempt}/${streamConnection.maxAttempts}）`
+          : streamConnection.state === 'exhausted'
+            ? '实时进度连接失败，当前批次详情仍可刷新。'
+            : '实时进度已结束';
   return (
     <Card className={styles.knowledgeInsights} aria-label="批次进度">
       <strong>批次 {batchId}</strong>
-      <span>{detail?.batch.job.status ?? '上传已提交'}</span>
+      <span>{batchStatusLabel(detail?.batch.job.status)}</span>
+      <div className={styles.knowledgeStreamStatus} data-stream-state={streamConnection.state} role="status">
+        <span>{streamLabel}</span>
+        {streamConnection.state === 'exhausted' ? (
+          <Button variant="outline" size="sm" onClick={() => setStreamRetryNonce((value) => value + 1)}>
+            重连进度
+          </Button>
+        ) : null}
+      </div>
+      {detailError ? (
+        <div role="alert">
+          <span>{detailError}</span>
+          <Button variant="outline" size="sm" onClick={() => setDetailReloadNonce((value) => value + 1)}>
+            重新加载批次
+          </Button>
+        </div>
+      ) : null}
+      {detail?.batch.job.status?.toLowerCase() === 'expired' ? (
+        <span role="alert">当前批次已过期，请重新上传文件。</span>
+      ) : null}
       {retryError ? <span role="alert">{retryError}</span> : null}
+      {reindexError ? <span role="alert">{reindexError}</span> : null}
       {detail?.batch.items.map((item) => (
-        <div key={item.item_id}>
+        <div className={styles.knowledgeBatchItem} key={item.item_id}>
           <span>
             {item.filename}: {item.index_status}
             {item.error_code ? ` (${item.error_code})` : ''}
           </span>
-          {item.index_status === 'index_failed' ? (
-            <Button
-              variant="outline"
-              disabled={retryingItemId === item.item_id}
-              onClick={() => void retry(item.item_id, item.document_id)}
-            >
-              {retryingItemId === item.item_id ? '重试中...' : '重试'}
-            </Button>
+          {canManageAccess ? (
+            <div className={styles.knowledgeBatchActions}>
+              {item.index_status === 'index_failed' ? (
+                <Button
+                  variant="outline"
+                  disabled={retryingItemId === item.item_id || reindexingItemId === item.item_id}
+                  onClick={() => void retry(item.item_id, item.document_id)}
+                >
+                  {retryingItemId === item.item_id ? '重试中...' : '重试'}
+                </Button>
+              ) : null}
+              {item.index_status === 'indexed' || item.index_status === 'index_failed' ? (
+                <Button
+                  variant="outline"
+                  disabled={retryingItemId === item.item_id || reindexingItemId === item.item_id}
+                  onClick={() => void reindex(item.item_id, item.document_id)}
+                >
+                  {reindexingItemId === item.item_id ? '重新索引中...' : '重新索引'}
+                </Button>
+              ) : null}
+            </div>
           ) : null}
         </div>
       ))}

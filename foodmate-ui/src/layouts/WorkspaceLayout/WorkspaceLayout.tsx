@@ -4,8 +4,10 @@ import {
   CalendarDays,
   ChartColumn,
   Home,
-  MoreHorizontal,
+  Menu,
   Plus,
+  PanelLeftClose,
+  PanelLeftOpen,
   RotateCcw,
   Search,
   Settings,
@@ -14,7 +16,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +35,11 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { resolveAvatarUrl } from '../../lib/avatar';
 import { AvatarImage } from '../../components/common/AvatarImage';
+import { useAuthContext } from '../../auth/AuthContext';
 import { SidebarSessionList, type SessionAction } from '../../components/workspace/SidebarSessionList';
 import {
   FigmaWorkspaceAsset,
@@ -50,7 +54,7 @@ import {
   createSession,
   deleteSession,
   loadDeletedSessions,
-  loadSessions,
+  loadSessionSummariesPage,
   renameSession,
   restoreSession,
   searchSessions,
@@ -58,6 +62,7 @@ import {
   type RealSession,
 } from '../../services/sessionService';
 import { getAuthScenarios, getAuthStatus, getAuthUser, loadCurrentUser, logout } from '../../services/authService';
+import { isAbortError } from '../../services/apiClient';
 import styles from './WorkspaceLayout.module.css';
 
 type WorkspaceLayoutProps = {
@@ -95,6 +100,22 @@ type WorkspaceLayoutProps = {
   pageOverlay?: React.ReactNode;
 };
 
+type SidebarTooltipProps = {
+  collapsed: boolean;
+  label: string;
+  children: React.ReactElement;
+};
+
+function SidebarTooltip({ collapsed, label, children }: SidebarTooltipProps) {
+  if (!collapsed) return children;
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>{children}</TooltipTrigger>
+      <TooltipContent side="right">{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export function WorkspaceLayout({
   children,
   activeModule = 'home',
@@ -119,19 +140,33 @@ export function WorkspaceLayout({
   pageOverlay,
 }: WorkspaceLayoutProps) {
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
-  const [authReady, setAuthReady] = useState(!realMode);
+  const authContext = useAuthContext();
+  const [localAuthReady, setLocalAuthReady] = useState(!realMode);
   const [currentUser, setCurrentUser] = useState(getAuthUser());
-  const [sessions, setSessions] = useState<Awaited<ReturnType<typeof loadSessions>>>([]);
+  const [sessions, setSessions] = useState<SessionSummary[]>([]);
   const [sessionQuery, setSessionQuery] = useState('');
+  const [sessionPage, setSessionPage] = useState(1);
+  const [sessionTotal, setSessionTotal] = useState(0);
+  const [sessionLoading, setSessionLoading] = useState(false);
+  const [sessionError, setSessionError] = useState('');
+  const sessionRequestRef = useRef(0);
+  const sessionAbortControllerRef = useRef<AbortController>();
+  const sessionOperationAbortControllerRef = useRef<AbortController>();
+  const pendingSessionOperationRef = useRef<string>();
+  const [pendingSessionOperation, setPendingSessionOperation] = useState<string>();
   const [renameTarget, setRenameTarget] = useState<{ id: string; title: string }>();
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string }>();
   const [deletedOpen, setDeletedOpen] = useState(false);
   const [deletedSessions, setDeletedSessions] = useState<RealSession[]>([]);
   const [notice, setNotice] = useState('');
+  // 侧栏折叠只影响当前工作区壳层，不改变路由、会话数据或页面业务状态。
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const authStatus = getAuthStatus();
-  const authUser = currentUser;
+  const authReady = authContext ? authContext.status !== 'checking' : localAuthReady;
+  const authStatus = authContext?.status ?? getAuthStatus();
+  const authUser = authContext?.user ?? currentUser;
   const authScenarios = getAuthScenarios();
   const currentAuth = authScenarios.find((item) => item.status === authStatus) ?? authScenarios[0];
   const isAuthenticated = authStatus === 'authenticated';
@@ -150,6 +185,9 @@ export function WorkspaceLayout({
   const profileId = profileIdOverride ?? (isAuthenticated ? authUser.id : currentAuth.code);
   const displayedSessions = sidebarFixture?.sessions ?? sessions;
   const displayedSessionQuery = sidebarFixture?.searchValue ?? sessionQuery;
+  const activeSessionId = location.pathname.startsWith('/chat/')
+    ? decodeURIComponent(location.pathname.slice('/chat/'.length).split('/')[0])
+    : undefined;
   // 窗口控制点只由 Figma fixture 显式开启，避免装饰元素进入真实业务壳层。
   const showFixtureWindowControls =
     showWindowControls ?? (designChat || Boolean(sidebarFixture && !showKnowledgeTopNav));
@@ -161,51 +199,111 @@ export function WorkspaceLayout({
     fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name={name} /> : fallback;
 
   useEffect(() => {
-    if (!realMode) return;
+    if (authContext) return;
+    const syncCurrentUser = () => setCurrentUser(getAuthUser());
+    window.addEventListener('foodmate:auth-changed', syncCurrentUser);
+    return () => window.removeEventListener('foodmate:auth-changed', syncCurrentUser);
+  }, [authContext]);
+
+  useEffect(() => {
+    if (!realMode || authContext) return;
     let cancelled = false;
-    loadCurrentUser()
+    const controller = new AbortController();
+    loadCurrentUser(controller.signal)
       .then((user) => {
         if (!cancelled) setCurrentUser(user);
       })
       .catch(() => undefined)
       .finally(() => {
-        if (!cancelled) setAuthReady(true);
+        if (!cancelled) setLocalAuthReady(true);
       });
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [realMode]);
+  }, [authContext, realMode]);
+
+  useEffect(
+    () => () => {
+      sessionRequestRef.current += 1;
+      sessionAbortControllerRef.current?.abort();
+      sessionAbortControllerRef.current = undefined;
+      sessionOperationAbortControllerRef.current?.abort();
+      sessionOperationAbortControllerRef.current = undefined;
+    },
+    [],
+  );
 
   useEffect(() => {
-    if (authReady && realMode && !isAuthenticated) {
+    if (authContext || !authReady || !realMode || isAuthenticated) return;
+    if (!isAuthenticated) {
       navigate(`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`, { replace: true });
     }
-  }, [authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
+  }, [authContext, authReady, realMode, isAuthenticated, location.pathname, location.search, navigate]);
+
+  const loadSessionList = useCallback(
+    async (query: string, page: number) => {
+      const requestId = ++sessionRequestRef.current;
+      sessionAbortControllerRef.current?.abort();
+      const controller = new AbortController();
+      sessionAbortControllerRef.current = controller;
+      setSessionLoading(true);
+      setSessionError('');
+      try {
+        if (query.trim()) {
+          const result = await searchSessions(query.trim(), { page, size: 50 }, controller.signal);
+          if (requestId !== sessionRequestRef.current) return;
+          setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
+          setSessionTotal(result.total);
+          setSessionPage(result.page);
+          return;
+        }
+        const result = await loadSessionSummariesPage({ page, size: 50 }, controller.signal);
+        if (requestId !== sessionRequestRef.current) return;
+        setSessions(result.items.map((item) => ({ ...item, active: item.id === activeSessionId })));
+        setSessionTotal(result.total);
+        setSessionPage(result.page);
+      } catch (error) {
+        if (requestId !== sessionRequestRef.current) return;
+        if (controller.signal.aborted || isAbortError(error)) return;
+        // 请求失败时清空旧列表，避免用户把上一次查询结果误认为当前结果。
+        setSessions([]);
+        setSessionTotal(0);
+        setSessionError(error instanceof Error ? error.message : '会话列表加载失败，请重试。');
+      } finally {
+        if (requestId === sessionRequestRef.current) setSessionLoading(false);
+        if (sessionAbortControllerRef.current === controller) sessionAbortControllerRef.current = undefined;
+      }
+    },
+    [activeSessionId],
+  );
 
   useEffect(() => {
-    if (sidebarFixture || hideSidebar) return;
-    if (authReady && isAuthenticated) {
-      loadSessions()
-        .then(setSessions)
-        .catch(() => undefined);
-    }
-  }, [authReady, hideSidebar, isAuthenticated, sidebarFixture]);
-
-  useEffect(() => {
-    if (!realMode || !sessionQuery.trim()) return;
-    const timer = window.setTimeout(() => {
-      searchSessions(sessionQuery.trim())
-        .then(setSessions)
-        .catch(() => undefined);
-    }, 250);
+    if (sidebarFixture || hideSidebar || !realMode || !authReady || !isAuthenticated) return;
+    const timer = window.setTimeout(
+      () => void loadSessionList(sessionQuery, sessionPage),
+      sessionQuery.trim() ? 250 : 0,
+    );
     return () => window.clearTimeout(timer);
-  }, [realMode, sessionQuery]);
+  }, [authReady, hideSidebar, isAuthenticated, loadSessionList, realMode, sessionPage, sessionQuery, sidebarFixture]);
 
-  const refreshSessions = () =>
-    loadSessions()
-      .then(setSessions)
-      .catch(() => undefined);
+  const refreshSessions = () => loadSessionList(sessionQuery, sessionPage);
   const announce = (message: string) => setNotice(message);
+  // 使用 ref 抢占操作锁，避免连续点击在同一轮渲染内发出重复写请求。
+  const beginSessionOperation = (key: string): AbortController | undefined => {
+    if (pendingSessionOperationRef.current) return undefined;
+    const controller = new AbortController();
+    pendingSessionOperationRef.current = key;
+    sessionOperationAbortControllerRef.current = controller;
+    setPendingSessionOperation(key);
+    return controller;
+  };
+  const endSessionOperation = (key: string, controller: AbortController) => {
+    if (pendingSessionOperationRef.current !== key || sessionOperationAbortControllerRef.current !== controller) return;
+    pendingSessionOperationRef.current = undefined;
+    sessionOperationAbortControllerRef.current = undefined;
+    setPendingSessionOperation(undefined);
+  };
   const handleSessionAction = async (action: SessionAction, session: { id: string; title: string }) => {
     if (action === 'rename') {
       setRenameTarget({ id: session.id, title: session.title });
@@ -215,401 +313,628 @@ export function WorkspaceLayout({
       setDeleteTarget({ id: session.id, title: session.title });
       return;
     }
-    await (action === 'archive' ? archiveSession(session.id) : unarchiveSession(session.id));
-    await refreshSessions();
-    announce(action === 'archive' ? '会话已归档。' : '会话已取消归档。');
+    const operationKey = `${action}:${session.id}`;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      await (action === 'archive'
+        ? archiveSession(session.id, controller.signal)
+        : unarchiveSession(session.id, controller.signal));
+      if (controller.signal.aborted) return;
+      await refreshSessions();
+      if (controller.signal.aborted) return;
+      announce(action === 'archive' ? '会话已归档。' : '会话已取消归档。');
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '会话状态更新失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
   };
   const openDeletedSessions = async () => {
-    setDeletedSessions(await loadDeletedSessions());
-    setDeletedOpen(true);
+    const operationKey = 'deleted:list';
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      const deleted = await loadDeletedSessions({}, controller.signal);
+      if (controller.signal.aborted) return;
+      setDeletedSessions(deleted);
+      setDeletedOpen(true);
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '回收站加载失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
   };
   const saveRename = async () => {
     if (!renameTarget?.title.trim()) return;
-    await renameSession(renameTarget.id, renameTarget.title.trim());
-    setRenameTarget(undefined);
-    await refreshSessions();
-    announce('会话名称已更新。');
+    const operationKey = `rename:${renameTarget.id}`;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      await renameSession(renameTarget.id, renameTarget.title.trim(), controller.signal);
+      if (controller.signal.aborted) return;
+      setRenameTarget(undefined);
+      await refreshSessions();
+      if (controller.signal.aborted) return;
+      announce('会话名称已更新。');
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '会话重命名失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
   };
   const confirmDelete = async () => {
     if (!deleteTarget) return;
-    await deleteSession(deleteTarget.id);
-    setDeleteTarget(undefined);
-    await refreshSessions();
-    if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
-    announce('会话已移入回收站，可在 30 天内恢复。');
+    const operationKey = `delete:${deleteTarget.id}`;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      await deleteSession(deleteTarget.id, controller.signal);
+      if (controller.signal.aborted) return;
+      setDeleteTarget(undefined);
+      await refreshSessions();
+      if (controller.signal.aborted) return;
+      if (location.pathname === `/chat/${deleteTarget.id}`) navigate('/chat', { replace: true });
+      announce('会话已移入回收站，可在 30 天内恢复。');
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '会话删除失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
   };
-  const createNewSession = () => {
+  const createNewSession = async () => {
     if (!realMode) {
       navigate(buildChatPath('week-plan'));
       return;
     }
-    void createSession().then((session) => {
-      void refreshSessions();
+    const operationKey = 'session:create';
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      const session = await createSession(undefined, controller.signal);
+      if (controller.signal.aborted) return;
+      await refreshSessions();
+      if (controller.signal.aborted) return;
       navigate(buildChatPath(session.session_id));
-    });
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '新建会话失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
+  };
+  const restoreDeletedSession = async (sessionId: string) => {
+    const operationKey = `restore:${sessionId}`;
+    const controller = beginSessionOperation(operationKey);
+    if (!controller) return;
+    try {
+      await restoreSession(sessionId, controller.signal);
+      if (controller.signal.aborted) return;
+      // 恢复后重新读取回收站，避免本地移除结果掩盖服务端实际状态。
+      const deleted = await loadDeletedSessions({}, controller.signal);
+      if (controller.signal.aborted) return;
+      setDeletedSessions(deleted);
+      await refreshSessions();
+      if (controller.signal.aborted) return;
+      announce('会话已恢复。');
+    } catch (error) {
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const message = error instanceof Error ? error.message : '会话恢复失败，请重试。';
+      setSessionError(message);
+      announce(message);
+    } finally {
+      endSessionOperation(operationKey, controller);
+    }
   };
   const sideLink = ({ isActive }: { isActive: boolean }) => `${styles.sideLink} ${isActive ? styles.active : ''}`;
   const fixedSideLink = (active: boolean) => `${styles.sideLink} ${active ? styles.active : ''}`;
   const topLink = (active: boolean) => `${styles.topNavLink} ${active ? styles.topNavActive : ''}`;
+
+  const renderSidebar = (mobile = false) => {
+    const closeMobileNavigation = mobile ? () => setMobileNavOpen(false) : undefined;
+
+    return (
+      <aside
+        className={`${styles.sidebar} ${mobile ? styles.mobileSidebar : ''} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}
+      >
+        {showFixtureWindowControls ? (
+          <div className={styles.windowControls} data-name="window-controls" aria-hidden="true">
+            {fixtureVariant ? (
+              <FigmaWorkspaceAsset variant={fixtureVariant} name="windowControls" />
+            ) : (
+              <img src="/assets/figma/workspace/window-controls.svg" alt="" />
+            )}
+          </div>
+        ) : null}
+        <div className={styles.sidebarBrand}>
+          <BrandLogo showTagline />
+        </div>
+        {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
+        <SidebarTooltip collapsed={sidebarCollapsed} label="新建任务">
+          <Button
+            aria-label="新建任务"
+            className={styles.newButton}
+            onClick={() => {
+              closeMobileNavigation?.();
+              void createNewSession();
+            }}
+            disabled={Boolean(pendingSessionOperation)}
+          >
+            {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
+            <span>新建任务</span>
+          </Button>
+        </SidebarTooltip>
+        {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
+          <div className={styles.searchWrap}>
+            {fixtureVariant ? (
+              <FigmaWorkspaceAsset variant={fixtureVariant} name="sessionSearch" className={styles.searchIcon} />
+            ) : (
+              <Search className={styles.searchIcon} aria-hidden="true" />
+            )}
+            <Input
+              className={styles.search}
+              placeholder="搜索会话..."
+              value={displayedSessionQuery}
+              onChange={(event) => {
+                setSessionQuery(event.target.value);
+                setSessionPage(1);
+              }}
+            />
+            {displayedSessionQuery && !designChat ? (
+              <Button
+                className={styles.clearSearch}
+                variant="ghost"
+                size="icon"
+                type="button"
+                aria-label="清除会话搜索"
+                onClick={() => {
+                  setSessionQuery('');
+                  setSessionPage(1);
+                }}
+              >
+                <X aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
+        <div className={styles.sessionTools}>
+          <nav className={styles.primarySideNav} aria-label="工作区导航">
+            <SidebarTooltip collapsed={sidebarCollapsed} label="工作台">
+              <NavLink
+                aria-label={sidebarCollapsed ? '工作台' : undefined}
+                className={sideLink}
+                to={ROUTES.HOME}
+                end
+                onClick={closeMobileNavigation}
+              >
+                {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
+                <span>工作台</span>
+              </NavLink>
+            </SidebarTooltip>
+          </nav>
+          <SidebarSessionList
+            currentPage={sidebarFixture?.currentPage ?? sessionPage}
+            fixtureVariant={fixtureVariant}
+            hidePagination={sidebarFixture?.hideSessionPagination}
+            totalPages={sidebarFixture ? undefined : Math.max(1, Math.ceil(sessionTotal / 50))}
+            sessionCountLabel={sidebarFixture?.sessionCountLabel}
+            actionsDisabled={Boolean(pendingSessionOperation)}
+            sessions={displayedSessions}
+            showHistory={!hideSessionHistory}
+            onAction={sidebarFixture ? undefined : handleSessionAction}
+            onNavigate={closeMobileNavigation}
+            onPageChange={
+              sidebarFixture
+                ? undefined
+                : (page) => {
+                    setSessionPage(page);
+                  }
+            }
+          />
+          {realMode && !sidebarFixture ? (
+            <>
+              {sessionLoading ? (
+                <div className={styles.sessionStatus} role="status">
+                  正在加载会话...
+                </div>
+              ) : null}
+              {sessionError ? (
+                <div className={styles.sessionError} role="alert">
+                  <span>{sessionError}</span>
+                  <Button variant="ghost" size="sm" type="button" onClick={() => void refreshSessions()}>
+                    重试
+                  </Button>
+                </div>
+              ) : null}
+            </>
+          ) : null}
+          {realMode ? (
+            <Button
+              className={styles.deletedButton}
+              variant="ghost"
+              disabled={Boolean(pendingSessionOperation)}
+              onClick={() => {
+                closeMobileNavigation?.();
+                void openDeletedSessions();
+              }}
+            >
+              查看已删除会话
+            </Button>
+          ) : null}
+        </div>
+        {!sidebarFixture?.hideSecondaryNavigation ? (
+          <nav className={styles.secondarySideNav} aria-label="饮食工具">
+            <SidebarTooltip collapsed={sidebarCollapsed} label="饮食记录">
+              <NavLink
+                aria-label={sidebarCollapsed ? '饮食记录' : undefined}
+                className={fixedSideLink(activeModule === 'records')}
+                to={`${ROUTES.ANALYSIS}?view=records`}
+                onClick={closeMobileNavigation}
+              >
+                {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
+                <span>饮食记录</span>
+              </NavLink>
+            </SidebarTooltip>
+            <SidebarTooltip collapsed={sidebarCollapsed} label="摄入分析">
+              <NavLink
+                aria-label={sidebarCollapsed ? '摄入分析' : undefined}
+                className={fixedSideLink(activeModule === 'analysis')}
+                to={ROUTES.ANALYSIS}
+                end
+                onClick={closeMobileNavigation}
+              >
+                {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
+                <span>摄入分析</span>
+              </NavLink>
+            </SidebarTooltip>
+            <SidebarTooltip collapsed={sidebarCollapsed} label="餐食规划">
+              <NavLink
+                aria-label={sidebarCollapsed ? '餐食规划' : undefined}
+                className={sideLink}
+                to={ROUTES.PLANNING}
+                onClick={closeMobileNavigation}
+              >
+                {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
+                <span>餐食规划</span>
+              </NavLink>
+            </SidebarTooltip>
+            <SidebarTooltip collapsed={sidebarCollapsed} label="知识库">
+              <NavLink
+                aria-label={sidebarCollapsed ? '知识库' : undefined}
+                className={sideLink}
+                to={ROUTES.KNOWLEDGE}
+                onClick={closeMobileNavigation}
+              >
+                {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
+                <span>知识库</span>
+              </NavLink>
+            </SidebarTooltip>
+            <SidebarTooltip collapsed={sidebarCollapsed} label="设置">
+              <Button
+                aria-label="设置"
+                className={styles.sideButton}
+                variant="ghost"
+                type="button"
+                onClick={() => {
+                  closeMobileNavigation?.();
+                  announce('设置入口将在设置页面完成后启用。');
+                }}
+              >
+                {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
+                <span>设置</span>
+              </Button>
+            </SidebarTooltip>
+          </nav>
+        ) : null}
+        <div className={styles.accountDock}>
+          {!sidebarFixture?.hideCollapseButton ? (
+            <Button
+              className={styles.collapseButton}
+              variant="ghost"
+              type="button"
+              aria-expanded={!sidebarCollapsed}
+              aria-label={sidebarCollapsed ? '展开导航' : '收起导航'}
+              title={sidebarCollapsed ? '展开导航' : '收起导航'}
+              onClick={() => setSidebarCollapsed((current) => !current)}
+            >
+              {sidebarCollapsed ? <PanelLeftOpen aria-hidden="true" /> : <PanelLeftClose aria-hidden="true" />}
+              <span>{sidebarCollapsed ? '展开导航' : '收起导航'}</span>
+            </Button>
+          ) : null}
+          <div className={styles.statusPill}>
+            {fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name="statusDot" /> : <span />}
+            <span>就绪 (Fustat-v2)</span>
+          </div>
+          <Link
+            className={styles.profile}
+            to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}
+            onClick={closeMobileNavigation}
+          >
+            <div className={styles.avatar}>
+              <AvatarImage
+                avatarUrl={sidebarAvatar}
+                allowUploaded={realMode && !isFixtureLayout}
+                data-avatar-role="workspace-sidebar"
+                defaultOnly={defaultOnlyAvatar}
+                gender={layoutAvatarGender}
+                alt=""
+              />
+            </div>
+            <div>
+              <strong>
+                {displayNameOverride
+                  ? `${displayNameOverride} 的工作区`
+                  : isAuthenticated
+                    ? `${authUser.displayName} 的工作区`
+                    : '未登录'}
+              </strong>
+              <span>ID: {profileId}</span>
+            </div>
+          </Link>
+        </div>
+      </aside>
+    );
+  };
 
   if (!authReady) return <div className={styles.loadingState}>正在校验登录状态...</div>;
   if (realMode && !isAuthenticated) return null;
 
   return (
     <TooltipProvider delayDuration={300}>
-      <div
-        className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${hideSidebar ? styles.noSidebar : ''} ${isFigmaFixture ? styles.figmaFixture : ''}`}
-        data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
-        data-shell-avatar-assets="default-male.svg,default-female.svg"
-      >
-        {!hideSidebar ? (
-          <aside className={`${styles.sidebar} ${sidebarFixture?.showTopStatus ? styles.profileFixture : ''}`}>
-            {showFixtureWindowControls ? (
-              <div className={styles.windowControls} data-name="window-controls" aria-hidden="true">
-                {fixtureVariant ? (
-                  <FigmaWorkspaceAsset variant={fixtureVariant} name="windowControls" />
-                ) : (
-                  <img src="/assets/figma/workspace/window-controls.svg" alt="" />
-                )}
-              </div>
-            ) : null}
-            <div className={styles.sidebarBrand}>
-              <BrandLogo showTagline />
-            </div>
-            {sidebarFixture?.showTopStatus ? <div className={styles.fixtureOnlineStatus}>在线代理</div> : null}
-            <Button className={styles.newButton} onClick={createNewSession}>
-              {renderWorkspaceIcon('newTask', <Plus aria-hidden="true" />)}
-              <span>新建任务</span>
-            </Button>
-            {!hideSessionHistory && !sidebarFixture?.hideSessionSearch ? (
-              <div className={styles.searchWrap}>
-                {fixtureVariant ? (
-                  <FigmaWorkspaceAsset variant={fixtureVariant} name="sessionSearch" className={styles.searchIcon} />
-                ) : (
-                  <Search className={styles.searchIcon} aria-hidden="true" />
-                )}
-                <Input
-                  className={styles.search}
-                  placeholder="搜索会话..."
-                  value={displayedSessionQuery}
-                  onChange={(event) => setSessionQuery(event.target.value)}
-                />
-                {displayedSessionQuery && !designChat ? (
-                  <Button
-                    className={styles.clearSearch}
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    aria-label="清除会话搜索"
-                    onClick={() => setSessionQuery('')}
-                  >
-                    <X aria-hidden="true" />
+      <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+        <div
+          className={`${styles.shell} ${rightRail ? styles.withRail : ''} ${rightRailWidth === 340 ? styles.withWideRail : ''} ${activeModule === 'knowledge' ? styles.knowledgeLayout : ''} ${designChat ? styles.designChat : ''} ${hideSidebar ? styles.noSidebar : ''} ${isFigmaFixture ? styles.figmaFixture : ''} ${sidebarCollapsed ? styles.sidebarCollapsed : ''}`}
+          data-shell-avatar-policy={defaultOnlyAvatar ? 'default-only' : 'uploaded-allowed'}
+          data-shell-avatar-assets="default-male.svg,default-female.svg"
+        >
+          {!hideSidebar ? renderSidebar() : null}
+          {!hideSidebar ? (
+            <SheetContent side="left" className={styles.mobileNavSheet} aria-label="移动端工作区导航">
+              {renderSidebar(true)}
+            </SheetContent>
+          ) : null}
+          <main className={styles.main}>
+            <header
+              className={`${styles.topbar} ${topbarVariant === 'planning-list' ? styles.planningListTopbar : ''}`}
+              data-topbar-variant={topbarVariant}
+            >
+              {!hideSidebar ? (
+                <SheetTrigger asChild>
+                  <Button className={styles.mobileNavTrigger} variant="ghost" size="icon" aria-label="打开工作区导航">
+                    <Menu aria-hidden="true" />
                   </Button>
-                ) : null}
-              </div>
-            ) : null}
-            <div className={styles.sessionTools}>
-              <nav className={styles.primarySideNav} aria-label="工作区导航">
-                <NavLink className={sideLink} to={ROUTES.HOME} end>
-                  {renderWorkspaceIcon('home', <Home aria-hidden="true" />)}
-                  <span>工作台</span>
-                </NavLink>
-              </nav>
-              <SidebarSessionList
-                currentPage={sidebarFixture?.currentPage}
-                fixtureVariant={fixtureVariant}
-                hidePagination={sidebarFixture?.hideSessionPagination}
-                sessionCountLabel={sidebarFixture?.sessionCountLabel}
-                sessions={displayedSessions}
-                showHistory={!hideSessionHistory}
-                onAction={sidebarFixture ? undefined : handleSessionAction}
+                </SheetTrigger>
+              ) : null}
+              <BrandLogo
+                size="compact"
+                showMarkLetter={topbarShowMarkLetter && (showKnowledgeTopNav || (!sidebarFixture && !designChat))}
               />
-              {realMode ? (
-                <Button className={styles.deletedButton} variant="ghost" onClick={() => void openDeletedSessions()}>
-                  查看已删除会话
-                </Button>
-              ) : null}
-            </div>
-            {!sidebarFixture?.hideSecondaryNavigation ? (
-              <nav className={styles.secondarySideNav} aria-label="饮食工具">
-                <NavLink className={fixedSideLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
-                  {renderWorkspaceIcon('dietRecords', <Table2 aria-hidden="true" />)}
-                  <span>饮食记录</span>
-                </NavLink>
-                <NavLink className={fixedSideLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
-                  {renderWorkspaceIcon('intakeAnalysis', <ChartColumn aria-hidden="true" />)}
-                  <span>摄入分析</span>
-                </NavLink>
-                <NavLink className={sideLink} to={ROUTES.PLANNING}>
-                  {renderWorkspaceIcon('mealPlanning', <CalendarDays aria-hidden="true" />)}
-                  <span>餐食规划</span>
-                </NavLink>
-                <NavLink className={sideLink} to={ROUTES.KNOWLEDGE}>
-                  {renderWorkspaceIcon('knowledge', <BookOpen aria-hidden="true" />)}
-                  <span>知识库</span>
-                </NavLink>
-                <Button
-                  className={styles.sideButton}
-                  variant="ghost"
-                  type="button"
-                  onClick={() => announce('设置入口将在设置页面完成后启用。')}
-                >
-                  {renderWorkspaceIcon('settings', <Settings aria-hidden="true" />)}
-                  <span>设置</span>
-                </Button>
-              </nav>
-            ) : null}
-            <div className={styles.accountDock}>
-              {!sidebarFixture?.hideCollapseButton ? (
-                <Button
-                  className={styles.collapseButton}
-                  variant="ghost"
-                  type="button"
-                  onClick={() => announce('导航折叠将在响应式侧栏阶段启用。')}
-                >
-                  <MoreHorizontal aria-hidden="true" />
-                  <span>收起导航</span>
-                </Button>
-              ) : null}
-              <div className={styles.statusPill}>
-                {fixtureVariant ? <FigmaWorkspaceAsset variant={fixtureVariant} name="statusDot" /> : <span />}
-                <span>就绪 (Fustat-v2)</span>
-              </div>
-              <Link className={styles.profile} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-                <div className={styles.avatar}>
-                  <AvatarImage
-                    avatarUrl={defaultOnlyAvatar ? undefined : sidebarAvatar}
-                    allowUploaded={realMode && !isFixtureLayout}
-                    data-avatar-role="workspace-sidebar"
-                    defaultOnly={defaultOnlyAvatar}
-                    gender={layoutAvatarGender}
-                    alt=""
-                  />
-                </div>
-                <div>
-                  <strong>
-                    {displayNameOverride
-                      ? `${displayNameOverride} 的工作区`
-                      : isAuthenticated
-                        ? `${authUser.displayName} 的工作区`
-                        : '未登录'}
-                  </strong>
-                  <span>ID: {profileId}</span>
-                </div>
-              </Link>
-            </div>
-          </aside>
-        ) : null}
-        <main className={styles.main}>
-          <header
-            className={`${styles.topbar} ${topbarVariant === 'planning-list' ? styles.planningListTopbar : ''}`}
-            data-topbar-variant={topbarVariant}
-          >
-            <BrandLogo
-              size="compact"
-              showMarkLetter={topbarShowMarkLetter && (showKnowledgeTopNav || (!sidebarFixture && !designChat))}
-            />
-            <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
-              {activeModule === 'profile' ? (
-                profileActiveTab ? (
-                  [
-                    { key: 'basic', label: '基本资料', to: ROUTES.PROFILE },
-                    { key: 'memories', label: '记忆与偏好', to: ROUTES.PROFILE_MEMORIES },
-                    { key: 'security', label: '安全与设备', to: ROUTES.PROFILE_SECURITY },
-                    { key: 'privacy', label: '数据与隐私', to: ROUTES.PROFILE_DATA },
-                  ].map((item) => {
-                    const isActive = profileActiveTab === item.key;
-                    return (
-                      <Link
-                        aria-current={isActive ? 'page' : undefined}
-                        className={topLink(isActive)}
-                        key={item.key}
-                        to={item.to}
-                      >
-                        {item.label}
-                      </Link>
-                    );
-                  })
+              <nav className={styles.nav} aria-label={activeModule === 'profile' ? '个人中心导航' : '主导航'}>
+                {activeModule === 'profile' ? (
+                  profileActiveTab ? (
+                    [
+                      { key: 'basic', label: '基本资料', to: ROUTES.PROFILE },
+                      { key: 'memories', label: '记忆与偏好', to: ROUTES.PROFILE_MEMORIES },
+                      { key: 'security', label: '安全与设备', to: ROUTES.PROFILE_SECURITY },
+                      { key: 'privacy', label: '数据与隐私', to: ROUTES.PROFILE_DATA },
+                    ].map((item) => {
+                      const isActive = profileActiveTab === item.key;
+                      return (
+                        <Link
+                          aria-current={isActive ? 'page' : undefined}
+                          className={topLink(isActive)}
+                          key={item.key}
+                          to={item.to}
+                        >
+                          {item.label}
+                        </Link>
+                      );
+                    })
+                  ) : (
+                    <>
+                      <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE} end>
+                        基本资料
+                      </NavLink>
+                      <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_MEMORIES}>
+                        记忆与偏好
+                      </NavLink>
+                      <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_SECURITY}>
+                        安全与设备
+                      </NavLink>
+                      <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_DATA}>
+                        数据与隐私
+                      </NavLink>
+                    </>
+                  )
                 ) : (
                   <>
-                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE} end>
-                      基本资料
+                    <NavLink className={topLink(activeModule === 'home' || designChat)} to={ROUTES.HOME} end>
+                      工作台
                     </NavLink>
-                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_MEMORIES}>
-                      记忆与偏好
+                    <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
+                      饮食记录
                     </NavLink>
-                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_SECURITY}>
-                      安全与设备
+                    <NavLink className={topLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
+                      摄入分析
                     </NavLink>
-                    <NavLink className={({ isActive }) => topLink(isActive)} to={ROUTES.PROFILE_DATA}>
-                      数据与隐私
+                    <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
+                      餐食规划
                     </NavLink>
+                    {showKnowledgeTopNav ? (
+                      <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
+                        知识库
+                      </NavLink>
+                    ) : null}
+                    {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
                   </>
-                )
-              ) : (
-                <>
-                  <NavLink className={topLink(activeModule === 'home' || designChat)} to={ROUTES.HOME} end>
-                    工作台
-                  </NavLink>
-                  <NavLink className={topLink(activeModule === 'records')} to={`${ROUTES.ANALYSIS}?view=records`}>
-                    饮食记录
-                  </NavLink>
-                  <NavLink className={topLink(activeModule === 'analysis')} to={ROUTES.ANALYSIS} end>
-                    摄入分析
-                  </NavLink>
-                  <NavLink className={topLink(activeModule === 'planning')} to={ROUTES.PLANNING}>
-                    餐食规划
-                  </NavLink>
-                  {showKnowledgeTopNav ? (
-                    <NavLink className={topLink(activeModule === 'knowledge')} to={ROUTES.KNOWLEDGE}>
-                      知识库
-                    </NavLink>
-                  ) : null}
-                  {moduleLabel ? <span className={styles.moduleLabel}>{moduleLabel}</span> : null}
-                </>
-              )}
-            </nav>
-            <div className={styles.userActions}>
-              <div className={styles.workspaceSearch}>
-                {renderWorkspaceIcon('topbarSearch', <Search aria-hidden="true" />)}
-                <Input placeholder="搜索工作区..." aria-label="搜索工作区" />
-              </div>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    className={styles.iconButton}
-                    variant="ghost"
-                    size="icon"
-                    type="button"
-                    aria-label="通知"
-                    onClick={() => announce('暂无新的工作区通知。')}
-                  >
-                    {renderWorkspaceIcon('notification', <Bell aria-hidden="true" />)}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>通知</TooltipContent>
-              </Tooltip>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button className={styles.userButton} variant="ghost" type="button">
-                    <span className={styles.topAvatar}>
-                      <AvatarImage
-                        avatarUrl={defaultOnlyAvatar ? undefined : topAvatar}
-                        allowUploaded={realMode && !isFixtureLayout}
-                        data-avatar-role="workspace-topbar"
-                        defaultOnly={defaultOnlyAvatar}
-                        gender={layoutAvatarGender}
-                        alt=""
-                      />
-                    </span>
-                    <span>{displayName}</span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuItem asChild>
-                    <Link className={styles.menuLink} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
-                      <User aria-hidden="true" />
-                      个人资料
-                    </Link>
-                  </DropdownMenuItem>
-                  {canAccessAdmin ? (
+                )}
+              </nav>
+              <div className={styles.userActions}>
+                <div className={styles.workspaceSearch}>
+                  {renderWorkspaceIcon('topbarSearch', <Search aria-hidden="true" />)}
+                  <Input placeholder="搜索工作区..." aria-label="搜索工作区" />
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      className={styles.iconButton}
+                      variant="ghost"
+                      size="icon"
+                      type="button"
+                      aria-label="通知"
+                      onClick={() => announce('暂无新的工作区通知。')}
+                    >
+                      {renderWorkspaceIcon('notification', <Bell aria-hidden="true" />)}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>通知</TooltipContent>
+                </Tooltip>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button className={styles.userButton} variant="ghost" type="button">
+                      <span className={styles.topAvatar}>
+                        <AvatarImage
+                          avatarUrl={topAvatar}
+                          allowUploaded={realMode && !isFixtureLayout}
+                          data-avatar-role="workspace-topbar"
+                          defaultOnly={defaultOnlyAvatar}
+                          gender={layoutAvatarGender}
+                          alt=""
+                        />
+                      </span>
+                      <span>{displayName}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
                     <DropdownMenuItem asChild>
-                      <Link className={styles.menuLink} to={ROUTES.ADMIN}>
-                        管理后台
+                      <Link className={styles.menuLink} to={isAuthenticated ? ROUTES.PROFILE : ROUTES.LOGIN}>
+                        <User aria-hidden="true" />
+                        个人资料
                       </Link>
                     </DropdownMenuItem>
-                  ) : null}
-                  <DropdownMenuItem onSelect={() => announce('真实模式下会话失效由服务端 401 处理。')}>
-                    检查登录状态
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link className={styles.menuLink} to={ROUTES.LOGIN} onClick={() => void logout()}>
-                      退出登录
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-            {notice ? (
-              <div className={styles.notice} role="status" aria-live="polite">
-                {notice}
+                    {canAccessAdmin ? (
+                      <DropdownMenuItem asChild>
+                        <Link className={styles.menuLink} to={ROUTES.ADMIN}>
+                          管理后台
+                        </Link>
+                      </DropdownMenuItem>
+                    ) : null}
+                    <DropdownMenuItem onSelect={() => announce('真实模式下会话失效由服务端 401 处理。')}>
+                      检查登录状态
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link className={styles.menuLink} to={ROUTES.LOGIN} onClick={() => void logout()}>
+                        退出登录
+                      </Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            ) : null}
-          </header>
-          {children}
-        </main>
-        {rightRail ? <div className={styles.rightRail}>{rightRail}</div> : null}
-        {pageOverlay}
-        <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(undefined)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>重命名会话</DialogTitle>
-              <DialogDescription>名称只影响当前会话列表显示。</DialogDescription>
-            </DialogHeader>
-            <Input
-              autoFocus
-              value={renameTarget?.title ?? ''}
-              maxLength={255}
-              onChange={(event) =>
-                setRenameTarget((current) => (current ? { ...current, title: event.target.value } : current))
-              }
-            />
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setRenameTarget(undefined)}>
-                取消
-              </Button>
-              <Button onClick={() => void saveRename()}>保存</Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(undefined)}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>删除会话</DialogTitle>
-              <DialogDescription>“{deleteTarget?.title}”将进入回收站，并可在 30 天内恢复。</DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDeleteTarget(undefined)}>
-                取消
-              </Button>
-              <Button variant="destructive" onClick={() => void confirmDelete()}>
-                <Trash2 aria-hidden="true" />
-                删除
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-        <Dialog open={deletedOpen} onOpenChange={setDeletedOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>已删除会话</DialogTitle>
-              <DialogDescription>恢复后会话会回到最近 Agent 会话列表。</DialogDescription>
-            </DialogHeader>
-            {deletedSessions.length === 0 ? (
-              <p>暂无可恢复的会话。</p>
-            ) : (
-              deletedSessions.map((session) => (
-                <div className={styles.deletedRow} key={session.session_id}>
-                  <span>{session.title}</span>
-                  <Button
-                    variant="ghost"
-                    onClick={async () => {
-                      await restoreSession(String(session.session_id));
-                      setDeletedSessions((items) => items.filter((item) => item.session_id !== session.session_id));
-                      await refreshSessions();
-                      announce('会话已恢复。');
-                    }}
-                  >
-                    <RotateCcw aria-hidden="true" />
-                    恢复
-                  </Button>
+              {notice ? (
+                <div className={styles.notice} role="status" aria-live="polite">
+                  {notice}
                 </div>
-              ))
-            )}
-          </DialogContent>
-        </Dialog>
-      </div>
+              ) : null}
+            </header>
+            {children}
+          </main>
+          {rightRail ? <div className={styles.rightRail}>{rightRail}</div> : null}
+          {pageOverlay}
+          <Dialog open={Boolean(renameTarget)} onOpenChange={(open) => !open && setRenameTarget(undefined)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>重命名会话</DialogTitle>
+                <DialogDescription>名称只影响当前会话列表显示。</DialogDescription>
+              </DialogHeader>
+              <Input
+                autoFocus
+                value={renameTarget?.title ?? ''}
+                maxLength={255}
+                onChange={(event) =>
+                  setRenameTarget((current) => (current ? { ...current, title: event.target.value } : current))
+                }
+              />
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  disabled={Boolean(pendingSessionOperation)}
+                  onClick={() => setRenameTarget(undefined)}
+                >
+                  取消
+                </Button>
+                <Button disabled={Boolean(pendingSessionOperation)} onClick={() => void saveRename()}>
+                  保存
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={Boolean(deleteTarget)} onOpenChange={(open) => !open && setDeleteTarget(undefined)}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>删除会话</DialogTitle>
+                <DialogDescription>“{deleteTarget?.title}”将进入回收站，并可在 30 天内恢复。</DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  disabled={Boolean(pendingSessionOperation)}
+                  onClick={() => setDeleteTarget(undefined)}
+                >
+                  取消
+                </Button>
+                <Button
+                  variant="destructive"
+                  disabled={Boolean(pendingSessionOperation)}
+                  onClick={() => void confirmDelete()}
+                >
+                  <Trash2 aria-hidden="true" />
+                  删除
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+          <Dialog open={deletedOpen} onOpenChange={setDeletedOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>已删除会话</DialogTitle>
+                <DialogDescription>恢复后会话会回到最近 Agent 会话列表。</DialogDescription>
+              </DialogHeader>
+              {deletedSessions.length === 0 ? (
+                <p>暂无可恢复的会话。</p>
+              ) : (
+                deletedSessions.map((session) => (
+                  <div className={styles.deletedRow} key={session.session_id}>
+                    <span>{session.title}</span>
+                    <Button
+                      variant="ghost"
+                      disabled={Boolean(pendingSessionOperation)}
+                      onClick={() => void restoreDeletedSession(String(session.session_id))}
+                    >
+                      <RotateCcw aria-hidden="true" />
+                      恢复
+                    </Button>
+                  </div>
+                ))
+              )}
+            </DialogContent>
+          </Dialog>
+        </div>
+      </Sheet>
     </TooltipProvider>
   );
 }

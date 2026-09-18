@@ -1,22 +1,41 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import {
   AlertTriangle,
   CalendarDays,
+  Check,
   ChartColumn,
   CircleSlash,
   LoaderCircle,
   MessageCircle,
+  Pencil,
+  RefreshCw,
   Search,
+  Trash2,
   XCircle,
   X,
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { AgentRunView, AgentDisplayStatus, AgentStreamConnection, ToolCall } from '../../types/agent';
+import { Textarea } from '@/components/ui/textarea';
+import type {
+  AgentRunView,
+  AgentDisplayStatus,
+  AgentStreamConnection,
+  AgentStreamHandle,
+  ToolCall,
+} from '../../types/agent';
 import type { Message } from '../../types/session';
 import type { SessionSummary } from '../../types/session';
 import { WorkspaceLayout } from '../../layouts/WorkspaceLayout/WorkspaceLayout';
@@ -29,27 +48,54 @@ import { ClarificationCard } from '../../components/agent/ClarificationCard';
 import { ConfirmationCard } from '../../components/agent/ConfirmationCard';
 import { ErrorState } from '../../components/common/ErrorState';
 import { AvatarImage } from '../../components/common/AvatarImage';
-import { DEFAULT_AVATARS, FIXTURE_CHAT_AVATAR_GENDERS, FIXTURE_CHAT_AVATARS, resolveAvatarUrl } from '../../lib/avatar';
+import { FIXTURE_ACCOUNT_AVATAR, FIXTURE_CHAT_AVATAR_GENDERS, resolveAvatarUrl } from '../../lib/avatar';
+import { flattenAgentEventPayload, resolveAgentEventType } from '../../lib/agentEvent';
+import { isFigmaFixtureState } from '../../lib/figmaFixture';
 import { getAuthUser } from '../../services/authService';
 import { useAgentReplay } from '../../services/agentService';
-import { ApiError } from '../../services/apiClient';
-import { createSession, loadSessionMessages, sendUserMessage, type RealMessage } from '../../services/sessionService';
+import { useRealAgentReplay } from '../../services/realAgentService';
+import { ApiError, isAbortError } from '../../services/apiClient';
+import {
+  createSession,
+  deleteMessage,
+  loadSessionMessages,
+  sendUserMessage,
+  updateMessage,
+  type RealMessage,
+} from '../../services/sessionService';
 import {
   cancelAgentRun,
+  createApprovalProposal,
   confirmAgentWrite,
   executeAgentWrite,
   extendAgentRunBudget,
+  loadAgentRun,
+  loadApprovalProposal,
   openAgentRunStream,
-  rejectAgentWrite,
   recoverAgentRun,
+  rejectAgentWrite,
+  recoverAgentRunFromCheckpoint,
+  retryAgentRun,
+  skipAgentTool,
+  type AgentRecoveryRequest,
   type AgentRunEvent,
 } from '../../services/agentRunService';
 import styles from './ChatPage.module.css';
 
-const FIXTURE_CHAT_SIDEBAR_AVATAR = FIXTURE_CHAT_AVATARS.sidebar;
-const FIXTURE_CHAT_TOPBAR_AVATAR = FIXTURE_CHAT_AVATARS.topbar;
-const FIXTURE_CHAT_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.message;
-const FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR = FIXTURE_CHAT_AVATARS.agentStateMessage;
+// Chat Fixture 的人物身份只有一个示例账号，壳层和用户消息必须引用同一份登记头像。
+const FIXTURE_CHAT_ACCOUNT_AVATAR = FIXTURE_ACCOUNT_AVATAR;
+
+// 默认 Chat 画板与 Figma 640:428 共用完整的第一页会话历史，保证壳层导航不是空态。
+const FIGMA_CHAT_SIDEBAR_SESSIONS: SessionSummary[] = [
+  { id: 'weekly-adjustment', title: '每周饮食微调', subtitle: '12:45', active: true, status: 'completed' },
+  { id: 'pre-workout-snack', title: '运动前零食建议', subtitle: '12:45', status: 'completed' },
+  { id: 'allergen-rules', title: '过敏原排除规则', subtitle: '12:45', status: 'completed' },
+  { id: 'protein-supplement', title: '蛋白质补充方案', subtitle: '12:45', status: 'completed' },
+  { id: 'bedtime-snack', title: '睡前加餐建议', subtitle: '12:45', status: 'completed' },
+  { id: 'breakfast-carbs', title: '早餐碳水搭配', subtitle: '12:45', status: 'completed' },
+  { id: 'dinner-protein', title: '晚餐蛋白质补充', subtitle: '12:45', status: 'completed' },
+  { id: 'low-carb-diet', title: '低碳水饮食建议', subtitle: '12:45', status: 'completed' },
+];
 
 type ChatMessage = {
   id: string;
@@ -61,15 +107,42 @@ type ChatMessage = {
   agentRunId?: string;
 };
 
+type ChatNavigationState = {
+  sendError?: string;
+  pendingPrompt?: string;
+};
+
+function readChatNavigationState(value: unknown): ChatNavigationState {
+  if (!value || typeof value !== 'object') return {};
+  const state = value as Record<string, unknown>;
+  return {
+    sendError: typeof state.sendError === 'string' ? state.sendError : undefined,
+    pendingPrompt: typeof state.pendingPrompt === 'string' ? state.pendingPrompt : undefined,
+  };
+}
+
 function displayRunStatus(status: string): AgentDisplayStatus {
-  if (status === 'queued' || status === 'routed') return 'routing';
-  if (status === 'planning' || status === 'retrieving' || status === 'executing') {
-    return status === 'executing' ? 'executing_tools' : status;
+  const normalized = status.trim().toLowerCase();
+  if (normalized === 'queued' || normalized === 'dispatched' || normalized === 'routed') return 'routing';
+  if (normalized === 'planning' || normalized === 'retrieving' || normalized === 'executing') {
+    return normalized === 'executing' ? 'executing_tools' : normalized;
   }
-  if (status === 'validating') return 'validating';
-  if (status === 'waiting_user') return 'waiting_user';
-  if (status === 'failed' || status === 'cancelled' || status === 'completed' || status === 'superseded') return status;
+  if (normalized === 'running') return 'executing_tools';
+  if (normalized === 'validating') return 'validating';
+  if (normalized === 'composing') return 'composing';
+  if (normalized === 'waiting_user') return 'waiting_user';
+  if (normalized === 'failed' || normalized === 'cancelled' || normalized === 'canceled')
+    return 'failed' === normalized ? 'failed' : 'cancelled';
+  if (normalized === 'completed' || normalized === 'succeeded') return 'completed';
+  if (normalized === 'superseded') return 'superseded';
   return 'routing';
+}
+
+const TERMINAL_RUN_STATUSES = ['completed', 'failed', 'cancelled', 'superseded'] as const;
+type TerminalRunStatus = (typeof TERMINAL_RUN_STATUSES)[number];
+
+function isTerminalRunStatus(status: AgentDisplayStatus): status is TerminalRunStatus {
+  return TERMINAL_RUN_STATUSES.includes(status as TerminalRunStatus);
 }
 
 function runtimeErrorMessage(payload: { code?: string; error_message?: string; message?: string }) {
@@ -77,14 +150,31 @@ function runtimeErrorMessage(payload: { code?: string; error_message?: string; m
   if (payload.code === 'RUNTIME_CAPACITY_EXCEEDED') return '当前运行队列已满，请稍后重试。';
   if (payload.code === 'RUNTIME_QUEUE_TIMEOUT') return '请求排队超时，请稍后重试。';
   if (payload.code === 'MODEL_PROVIDER_UNAVAILABLE') return '模型服务暂时不可用，请稍后重试。';
-  return payload.error_message ?? payload.message ?? 'Agent 运行失败。';
+  return (
+    payload.error_message ??
+    payload.message ??
+    (payload.code ? `运行失败（错误码：${payload.code}）。` : 'Agent 运行失败。')
+  );
+}
+
+function messageMutationError(reason: unknown, fallback: string) {
+  if (reason instanceof ApiError) {
+    if (reason.status === 409 || ['CONFLICT', 'MESSAGE_CONFLICT', 'VERSION_CONFLICT'].includes(reason.code)) {
+      return '这条消息已被其他操作更新，请重新加载会话后再试。';
+    }
+    if (reason.code === 'FORBIDDEN') return '当前账号无权操作这条消息。';
+    return reason.message;
+  }
+  return reason instanceof Error ? reason.message : fallback;
 }
 
 function formatMessageTime(value: string) {
-  if (!value.includes('-')) return value;
+  const normalized = value.trim();
+  if (/^\d{1,2}:\d{2}\s?(?:AM|PM)$/i.test(normalized)) return normalized;
+  if (/^\d{1,2}:\d{2}$/.test(normalized)) return `${normalized} PM`;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return date.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 function normalizeRunIntent(value: string | undefined): AgentRunView['intent'] {
@@ -128,6 +218,8 @@ function mergeToolCall(current: ToolCall[], payload: AgentRunEvent, phase: 'star
     name,
     displayName: toolDisplayName(name),
     status: phase === 'started' ? 'running' : toolStatus(payload.status),
+    proposalId: payload.proposal_id ?? previous?.proposalId,
+    skippable: payload.skippable === undefined ? previous?.skippable : payload.skippable === true,
     latencyMs: payload.latency_ms ?? previous?.latencyMs,
     summary:
       phase === 'started'
@@ -148,11 +240,25 @@ function MessageBubble({
   children,
   userAvatarSrc,
   userAvatarGender,
+  userActions,
+  editing = false,
+  editValue = '',
+  editPending = false,
+  onEditChange,
+  onEditSave,
+  onEditCancel,
 }: {
   message: ChatMessage;
   children?: ReactNode;
   userAvatarSrc?: string;
   userAvatarGender?: string;
+  userActions?: ReactNode;
+  editing?: boolean;
+  editValue?: string;
+  editPending?: boolean;
+  onEditChange?: (value: string) => void;
+  onEditSave?: () => void;
+  onEditCancel?: () => void;
 }) {
   const isUser = message.role === 'user';
   const authUser = getAuthUser();
@@ -161,12 +267,55 @@ function MessageBubble({
   const resolvedGender = userAvatarGender ?? authUser.gender;
   const userAvatar = resolveAvatarUrl(userAvatarSrc ?? authUser.avatarUrl, resolvedGender);
   const fixtureAvatar = import.meta.env.VITE_AGENT_MODE !== 'real' || Boolean(userAvatarSrc || userAvatarGender);
+  const displayName = fixtureAvatar ? 'Anddy' : authUser.displayName || authUser.username;
   return (
     <article className={`${styles.message} ${isUser ? styles.user : styles.assistant}`}>
       {isUser ? (
         <>
           <div className={styles.userLine}>
-            <div className={styles.messageBubble}>{message.content}</div>
+            <div className={styles.messageBubble}>
+              {editing ? (
+                <div className={styles.messageEditor}>
+                  <Textarea
+                    aria-label="编辑消息内容"
+                    autoFocus
+                    value={editValue}
+                    disabled={editPending}
+                    onChange={(event) => onEditChange?.(event.target.value)}
+                  />
+                  <div className={styles.messageEditorActions}>
+                    <Button
+                      aria-label="取消编辑消息"
+                      title="取消编辑"
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      disabled={editPending}
+                      onClick={onEditCancel}
+                    >
+                      <X aria-hidden="true" />
+                    </Button>
+                    <Button
+                      aria-label="保存消息"
+                      title="保存消息"
+                      type="button"
+                      variant="secondary"
+                      size="icon"
+                      disabled={editPending || !editValue.trim()}
+                      onClick={onEditSave}
+                    >
+                      {editPending ? (
+                        <LoaderCircle className="animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Check aria-hidden="true" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                message.content
+              )}
+            </div>
             <span className={styles.srOnly}>你</span>
             <span className={styles.userAvatar} aria-hidden="true">
               <AvatarImage
@@ -179,7 +328,10 @@ function MessageBubble({
               />
             </span>
           </div>
-          <div className={styles.messageMeta}>Anddy · {formatMessageTime(message.time)} PM</div>
+          <div className={styles.messageMeta}>
+            {displayName} · {formatMessageTime(message.time)}
+          </div>
+          {userActions && !editing ? <div className={styles.userMessageActions}>{userActions}</div> : null}
         </>
       ) : (
         <>
@@ -190,7 +342,7 @@ function MessageBubble({
               {message.source ? <div className={styles.source}>{message.source}</div> : null}
               {children}
             </div>
-            <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)} PM</div>
+            <div className={styles.messageMeta}>Fustat-v2 Agent · {formatMessageTime(message.time)}</div>
           </div>
         </>
       )}
@@ -200,7 +352,14 @@ function MessageBubble({
 
 /** Figma 中的 Agent 状态块是绿色状态标记，不属于人物头像资源。 */
 function AgentStatusMarker({ className }: { className: string }) {
-  return <span className={className} aria-hidden="true" data-agent-marker="figma-status-surface" />;
+  return (
+    <span
+      className={className}
+      aria-hidden="true"
+      data-agent-marker="figma-status-surface"
+      data-visual-role="agent-status-marker"
+    />
+  );
 }
 
 function TraceRail({ run, designChat = false }: { run: AgentRunView; designChat?: boolean }) {
@@ -319,6 +478,7 @@ type ChatSurfaceProps = {
     sessions: SessionSummary[];
     currentPage: number;
     searchValue?: string;
+    sessionCountLabel?: string;
   };
 };
 
@@ -447,19 +607,22 @@ function approvalData(details: NonNullable<AgentRunEvent['details']>, resourceTy
 
 export function ChatPage() {
   const [searchParams] = useSearchParams();
+  const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const auxiliaryState = getChatAuxState(searchParams.get('state'));
-  if (auxiliaryState) return <ChatAuxStatePage state={auxiliaryState} />;
-  if (searchParams.get('state') === 'empty') return <EmptyChatPage />;
-  if (searchParams.get('state') === 'planning') return <PlanningStatePage />;
-  if (searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
-  if (searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
+  // 这些状态只用于 Figma 视觉预览，真实模式必须回到后端驱动的 Chat 页面。
+  if (!realMode && auxiliaryState) return <ChatAuxStatePage state={auxiliaryState} />;
+  if (!realMode && searchParams.get('state') === 'empty') return <EmptyChatPage />;
+  if (!realMode && searchParams.get('state') === 'planning') return <PlanningStatePage />;
+  if (!realMode && searchParams.get('state') === 'tool-executing') return <ToolExecutingStatePage />;
+  if (!realMode && searchParams.get('state') === 'awaiting-clarification') return <AwaitingClarificationStatePage />;
   if (searchParams.get('state') === 'write-confirmation') return <AgentStatePage state="write-confirmation" />;
   if (searchParams.get('state') === 'budget-limit') return <AgentStatePage state="budget-limit" />;
   if (searchParams.get('state') === 'tool-failed-retryable') return <AgentStatePage state="tool-failed-retryable" />;
   if (searchParams.get('state') === 'safety-degraded') return <AgentStatePage state="safety-degraded" />;
   if (searchParams.get('state') === 'user-cancelled') return <AgentStatePage state="user-cancelled" />;
   if (searchParams.get('state') === 'sse-reconnecting') return <AgentStatePage state="sse-reconnecting" />;
-  return import.meta.env.VITE_AGENT_MODE === 'real' ? <RealChatPage /> : <MockChatPage />;
+  if (searchParams.get('transport') === 'chat-run' && realMode) return <ChatRunPage />;
+  return realMode ? <RealChatPage /> : <MockChatPage />;
 }
 
 const emptyPrompts = [
@@ -543,7 +706,7 @@ function EmptyChatPage() {
 }
 
 function PlanningStatePage() {
-  const planningAvatarSrc = DEFAULT_AVATARS.male;
+  const planningAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const planningLoaderSrc = '/assets/figma/agent-chat/planning-loader.svg';
   const planningSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const planningRun: AgentRunView = {
@@ -628,7 +791,7 @@ const executingToolSteps = [
 ];
 
 function ToolExecutingStatePage() {
-  const executingAvatarSrc = DEFAULT_AVATARS.male;
+  const executingAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const executingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const executingRun: AgentRunView = {
     id: 'fst_trace_9821aa',
@@ -731,7 +894,7 @@ function ToolExecutingStatePage() {
 }
 
 function AwaitingClarificationStatePage() {
-  const awaitingMessageAvatarSrc = DEFAULT_AVATARS.male;
+  const awaitingMessageAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
   const awaitingSidebar = { ...historyFixture('history-page-2').sidebar, currentPage: 1 };
   const awaitingRun: AgentRunView = {
     id: 'run_awaiting_clarification_fixture',
@@ -755,8 +918,8 @@ function AwaitingClarificationStatePage() {
       designChat
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
-      sidebarAvatarSrc={DEFAULT_AVATARS.male}
-      topAvatarSrc={DEFAULT_AVATARS.male}
+      sidebarAvatarSrc={FIXTURE_CHAT_ACCOUNT_AVATAR}
+      topAvatarSrc={FIXTURE_CHAT_ACCOUNT_AVATAR}
       onChange={() => undefined}
       onSend={() => undefined}
       onStop={() => undefined}
@@ -1300,8 +1463,8 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
       displayNameOverride="Anddy"
       profileIdOverride="1234567"
       showKnowledgeTopNav={false}
-      sidebarAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
-      topAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+      sidebarAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      topAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
       pageOverlay={
         isSessionOverlayState && sessionOverlayVisible ? (
           <SessionStateOverlay
@@ -1334,7 +1497,7 @@ function ChatAuxStatePage({ state }: { state: ChatAuxState }) {
               time: '12:45',
               wide: isNavigationState,
             }}
-            userAvatarSrc={isCompletedCitations ? DEFAULT_AVATARS.male : undefined}
+            userAvatarSrc={isCompletedCitations ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
             userAvatarGender="男"
           />
           <MessageBubble
@@ -1394,6 +1557,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const [actionMessage, setActionMessage] = useState('');
   const [input, setInput] = useState('');
   const realMode = import.meta.env.VITE_AGENT_MODE === 'real';
+  if (realMode) return <RealAgentStatePage state={state} />;
   const approvalId = searchParams.get('approval_id');
   const runId = searchParams.get('run_id');
   const run = fixtureRun(state);
@@ -1401,15 +1565,12 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   const fixtureSidebar = isWriteConfirmation
     ? { ...historyFixture('history-page-2').sidebar, currentPage: 1 }
     : undefined;
-  // 所有 Agent 状态画板使用登记的男性默认头像作为示例账号头像。
-  const fixtureSidebarAvatarSrc = DEFAULT_AVATARS.male;
-  const fixtureTopAvatarSrc = DEFAULT_AVATARS.male;
-  const fixtureMessageAvatarSrc =
-    state === 'safety-degraded' ? DEFAULT_AVATARS.female : FIXTURE_CHAT_AGENT_STATE_MESSAGE_AVATAR;
-  const fixtureMessageGender =
-    state === 'safety-degraded'
-      ? FIXTURE_CHAT_AVATAR_GENDERS.safetyDegradedMessage
-      : FIXTURE_CHAT_AVATAR_GENDERS.agentStateMessage;
+  // 所有 Agent 状态画板使用与工作区相同的登记头像来源，避免状态页和消息页头像漂移。
+  const fixtureSidebarAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
+  const fixtureTopAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
+  // 安全降级只描述本次分析能力受限，不代表用户身份变化；消息继续使用工作区账号的男性默认头像。
+  const fixtureMessageAvatarSrc = FIXTURE_CHAT_ACCOUNT_AVATAR;
+  const fixtureMessageGender = FIXTURE_CHAT_AVATAR_GENDERS.agentStateMessage;
 
   const report = (nextAction: FixtureAction, message: string) => {
     setAction(nextAction);
@@ -1427,8 +1588,14 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '确认请求已提交，等待后端执行事件。');
     try {
-      await confirmAgentWrite(approvalId, { source: 'figma-write-confirmation' });
-      report('pending', '确认请求已提交，等待后端执行事件。');
+      const parameters = { source: 'figma-write-confirmation' };
+      const confirmed = await confirmAgentWrite(approvalId, parameters);
+      if (confirmed.status && confirmed.status.toLowerCase() !== 'confirmed') {
+        report('error', `后端未进入确认状态，当前状态：${confirmed.status}。`);
+        return;
+      }
+      const executed = await executeAgentWrite(approvalId, parameters);
+      report('confirmed', `后端已返回写入状态：${executed.status || '未知'}，页面不推断额外结果。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '写入确认失败，请稍后重试。');
     }
@@ -1445,8 +1612,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '取消请求已提交，等待后端确认。');
     try {
-      await rejectAgentWrite(approvalId, { source: 'figma-write-confirmation' });
-      report('pending', '取消请求已提交，等待后端确认。');
+      const rejected = await rejectAgentWrite(approvalId, { source: 'figma-write-confirmation' });
+      report('cancelled', `后端已返回审批状态：${rejected.status || '未知'}。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '取消写入失败，请稍后重试。');
     }
@@ -1463,8 +1630,11 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
     try {
-      await extendAgentRunBudget(runId, 20000, '0.15');
-      report('pending', '预算追加请求已提交，等待当前 Run 的后续事件。');
+      const result = await extendAgentRunBudget(runId, 20000, '0.15');
+      report(
+        'continued',
+        `当前 Run 已返回预算追加状态：${result.status || '未知'}（dispatch attempt ${result.attempt}），未创建新会话。`,
+      );
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
     }
@@ -1481,8 +1651,8 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
     }
     report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
     try {
-      await cancelAgentRun(runId);
-      report('pending', '结束请求已提交，等待当前 Run 的取消事件。');
+      const result = await cancelAgentRun(runId);
+      report('ended', `当前 Run 已返回结束状态：${result.status || '未知'}，终态以服务端事件为准。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '结束会话失败，请稍后重试。');
     }
@@ -1497,13 +1667,22 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
       report('error', '真实模式缺少 run_id，未执行重试。');
       return;
     }
-    report('pending', '重试请求需要后端运行恢复事件，当前页面不会伪造成功。');
+    report('pending', '重试请求已提交，等待后端运行事件，当前页面不会伪造成功。');
     try {
-      await recoverAgentRun(runId);
-      report('pending', '重试请求已提交，等待新的工具事件。');
+      const result = await retryAgentRun(runId);
+      report('retried', `后端已返回重试状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
     } catch (reason) {
       report('error', reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
     }
+  };
+
+  const skipFailedTool = () => {
+    if (!realMode) {
+      report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。');
+      return;
+    }
+    // 当前后端没有跳过单个工具步骤的公开接口，不能把本地提示当作运行状态。
+    report('error', '当前后端未提供跳过此步骤接口，未发送请求；请等待真实 Run 返回后续事件。');
   };
 
   const content = (() => {
@@ -1642,7 +1821,7 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
                 className={styles.fixtureSkipButton}
                 disabled={action === 'pending'}
                 variant="outline"
-                onClick={() => report('skipped', '已跳过此步骤，后续结果会明确标注数据范围受限。')}
+                onClick={skipFailedTool}
               >
                 跳过此步骤
               </Button>
@@ -1811,12 +1990,1002 @@ function AgentStatePage({ state }: { state: AgentFixtureState }) {
   );
 }
 
+type RealAgentActionState = 'idle' | 'loading' | 'success' | 'error';
+
+type RealProposalDraft = {
+  operation: string;
+  resourceType: string;
+  resourceId?: string | number;
+  parameters: Record<string, unknown>;
+};
+
+type RealBudgetFacts = {
+  usedTokens?: number;
+  maxTokens?: number;
+  usedCostCny?: string;
+  maxCostCny?: string;
+  ratio?: number;
+  additionalTokens?: number;
+  additionalCostCny?: string;
+};
+
+type ApprovalProposalView = Awaited<ReturnType<typeof loadApprovalProposal>>;
+
+function parseJsonRecord(value: string | null): Record<string, unknown> | undefined {
+  if (!value?.trim()) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseRealProposalDraft(searchParams: URLSearchParams): RealProposalDraft | undefined {
+  const operation = searchParams.get('operation')?.trim();
+  const resourceType = searchParams.get('resource_type')?.trim();
+  const parameters = parseJsonRecord(searchParams.get('parameters'));
+  if (!operation || !resourceType || !parameters) return undefined;
+  const resourceId = searchParams.get('resource_id')?.trim();
+  return {
+    operation,
+    resourceType,
+    resourceId: resourceId && /^\d+$/.test(resourceId) ? Number(resourceId) : resourceId || undefined,
+    parameters,
+  };
+}
+
+function parseJsonStringArray(value: string | null): string[] | undefined {
+  if (!value?.trim()) return [];
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return Array.isArray(parsed) && parsed.every((item) => typeof item === 'string') ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function parseExplicitRecoveryRequest(searchParams: URLSearchParams): AgentRecoveryRequest | undefined {
+  const checkpointVersion = queryNumber(searchParams.get('checkpoint_version'));
+  const checkpointDigest = searchParams.get('checkpoint_digest')?.trim();
+  const completedInvocationIds = parseJsonStringArray(searchParams.get('completed_invocation_ids'));
+  if (checkpointVersion === undefined || !checkpointDigest || completedInvocationIds === undefined) return undefined;
+  return { checkpointVersion, checkpointDigest, completedInvocationIds };
+}
+
+function recoveryRequestFromEvent(payload: AgentRunEvent): AgentRecoveryRequest | undefined {
+  const checkpointVersion = payload.checkpoint_version;
+  const checkpointDigest = payload.checkpoint_digest?.trim();
+  const completedInvocationIds = payload.completed_invocation_ids ?? [];
+  if (
+    checkpointVersion === undefined ||
+    !Number.isInteger(checkpointVersion) ||
+    checkpointVersion < 1 ||
+    !checkpointDigest ||
+    !completedInvocationIds.every((item) => typeof item === 'string')
+  )
+    return undefined;
+  return { checkpointVersion, checkpointDigest, completedInvocationIds };
+}
+
+function queryNumber(value: string | null): number | undefined {
+  if (!value?.trim() || !/^\d+$/.test(value.trim())) return undefined;
+  return Number(value);
+}
+
+function realEventDisplayStatus(eventType: string, payload: AgentRunEvent): AgentDisplayStatus {
+  const normalizedEventType = resolveAgentEventType(eventType, payload as unknown as Record<string, unknown>);
+  if (normalizedEventType === 'run.completed') return 'completed';
+  if (normalizedEventType === 'run.failed') return 'failed';
+  if (normalizedEventType === 'run.cancelled') return 'cancelled';
+  if (normalizedEventType === 'run.superseded') return 'superseded';
+  if (normalizedEventType === 'run.routed') return 'routing';
+  if (normalizedEventType === 'run.planned') return 'planning';
+  if (
+    normalizedEventType === 'run.retrieval_started' ||
+    normalizedEventType === 'run.retrieval_finished' ||
+    normalizedEventType === 'run.context_assembled'
+  )
+    return 'retrieving';
+  if (normalizedEventType === 'run.tool_started' || normalizedEventType === 'run.tool_finished')
+    return 'executing_tools';
+  if (normalizedEventType === 'run.eval_decided') return 'validating';
+  if (normalizedEventType === 'run.model_usage' || normalizedEventType === 'run.answer_stream') return 'composing';
+  if (normalizedEventType === 'run.clarification_requested' || normalizedEventType === 'run.checkpoint_saved')
+    return 'waiting_user';
+  return displayRunStatus(payload.status ?? payload.state ?? normalizedEventType.replace('run.', ''));
+}
+
+function realApprovalData(
+  proposal: ApprovalProposalView,
+  details?: NonNullable<AgentRunEvent['details']>,
+  parameters?: Record<string, unknown>,
+) {
+  if (details) return approvalData(details, proposal.resource_type);
+  const parameterKeys = parameters ? Object.keys(parameters) : [];
+  return [
+    { label: '操作', value: proposal.operation || '未返回' },
+    { label: '资源类型', value: proposal.resource_type || '未返回' },
+    { label: '资源 ID', value: proposal.resource_id == null ? '新资源' : String(proposal.resource_id) },
+    { label: '参数摘要', value: proposal.parameters_digest || '未返回' },
+    { label: '参数字段', value: parameterKeys.length ? parameterKeys.join('、') : '未随页面返回' },
+  ];
+}
+
+function readRecord(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : undefined;
+}
+
+function readNumber(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() && Number.isFinite(Number(value))) return Number(value);
+  return undefined;
+}
+
+function readString(value: unknown): string | undefined {
+  if (typeof value === 'string' && value.trim()) return value;
+  if (typeof value === 'number' && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
+function budgetFactsFromEvent(payload: AgentRunEvent): RealBudgetFacts {
+  const raw = payload as unknown as Record<string, unknown>;
+  const usage = readRecord(raw.usage);
+  const budget = readRecord(raw.budget) ?? readRecord(raw.budget_snapshot);
+  const actions = readRecord(raw.budget_actions);
+  const usedTokens = readNumber(usage?.total_tokens ?? usage?.tokens ?? raw.tokens);
+  const maxTokens = readNumber(budget?.max_total_tokens ?? budget?.max_tokens);
+  const usedCostCny = readString(usage?.cost_cny ?? readRecord(raw.cost)?.amount ?? raw.cost_cny);
+  const maxCostCny = readString(budget?.max_cost_cny ?? budget?.max_cost);
+  const ratio =
+    readNumber(raw.ratio ?? raw.budget_ratio) ?? (usedTokens != null && maxTokens ? usedTokens / maxTokens : undefined);
+  const additionalTokens = readNumber(actions?.additional_tokens ?? actions?.tokens);
+  const additionalCostCny = readString(actions?.additional_cost_cny ?? actions?.cost_cny ?? actions?.cost);
+  return { usedTokens, maxTokens, usedCostCny, maxCostCny, ratio, additionalTokens, additionalCostCny };
+}
+
+function mergeBudgetFacts(current: RealBudgetFacts, next: RealBudgetFacts): RealBudgetFacts {
+  return {
+    usedTokens: next.usedTokens ?? current.usedTokens,
+    maxTokens: next.maxTokens ?? current.maxTokens,
+    usedCostCny: next.usedCostCny ?? current.usedCostCny,
+    maxCostCny: next.maxCostCny ?? current.maxCostCny,
+    ratio: next.ratio ?? current.ratio,
+    additionalTokens: next.additionalTokens ?? current.additionalTokens,
+    additionalCostCny: next.additionalCostCny ?? current.additionalCostCny,
+  };
+}
+
+function budgetConfirmationRequested(payload: AgentRunEvent) {
+  return payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true;
+}
+
+function RealAgentStatePage({ state }: { state: AgentFixtureState }) {
+  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
+  const queryKey = searchParams.toString();
+  const runId = searchParams.get('run_id')?.trim() || undefined;
+  const sessionId = searchParams.get('session_id')?.trim() || undefined;
+  const requestedApprovalId = searchParams.get('approval_id')?.trim() || undefined;
+  const explicitRecoveryRequest = useMemo(() => parseExplicitRecoveryRequest(searchParams), [searchParams]);
+  const [messages, setMessages] = useState<RealMessage[]>([]);
+  const [runStatus, setRunStatus] = useState<AgentDisplayStatus>('routing');
+  const [rawRunStatus, setRawRunStatus] = useState('未加载');
+  const [acceptedEventCount, setAcceptedEventCount] = useState(0);
+  const [runIntent, setRunIntent] = useState<AgentRunView['intent']>('knowledge_qna');
+  const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [citations, setCitations] = useState<AgentRunView['citations']>([]);
+  const [assistantText, setAssistantText] = useState('');
+  const [approvalId, setApprovalId] = useState(requestedApprovalId);
+  const [approval, setApproval] = useState<ApprovalProposalView>();
+  const [approvalDetails, setApprovalDetails] = useState<NonNullable<AgentRunEvent['details']>>();
+  const [proposalParameters, setProposalParameters] = useState<Record<string, unknown>>();
+  const [proposalDraft, setProposalDraft] = useState<RealProposalDraft | undefined>(() =>
+    parseRealProposalDraft(searchParams),
+  );
+  const [budgetFacts, setBudgetFacts] = useState<RealBudgetFacts>({});
+  const [retryable, setRetryable] = useState(false);
+  const [checkpointAvailable, setCheckpointAvailable] = useState(Boolean(runId && explicitRecoveryRequest));
+  const [checkpointRecovery, setCheckpointRecovery] = useState<AgentRecoveryRequest | undefined>(
+    explicitRecoveryRequest,
+  );
+  const [safetyDegraded, setSafetyDegraded] = useState(false);
+  const [cancelReason, setCancelReason] = useState<string>();
+  const [loading, setLoading] = useState(Boolean(runId || sessionId || requestedApprovalId));
+  const [actionState, setActionState] = useState<RealAgentActionState>('idle');
+  const [actionMessage, setActionMessage] = useState('');
+  const [error, setError] = useState<string>();
+  const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
+  const [streamRevision, setStreamRevision] = useState(0);
+  const [input, setInput] = useState('');
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const streamRef = useRef<AgentStreamHandle>();
+  const mountedRef = useRef(true);
+  const seenEventIdsRef = useRef(new Set<string>());
+  const proposalKeyRef = useRef<string>();
+  const streamResumeRef = useRef<{ lastEventId?: string }>({});
+  const loadControllerRef = useRef<AbortController>();
+  const approvalLoadControllerRef = useRef<AbortController>();
+  const actionControllerRef = useRef<AbortController>();
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+      streamRef.current?.close();
+      streamRef.current = undefined;
+      loadControllerRef.current?.abort();
+      loadControllerRef.current = undefined;
+      approvalLoadControllerRef.current?.abort();
+      approvalLoadControllerRef.current = undefined;
+      actionControllerRef.current?.abort();
+      actionControllerRef.current = undefined;
+    };
+  }, []);
+
+  useEffect(() => {
+    // 查询参数变化时清理旧状态，避免上一条 Run 的事件泄漏到当前状态页。
+    loadControllerRef.current?.abort();
+    approvalLoadControllerRef.current?.abort();
+    approvalLoadControllerRef.current = undefined;
+    // Run 切换时抢占旧操作，避免旧 Approval/预算请求完成后写回新的状态页。
+    actionControllerRef.current?.abort();
+    actionControllerRef.current = undefined;
+    proposalKeyRef.current = undefined;
+    const loadController = new AbortController();
+    loadControllerRef.current = loadController;
+    streamRef.current?.close();
+    streamRef.current = undefined;
+    seenEventIdsRef.current = new Set();
+    streamResumeRef.current = {};
+    // 查询参数切换代表真实资源切换，必须在开始新请求前清理上一条 Run 的本地投影。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setMessages([]);
+    setRunStatus('routing');
+    setRawRunStatus('未加载');
+    setAcceptedEventCount(0);
+    setRunIntent('knowledge_qna');
+    setToolCalls([]);
+    setCitations([]);
+    setAssistantText('');
+    setApprovalId(requestedApprovalId);
+    setApproval(undefined);
+    setApprovalDetails(undefined);
+    setProposalParameters(undefined);
+    setProposalDraft(parseRealProposalDraft(searchParams));
+    setBudgetFacts({});
+    setRetryable(false);
+    setCheckpointAvailable(Boolean(runId && explicitRecoveryRequest));
+    setCheckpointRecovery(explicitRecoveryRequest);
+    setSafetyDegraded(false);
+    setCancelReason(undefined);
+    setError(undefined);
+    setActionState('idle');
+    setActionMessage('');
+    setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
+    setLoading(Boolean(runId || sessionId || requestedApprovalId));
+
+    let cancelled = false;
+    const loads: Promise<void>[] = [];
+    if (sessionId) {
+      loads.push(
+        loadSessionMessages(sessionId, {}, loadController.signal)
+          .then((rows) => {
+            if (!cancelled && mountedRef.current)
+              setMessages([...rows].sort((left, right) => left.sequence_no - right.sequence_no));
+          })
+          .catch((reason) => {
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
+              setError(reason instanceof Error ? reason.message : '会话消息加载失败。');
+          }),
+      );
+    }
+    if (runId) {
+      loads.push(
+        loadAgentRun(runId, loadController.signal)
+          .then((run) => {
+            if (cancelled || !mountedRef.current) return;
+            setRawRunStatus(run.status);
+            setRunStatus(displayRunStatus(run.status));
+            setAcceptedEventCount(run.accepted_event_count);
+          })
+          .catch((reason) => {
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
+              setError(reason instanceof Error ? reason.message : '运行状态加载失败。');
+          }),
+      );
+    }
+    if (requestedApprovalId) {
+      loads.push(
+        loadApprovalProposal(requestedApprovalId, loadController.signal)
+          .then((proposal) => {
+            if (!cancelled && mountedRef.current) setApproval(proposal);
+          })
+          .catch((reason) => {
+            if (!cancelled && mountedRef.current && !isAbortError(reason))
+              setError(reason instanceof Error ? reason.message : '写入提案加载失败。');
+          }),
+      );
+    }
+    Promise.all(loads).finally(() => {
+      if (!cancelled && mountedRef.current && !loadController.signal.aborted) setLoading(false);
+      if (loadControllerRef.current === loadController) loadControllerRef.current = undefined;
+    });
+    return () => {
+      cancelled = true;
+      loadController.abort();
+      if (loadControllerRef.current === loadController) loadControllerRef.current = undefined;
+    };
+  }, [explicitRecoveryRequest, requestedApprovalId, runId, searchParams, sessionId]);
+
+  useEffect(() => {
+    if (!runId) return undefined;
+    let active = true;
+    const stream = openAgentRunStream(
+      runId,
+      (eventType, payload, eventId) => {
+        if (!active || !mountedRef.current) return;
+        const rawPayload = payload as unknown as Record<string, unknown>;
+        const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
+        const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
+        // 没有稳定事件 ID 时无法证明两条事件相同，不能用事件类型把合法的多段文本误判为重复。
+        const identity = eventId || normalizedPayload.sse_event_id || normalizedPayload.event_id;
+        if (identity && seenEventIdsRef.current.has(identity)) return;
+        if (identity) seenEventIdsRef.current.add(identity);
+        setAcceptedEventCount((current) => current + 1);
+        setRawRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType);
+        setRunStatus(realEventDisplayStatus(normalizedEventType, normalizedPayload));
+        setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(normalizedPayload)));
+        if (normalizedEventType === 'run.routed') setRunIntent(normalizeRunIntent(normalizedPayload.intent));
+        if (normalizedEventType === 'run.tool_started')
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'started'));
+        if (normalizedEventType === 'run.tool_finished')
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'finished'));
+        if (normalizedEventType === 'run.answer_stream')
+          setAssistantText((current) => current + (normalizedPayload.text ?? ''));
+        if (normalizedEventType === 'run.completed') {
+          setSafetyDegraded(normalizedPayload.result_type === 'safety_degraded');
+          setRetryable(false);
+          setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
+          setCitations(
+            normalizedPayload.result_type === 'safety_degraded'
+              ? []
+              : (normalizedPayload.citations ?? []).map((citation) => ({
+                  id: citation.citation_id,
+                  title: citation.title,
+                  snippet: citation.snippet,
+                  source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
+                })),
+          );
+        }
+        if (normalizedEventType === 'run.failed') {
+          setRetryable(normalizedPayload.retryable === true);
+          setError(runtimeErrorMessage(normalizedPayload));
+        }
+        if (normalizedEventType === 'run.cancelled') setCancelReason(normalizedPayload.reason);
+        if (normalizedEventType === 'run.checkpoint_saved') {
+          setCheckpointRecovery(
+            normalizedPayload.approval_request_id ? undefined : recoveryRequestFromEvent(normalizedPayload),
+          );
+          setCheckpointAvailable(!normalizedPayload.approval_request_id);
+          if (normalizedPayload.approval_request_id) setApprovalId(String(normalizedPayload.approval_request_id));
+        }
+        if (normalizedEventType === 'run.clarification_requested' || normalizedEventType === 'run.checkpoint_saved') {
+          if (normalizedPayload.details) {
+            setApprovalDetails(normalizedPayload.details);
+            setProposalParameters(approvalParameters(normalizedPayload.details, normalizedPayload.resource_type));
+          }
+          if (
+            normalizedPayload.operation &&
+            normalizedPayload.resource_type &&
+            normalizedPayload.details &&
+            !normalizedPayload.approval_request_id
+          ) {
+            setProposalDraft({
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              parameters: approvalParameters(normalizedPayload.details, normalizedPayload.resource_type),
+            });
+          }
+          if (normalizedPayload.approval_request_id) {
+            const nextApprovalId = String(normalizedPayload.approval_request_id);
+            approvalLoadControllerRef.current?.abort();
+            const approvalLoadController = new AbortController();
+            approvalLoadControllerRef.current = approvalLoadController;
+            void loadApprovalProposal(nextApprovalId, approvalLoadController.signal)
+              .then((proposal) => {
+                if (active && mountedRef.current && !approvalLoadController.signal.aborted) setApproval(proposal);
+              })
+              .catch((reason) => {
+                if (active && mountedRef.current && !approvalLoadController.signal.aborted && !isAbortError(reason))
+                  setError(reason instanceof Error ? reason.message : '写入提案加载失败。');
+              })
+              .finally(() => {
+                if (approvalLoadControllerRef.current === approvalLoadController)
+                  approvalLoadControllerRef.current = undefined;
+              });
+          }
+        }
+      },
+      {
+        maxAttempts: 5,
+        lastEventId: streamResumeRef.current.lastEventId,
+        onStateChange: (nextConnection) => {
+          if (active && mountedRef.current) setConnection(nextConnection);
+        },
+        onError: (nextConnection) => {
+          if (active && mountedRef.current && nextConnection.state === 'exhausted')
+            setError('SSE 连接重试已耗尽，请刷新页面。');
+        },
+      },
+    );
+    streamRef.current = stream;
+    return () => {
+      active = false;
+      stream.close();
+      if (streamRef.current === stream) streamRef.current = undefined;
+    };
+  }, [queryKey, runId, streamRevision]);
+
+  const refreshApproval = async (targetId: string, signal?: AbortSignal) => {
+    const next = await loadApprovalProposal(targetId, signal);
+    if (mountedRef.current) setApproval(next);
+    return next;
+  };
+
+  // 控制器引用在状态更新前立即可见，同时作为运行操作的同步执行锁。
+  const startAction = () => {
+    actionControllerRef.current?.abort();
+    const controller = new AbortController();
+    actionControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentAction = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && actionControllerRef.current === controller;
+
+  const finishAction = (controller: AbortController) => {
+    if (actionControllerRef.current === controller) actionControllerRef.current = undefined;
+  };
+
+  const closeRunStream = () => {
+    const current = streamRef.current;
+    streamResumeRef.current = {
+      lastEventId: current?.getConnection().lastEventId ?? connection.lastEventId,
+    };
+    current?.close();
+    streamRef.current = undefined;
+  };
+
+  const resumeRunStream = () => {
+    if (!runId) return;
+    setStreamRevision((revision) => revision + 1);
+  };
+
+  const executeProposal = async (mode: 'confirm' | 'reject') => {
+    if (!approvalId || actionState === 'loading' || actionControllerRef.current) return;
+    const parameters = approvalDetails
+      ? approvalParameters(approvalDetails, approval?.resource_type)
+      : (proposalParameters ?? proposalDraft?.parameters);
+    if (!parameters) {
+      setActionState('error');
+      setActionMessage('后端没有返回可校验的提案参数，未发送写入请求。');
+      return;
+    }
+    setActionState('loading');
+    setActionMessage(
+      mode === 'confirm' ? '确认请求已提交，等待后端返回执行状态。' : '取消请求已提交，等待后端返回审批状态。',
+    );
+    const controller = startAction();
+    try {
+      if (mode === 'reject') {
+        const rejected = await rejectAgentWrite(approvalId, parameters, controller.signal);
+        if (!isCurrentAction(controller)) return;
+        setApproval(rejected);
+        setActionState('success');
+        setActionMessage(`后端已返回审批状态：${rejected.status || '未知'}。`);
+        return;
+      }
+      const confirmed = await confirmAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentAction(controller)) return;
+      setApproval(confirmed);
+      if (!['confirmed', 'executed'].includes(confirmed.status.toLowerCase())) {
+        setActionState('error');
+        setActionMessage(`后端未进入可执行状态，当前状态：${confirmed.status || '未知'}。`);
+        return;
+      }
+      const executed = await executeAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(`后端已返回执行状态：${executed.status || '未知'}，页面不推断额外业务结果。`);
+      await refreshApproval(approvalId, controller.signal);
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '写入提案操作失败，请稍后重试。');
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const createProposal = async () => {
+    if (!proposalDraft || actionState === 'loading' || actionControllerRef.current) return;
+    setActionState('loading');
+    setActionMessage('正在创建写入提案，等待后端返回提案状态。');
+    const controller = startAction();
+    try {
+      const created = await createApprovalProposal(
+        {
+          sessionId: queryNumber(sessionId ?? null) ?? sessionId,
+          agentRunId: queryNumber(runId ?? null) ?? runId,
+          operation: proposalDraft.operation,
+          resourceType: proposalDraft.resourceType,
+          resourceId: proposalDraft.resourceId,
+          parameters: proposalDraft.parameters,
+          idempotencyKey:
+            proposalKeyRef.current ??
+            (proposalKeyRef.current = `real-agent-state-${runId ?? sessionId ?? requestedApprovalId ?? 'proposal'}`),
+        },
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
+      setApprovalId(created.approval_request_id);
+      setApproval(created);
+      setProposalParameters(proposalDraft.parameters);
+      setActionState('success');
+      setActionMessage(`提案已创建：${created.approval_request_id}，当前状态为 ${created.status || '未知'}。`);
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '创建写入提案失败，请稍后重试。');
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const cancelRun = async () => {
+    if (!runId || actionState === 'loading' || actionControllerRef.current) return;
+    // 取消请求期间先关闭旧连接，避免取消前后的事件被两个订阅重复消费。
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage('取消请求已提交，终态以服务端 cancelled 事件为准。');
+    const controller = startAction();
+    try {
+      const result = await cancelAgentRun(runId, 'user_requested', controller.signal);
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(`后端已接受取消请求：${result.status || '未知'}。`);
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '取消运行失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const extendBudget = async () => {
+    if (
+      !runId ||
+      actionState === 'loading' ||
+      actionControllerRef.current ||
+      budgetFacts.additionalTokens == null ||
+      !budgetFacts.additionalCostCny
+    )
+      return;
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage('预算追加请求已提交，当前 Run 将继续等待后端事件。');
+    const controller = startAction();
+    try {
+      const result = await extendAgentRunBudget(
+        runId,
+        budgetFacts.additionalTokens,
+        budgetFacts.additionalCostCny,
+        undefined,
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(
+        `当前 Run 已返回预算追加状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`,
+      );
+      setRunStatus('routing');
+      setBudgetFacts((current) => ({ ...current, additionalTokens: undefined, additionalCostCny: undefined }));
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '预算追加失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const retryRun = async () => {
+    if (!runId || !retryable || actionState === 'loading' || actionControllerRef.current) return;
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage('重试请求已提交，等待后端运行事件。');
+    const controller = startAction();
+    try {
+      const result = await retryAgentRun(runId, controller.signal);
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(`后端已返回重试状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
+      setRetryable(false);
+      setRunStatus('routing');
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '重试请求失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const skipTool = async () => {
+    const target = [...toolCalls]
+      .reverse()
+      .find(
+        (tool) =>
+          Boolean(tool.proposalId) &&
+          tool.skippable === true &&
+          (tool.status === 'failed' || tool.status === 'timeout'),
+      );
+    if (!runId || !target?.proposalId || actionState === 'loading' || actionControllerRef.current) return;
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage('跳过请求已提交，等待后端发送工具完成事件。');
+    const controller = startAction();
+    try {
+      const result = await skipAgentTool(
+        runId,
+        target.proposalId,
+        `工具 ${target.displayName || target.name} 执行失败，用户请求跳过此步骤。`,
+        controller.signal,
+      );
+      if (!isCurrentAction(controller)) return;
+      setActionState('success');
+      setActionMessage(`后端已接受跳过请求：${result.status || '未知'}，终态以 SSE 事件为准。`);
+      setRunStatus('executing_tools');
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '跳过工具步骤失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const recoverRun = async () => {
+    if (!runId || !checkpointAvailable || actionState === 'loading' || actionControllerRef.current) return;
+    closeRunStream();
+    setActionState('loading');
+    setActionMessage(
+      checkpointRecovery
+        ? '正在提交 checkpoint 元数据，等待后端校验并恢复当前 Run。'
+        : '正在请求从已持久化 checkpoint 恢复当前 Run。',
+    );
+    const controller = startAction();
+    try {
+      const result = checkpointRecovery
+        ? await recoverAgentRun(runId, checkpointRecovery, controller.signal)
+        : await recoverAgentRunFromCheckpoint(runId, controller.signal);
+      if (!isCurrentAction(controller)) return;
+      setCheckpointAvailable(false);
+      setCheckpointRecovery(undefined);
+      setActionState('success');
+      setActionMessage(`后端已返回恢复状态：${result.status || '未知'}（dispatch attempt ${result.attempt}）。`);
+      setRunStatus('routing');
+      resumeRunStream();
+    } catch (reason) {
+      if (!isCurrentAction(controller) || isAbortError(reason)) return;
+      setActionState('error');
+      setActionMessage(reason instanceof Error ? reason.message : '运行恢复失败，请稍后重试。');
+      resumeRunStream();
+    } finally {
+      finishAction(controller);
+    }
+  };
+
+  const sendFollowUp = () => {
+    const prompt = input.trim();
+    if (!prompt) return;
+    if (!sessionId) {
+      setActionState('error');
+      setActionMessage('当前状态页缺少 session_id，未创建新的 Run。');
+      return;
+    }
+    navigate(`/chat/${encodeURIComponent(sessionId)}?transport=chat-run&prompt=${encodeURIComponent(prompt)}`);
+  };
+
+  const realRun: AgentRunView = {
+    id: runId ?? '未绑定运行',
+    status: runStatus,
+    intent: runIntent,
+    toolsUsed: toolCalls.filter((tool) => tool.status === 'success').length,
+    toolsTotal: toolCalls.length,
+    agentsUsed: runId ? 1 : 0,
+    agentsTotal: runId ? 1 : 0,
+    toolCalls,
+    citations,
+    connection,
+  };
+  const terminal = ['completed', 'failed', 'cancelled', 'superseded'].includes(runStatus);
+  const mappedMessages: ChatMessage[] = messages.map((message) => ({
+    id: message.message_id,
+    role: message.role,
+    content: message.content,
+    time: message.created_at,
+    agentRunId: message.agent_run_id,
+  }));
+  const proposalParametersValue = approvalDetails
+    ? approvalParameters(approvalDetails, approval?.resource_type)
+    : (proposalParameters ?? proposalDraft?.parameters);
+  const budgetPercent =
+    budgetFacts.ratio == null ? undefined : Math.max(0, Math.min(100, Math.round(budgetFacts.ratio * 100)));
+
+  return (
+    <ChatSurface
+      run={realRun}
+      messagesRef={messagesRef}
+      input={input}
+      running={Boolean(runId) && !terminal && connection.state !== 'exhausted' && actionState !== 'loading'}
+      disabled={loading || actionState === 'loading' || state === 'sse-reconnecting'}
+      onChange={setInput}
+      onSend={sendFollowUp}
+      onStop={() => void cancelRun()}
+      placeholder={
+        state === 'user-cancelled' || safetyDegraded ? '继续追问或重新开始...' : '当前状态页只展示真实运行事实...'
+      }
+      showTrace={Boolean(runId)}
+      showKnowledgeTopNav={false}
+    >
+      {loading ? <p className={styles.systemMessage}>正在加载真实运行状态...</p> : null}
+      {!runId && !sessionId && !requestedApprovalId ? (
+        <Alert className={styles.realStateNotice} role="alert" variant="warning">
+          <AlertTitle>真实状态页缺少运行标识</AlertTitle>
+          <AlertDescription>
+            请从真实会话携带 run_id、session_id 或 approval_id 进入；当前页面不会显示 Fixture 数据。
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {error ? (
+        <Alert className={styles.realStateNotice} role="alert" variant="destructive">
+          <AlertTitle>真实状态加载失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+      {runId ? (
+        <section className={styles.realStateSummary} aria-label="真实运行摘要">
+          <div>
+            <strong>RUN ID</strong>
+            <span>{runId}</span>
+          </div>
+          <div>
+            <strong>服务端状态</strong>
+            <span>{rawRunStatus}</span>
+          </div>
+          <div>
+            <strong>已接收事件</strong>
+            <span>{acceptedEventCount}</span>
+          </div>
+        </section>
+      ) : null}
+      {mappedMessages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      {assistantText &&
+      !messages.some((message) => message.role === 'assistant' && (!runId || message.agent_run_id === runId)) ? (
+        <MessageBubble
+          message={{
+            id: 'real-state-assistant-stream',
+            role: 'assistant',
+            content: assistantText,
+            time: new Date().toISOString(),
+          }}
+        />
+      ) : null}
+      {state === 'write-confirmation' ? (
+        <Card className={styles.realStateCard}>
+          <h2>写入提案</h2>
+          {approval ? (
+            <>
+              <dl className={styles.realStateDetails}>
+                {realApprovalData(approval, approvalDetails, proposalParametersValue).map((item) => (
+                  <div key={item.label}>
+                    <dt>{item.label}</dt>
+                    <dd>{item.value}</dd>
+                  </div>
+                ))}
+              </dl>
+              <p className={styles.realStateMeta}>
+                后端状态：{approval.status || '未返回'} · 过期时间：{approval.expires_at || '未返回'}
+              </p>
+              <div className={styles.realStateActions}>
+                <Button
+                  disabled={
+                    actionState === 'loading' ||
+                    !proposalParametersValue ||
+                    ['rejected', 'executed'].includes(approval.status.trim().toLowerCase())
+                  }
+                  onClick={() => void executeProposal('confirm')}
+                >
+                  确认并执行
+                </Button>
+                <Button
+                  variant="outline"
+                  disabled={
+                    actionState === 'loading' ||
+                    !proposalParametersValue ||
+                    ['rejected', 'executed'].includes(approval.status.trim().toLowerCase())
+                  }
+                  onClick={() => void executeProposal('reject')}
+                >
+                  拒绝写入
+                </Button>
+              </div>
+            </>
+          ) : proposalDraft ? (
+            <>
+              <p className={styles.realStateMeta}>页面收到待创建的真实提案参数，创建操作将由后端生成摘要和过期时间。</p>
+              <Button disabled={actionState === 'loading'} onClick={() => void createProposal()}>
+                创建写入提案
+              </Button>
+            </>
+          ) : (
+            <p className={styles.realStateMeta}>
+              等待后端返回 approval_id 和提案参数；未满足校验条件前不会发送写入请求。
+            </p>
+          )}
+        </Card>
+      ) : null}
+      {state === 'budget-limit' ? (
+        <Card className={styles.realStateCard}>
+          <h2>预算状态</h2>
+          <dl className={styles.realStateDetails}>
+            <div>
+              <dt>已用 Token</dt>
+              <dd>{budgetFacts.usedTokens == null ? '后端未返回' : budgetFacts.usedTokens.toLocaleString('en-US')}</dd>
+            </div>
+            <div>
+              <dt>Token 上限</dt>
+              <dd>{budgetFacts.maxTokens == null ? '后端未返回' : budgetFacts.maxTokens.toLocaleString('en-US')}</dd>
+            </div>
+            <div>
+              <dt>使用比例</dt>
+              <dd>{budgetPercent == null ? '后端未返回' : `${budgetPercent}%`}</dd>
+            </div>
+            <div>
+              <dt>已用成本</dt>
+              <dd>{budgetFacts.usedCostCny == null ? '后端未返回' : `¥${budgetFacts.usedCostCny}`}</dd>
+            </div>
+          </dl>
+          {budgetFacts.additionalTokens != null && budgetFacts.additionalCostCny ? (
+            <div className={styles.realStateActions}>
+              <Button disabled={actionState === 'loading'} onClick={() => void extendBudget()}>
+                追加 {budgetFacts.additionalTokens.toLocaleString('en-US')} tokens
+              </Button>
+              <Button variant="outline" disabled={actionState === 'loading'} onClick={() => void cancelRun()}>
+                结束当前 Run
+              </Button>
+            </div>
+          ) : (
+            <>
+              <p className={styles.realStateMeta}>后端未返回可确认的追加额度，页面不会猜测费用或 Token 数。</p>
+              {runId ? (
+                <Button variant="outline" disabled={actionState === 'loading'} onClick={() => void cancelRun()}>
+                  结束当前 Run
+                </Button>
+              ) : null}
+            </>
+          )}
+        </Card>
+      ) : null}
+      {state === 'tool-failed-retryable' ? (
+        <Card className={styles.realStateCard}>
+          <h2>工具失败状态</h2>
+          <p className={styles.realStateMeta}>{error || '等待后端返回失败原因。'}</p>
+          <div className={styles.realStateActions}>
+            {retryable ? (
+              <Button disabled={actionState === 'loading'} onClick={() => void retryRun()}>
+                重试当前 Run
+              </Button>
+            ) : (
+              <p className={styles.realStateMeta}>当前失败未被后端标记为可重试，页面不显示重试请求。</p>
+            )}
+            {[...toolCalls].some(
+              (tool) =>
+                Boolean(tool.proposalId) &&
+                tool.skippable === true &&
+                (tool.status === 'failed' || tool.status === 'timeout'),
+            ) ? (
+              <Button variant="outline" disabled={actionState === 'loading'} onClick={() => void skipTool()}>
+                <CircleSlash aria-hidden="true" />
+                跳过此步骤
+              </Button>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
+      {state === 'safety-degraded' ? (
+        <Alert className={styles.realStateNotice} role="status" variant="warning">
+          <AlertTitle>安全降级状态</AlertTitle>
+          <AlertDescription>
+            {safetyDegraded
+              ? '后端已标记本次结果为安全降级，回答范围和引用可能不完整。'
+              : '等待后端返回安全降级结果标记。'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {state === 'user-cancelled' ? (
+        <Alert className={styles.realStateNotice} role="status" variant="warning">
+          <AlertTitle>运行已取消</AlertTitle>
+          <AlertDescription>
+            {cancelReason ? `取消原因：${cancelReason}` : '等待后端返回取消原因；已接收文本会保留。'}
+          </AlertDescription>
+        </Alert>
+      ) : null}
+      {state === 'sse-reconnecting' ? (
+        <div className={styles.realStateConnection} role={connection.state === 'exhausted' ? 'alert' : 'status'}>
+          <strong>
+            {connection.state === 'reconnecting'
+              ? '连接已中断，正在重新连接...'
+              : connection.state === 'exhausted'
+                ? '连接重试已耗尽'
+                : connection.state === 'connected'
+                  ? '实时连接已恢复'
+                  : '正在连接实时事件...'}
+          </strong>
+          <span>
+            第 {connection.attempt} / {connection.maxAttempts} 次尝试 · 最近事件 {connection.lastEventId || '未返回'}
+          </span>
+        </div>
+      ) : null}
+      {checkpointAvailable ? (
+        <Card className={styles.realStateCard}>
+          <h2>{checkpointRecovery ? '使用 checkpoint 元数据恢复' : '可从 checkpoint 恢复'}</h2>
+          <p className={styles.realStateMeta}>
+            {checkpointRecovery
+              ? '页面仅转发服务端事件中的 checkpoint 元数据，最终校验和恢复由 Java 服务端完成。'
+              : '恢复内容由 Java 服务端按已持久化 checkpoint 校验，浏览器不会提交 checkpoint 内容。'}
+          </p>
+          <Button disabled={actionState === 'loading'} onClick={() => void recoverRun()}>
+            {checkpointRecovery ? '提交恢复请求' : '从 checkpoint 恢复'}
+          </Button>
+        </Card>
+      ) : null}
+      {actionMessage ? (
+        <p className={styles.realStateActionMessage} role="status">
+          {actionMessage}
+        </p>
+      ) : null}
+    </ChatSurface>
+  );
+}
+
 function RealChatPage() {
   const { session_id: sessionId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
+  const navigationState = readChatNavigationState(location.state);
+  const pendingPrompt = navigationState.pendingPrompt;
+  const navigationError = navigationState.sendError;
+  const seedPrompt = searchParams.get('prompt') ?? '';
   const [messages, setMessages] = useState<RealMessage[]>([]);
-  const [input, setInput] = useState(searchParams.get('prompt') ?? '');
+  const [input, setInput] = useState(pendingPrompt ?? seedPrompt);
   const [loading, setLoading] = useState(Boolean(sessionId));
   const [sending, setSending] = useState(false);
   const [activeRunId, setActiveRunId] = useState<string>();
@@ -1828,8 +2997,14 @@ function RealChatPage() {
   const [assistantTime, setAssistantTime] = useState('');
   const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
+  const [retryAvailable, setRetryAvailable] = useState(false);
+  const [retrying, setRetrying] = useState(false);
+  const [safetyDegraded, setSafetyDegraded] = useState(false);
   const [budgetConfirmation, setBudgetConfirmation] = useState(false);
+  const [budgetFacts, setBudgetFacts] = useState<RealBudgetFacts>({});
+  const [budgetSubmitting, setBudgetSubmitting] = useState(false);
   const [checkpointAvailable, setCheckpointAvailable] = useState(false);
+  const [checkpointRecovery, setCheckpointRecovery] = useState<AgentRecoveryRequest>();
   const [approval, setApproval] = useState<{
     id: string;
     operation?: string;
@@ -1839,11 +3014,29 @@ function RealChatPage() {
   }>();
   const [approvalSubmitting, setApprovalSubmitting] = useState(false);
   const [cancelling, setCancelling] = useState(false);
+  const [cancelAcknowledged, setCancelAcknowledged] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string>();
+  const [editingContent, setEditingContent] = useState('');
+  const [messageToDelete, setMessageToDelete] = useState<RealMessage>();
+  const [messageMutation, setMessageMutation] = useState<{
+    messageId: string;
+    action: 'edit' | 'delete';
+  }>();
+  const [messageError, setMessageError] = useState<string>();
+  const [messageNotice, setMessageNotice] = useState<string>();
   const [connection, setConnection] = useState<AgentStreamConnection>({ state: 'closed', attempt: 0, maxAttempts: 5 });
+  const [streamGeneration, setStreamGeneration] = useState(0);
   const messagesRef = useRef<HTMLDivElement>(null);
   const messagesStateRef = useRef<RealMessage[]>([]);
-  const streamRef = useRef<{ close: () => void }>();
+  const messageLoadGenerationRef = useRef(0);
+  const messageLoadControllerRef = useRef<AbortController>();
+  const streamRef = useRef<AgentStreamHandle>();
+  const streamResumeRef = useRef<{ lastEventId?: string; preserveContent: boolean }>({ preserveContent: false });
+  const runReconciliationControllerRef = useRef<AbortController>();
   const mountedRef = useRef(true);
+  const sendControllerRef = useRef<AbortController>();
+  const runActionControllerRef = useRef<AbortController>();
+  const messageMutationControllerRef = useRef<AbortController>();
 
   useEffect(() => {
     // 在订阅新 Run 前同步历史消息，避免回放时重复追加已持久化的回答。
@@ -1851,19 +3044,46 @@ function RealChatPage() {
   }, [messages]);
 
   useEffect(() => {
+    // React StrictMode 会在开发环境重新执行 effect；重新挂载时必须恢复存活标记，
+    // 否则真实请求完成后的响应会被误判为来自已卸载页面。
+    mountedRef.current = true;
     return () => {
       mountedRef.current = false;
+      messageLoadControllerRef.current?.abort();
+      messageLoadControllerRef.current = undefined;
+      messageLoadGenerationRef.current += 1;
+      runReconciliationControllerRef.current?.abort();
+      runReconciliationControllerRef.current = undefined;
+      sendControllerRef.current?.abort();
+      sendControllerRef.current = undefined;
+      runActionControllerRef.current?.abort();
+      runActionControllerRef.current = undefined;
+      messageMutationControllerRef.current?.abort();
+      messageMutationControllerRef.current = undefined;
     };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
+    sendControllerRef.current?.abort();
+    sendControllerRef.current = undefined;
+    runActionControllerRef.current?.abort();
+    runActionControllerRef.current = undefined;
+    messageMutationControllerRef.current?.abort();
+    messageMutationControllerRef.current = undefined;
+    messageLoadControllerRef.current?.abort();
+    messageLoadControllerRef.current = undefined;
+    messageLoadGenerationRef.current += 1;
+    runReconciliationControllerRef.current?.abort();
+    runReconciliationControllerRef.current = undefined;
     // 路由切换先关闭旧 Run，避免旧会话的事件继续写入新会话状态。
     streamRef.current?.close();
     streamRef.current = undefined;
+    streamResumeRef.current = { preserveContent: false };
     // 路由变化时重置状态，后续由新的 SSE 订阅接管这些值。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setActiveRunId(undefined);
+    setInput(pendingPrompt ?? seedPrompt);
     setRunIntent('knowledge_qna');
     setToolCalls([]);
     setRunStatus('idle');
@@ -1871,37 +3091,72 @@ function RealChatPage() {
     setAssistantTime('');
     setAssistantMessageId(undefined);
     setCitations([]);
+    setRetryAvailable(false);
+    setRetrying(false);
+    setSafetyDegraded(false);
     setBudgetConfirmation(false);
+    setBudgetFacts({});
+    setBudgetSubmitting(false);
     setCheckpointAvailable(false);
+    setCheckpointRecovery(undefined);
     setApproval(undefined);
     setApprovalSubmitting(false);
     setCancelling(false);
+    setCancelAcknowledged(false);
+    setEditingMessageId(undefined);
+    setEditingContent('');
+    setMessageToDelete(undefined);
+    setMessageMutation(undefined);
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    // 会话切换后旧发送流程不再负责复位状态，避免新路由永久保留发送中状态。
+    setSending(false);
     setConnection({ state: 'closed', attempt: 0, maxAttempts: 5 });
+    setError(navigationError);
     if (!sessionId) {
       setLoading(false);
       return;
     }
     setLoading(true);
-    setError(undefined);
-    loadSessionMessages(sessionId)
+    const controller = new AbortController();
+    messageLoadControllerRef.current = controller;
+    const loadGeneration = ++messageLoadGenerationRef.current;
+    loadSessionMessages(sessionId, {}, controller.signal)
       .then((rows) => {
-        if (cancelled) return;
-        const ordered = rows.sort((a, b) => a.sequence_no - b.sequence_no);
+        if (cancelled || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current) return;
+        const ordered = [...rows].sort((a, b) => a.sequence_no - b.sequence_no);
         setMessages(ordered);
         // 重新进入历史会话时恢复最近一次 Run，才能回放终态事件和引用。
         const latestRunId = [...ordered].reverse().find((message) => message.agent_run_id)?.agent_run_id;
         if (latestRunId) setActiveRunId(String(latestRunId));
       })
       .catch((reason) => {
-        if (!cancelled) setError(reason instanceof Error ? reason.message : '消息加载失败');
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          isAbortError(reason) ||
+          loadGeneration !== messageLoadGenerationRef.current
+        )
+          return;
+        setError(reason instanceof Error ? reason.message : '消息加载失败');
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (
+          !cancelled &&
+          mountedRef.current &&
+          !controller.signal.aborted &&
+          loadGeneration === messageLoadGenerationRef.current
+        )
+          setLoading(false);
+        if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
       });
     return () => {
       cancelled = true;
+      controller.abort();
+      if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+      messageLoadGenerationRef.current += 1;
     };
-  }, [sessionId]);
+  }, [navigationError, pendingPrompt, seedPrompt, sessionId]);
 
   useEffect(() => {
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
@@ -1910,130 +3165,306 @@ function RealChatPage() {
   useEffect(() => {
     if (!activeRunId) return undefined;
     let streamActive = true;
+    let terminalStatus: TerminalRunStatus | undefined;
+    let reconciliationInFlight: Promise<void> | undefined;
+    const streamResume = streamResumeRef.current;
     const hasPersistedAnswer = messagesStateRef.current.some(
       (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
     );
+    let receivedAssistantText = hasPersistedAnswer;
+    const isStreamLive = () => streamActive && mountedRef.current;
+
+    const updateRunStatus = (nextStatus: AgentDisplayStatus) => {
+      if (terminalStatus) return;
+      if (isTerminalRunStatus(nextStatus)) terminalStatus = nextStatus;
+      setRunStatus(nextStatus);
+    };
+
+    const loadTerminalMessages = async () => {
+      if (!sessionId) return undefined;
+      messageLoadControllerRef.current?.abort();
+      const controller = new AbortController();
+      messageLoadControllerRef.current = controller;
+      const loadGeneration = ++messageLoadGenerationRef.current;
+      try {
+        const rows = await loadSessionMessages(sessionId, {}, controller.signal);
+        if (!isStreamLive() || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current)
+          return undefined;
+        const ordered = [...rows].sort((left, right) => left.sequence_no - right.sequence_no);
+        const assistant = [...ordered]
+          .reverse()
+          .find((message) => message.agent_run_id === activeRunId && message.role === 'assistant');
+        setMessages(ordered);
+        setAssistantMessageId(assistant?.message_id);
+        if (assistant) {
+          receivedAssistantText = true;
+          setAssistantText('');
+          setAssistantTime(assistant.created_at);
+        }
+        return assistant;
+      } finally {
+        if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+      }
+    };
+
+    const settleTerminal = async (nextStatus: TerminalRunStatus, terminalError?: string, retryable = false) => {
+      if (!isStreamLive()) return;
+      if (terminalStatus) return;
+      terminalStatus = nextStatus;
+      setRunStatus(nextStatus);
+
+      // 服务端终态已经确定后关闭当前连接，避免继续接收迟到的中间事件。
+      streamRef.current?.close();
+      streamRef.current = undefined;
+      setConnection((current) => ({ ...current, state: 'closed' }));
+      setLoading(false);
+      setSending(false);
+      setCancelling(false);
+      setCancelAcknowledged(false);
+      setRetrying(false);
+      setRetryAvailable(nextStatus === 'failed' && retryable);
+      setBudgetSubmitting(false);
+      setCheckpointAvailable(false);
+      setCheckpointRecovery(undefined);
+      setApproval(undefined);
+      setApprovalSubmitting(false);
+
+      let persistedAssistant: RealMessage | undefined;
+      try {
+        persistedAssistant = await loadTerminalMessages();
+      } catch (reason) {
+        if (!isStreamLive() || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '回答完成后刷新消息失败，请刷新会话。');
+        return;
+      }
+      if (!isStreamLive()) return;
+      setLoading(false);
+      if (nextStatus === 'failed') {
+        setError(terminalError ?? 'Agent 运行失败，页面未收到完整的失败事件，请刷新会话查看详情。');
+      } else if (nextStatus === 'completed') {
+        if (persistedAssistant || receivedAssistantText) setError(undefined);
+        else setError('运行已完成，但最终消息尚未回读，请刷新会话。');
+      } else {
+        setError(undefined);
+      }
+    };
+
+    const reconcileFromServer = (showExhaustedError: boolean) => {
+      if (!isStreamLive() || terminalStatus || reconciliationInFlight) return;
+      const controller = new AbortController();
+      runReconciliationControllerRef.current?.abort();
+      runReconciliationControllerRef.current = controller;
+      const reconciliation = (async () => {
+        try {
+          const serverRun = await loadAgentRun(activeRunId, controller.signal);
+          if (!isStreamLive() || controller.signal.aborted) return;
+          const serverStatus = displayRunStatus(serverRun.status);
+          if (isTerminalRunStatus(serverStatus)) {
+            await settleTerminal(serverStatus);
+            return;
+          }
+          // 非终态只用于确认连接仍应继续，不能覆盖当前 SSE 已展示的阶段。
+          if (showExhaustedError) {
+            setLoading(false);
+            setError('SSE 连接重试已耗尽，服务端运行尚未结束，请刷新页面。');
+          }
+        } catch (reason) {
+          if (!isStreamLive() || controller.signal.aborted || isAbortError(reason)) return;
+          if (showExhaustedError) {
+            setLoading(false);
+            setError(reason instanceof Error ? reason.message : '无法确认 Agent 运行状态，请刷新会话。');
+          }
+        } finally {
+          if (runReconciliationControllerRef.current === controller) {
+            runReconciliationControllerRef.current = undefined;
+            reconciliationInFlight = undefined;
+          }
+        }
+      })();
+      reconciliationInFlight = reconciliation;
+    };
+
     // SSE 订阅建立后先进入排队状态，再接收运行事件。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setRunStatus('queued');
-    setAssistantText('');
-    const stream = openAgentRunStream(
+    if (!streamResume.preserveContent) {
+      setRunStatus('queued');
+      setAssistantText('');
+    }
+    const activeStream = openAgentRunStream(
       activeRunId,
       (eventType, payload) => {
         if (!streamActive || !mountedRef.current) return;
-        if (eventType === 'run.routed') {
-          setRunIntent(normalizeRunIntent(payload.intent));
-          setRunStatus('routed');
+        const rawPayload = payload as unknown as Record<string, unknown>;
+        const normalizedPayload = flattenAgentEventPayload(rawPayload) as AgentRunEvent;
+        const normalizedEventType = resolveAgentEventType(eventType, rawPayload);
+        setBudgetFacts((current) => mergeBudgetFacts(current, budgetFactsFromEvent(normalizedPayload)));
+        if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
+        if (normalizedEventType === 'run.created' || normalizedEventType === 'run.accepted') {
+          updateRunStatus('routing');
           return;
         }
-        if (eventType === 'run.context_assembled') {
-          setRunStatus('retrieving');
+        if (normalizedEventType === 'run.routed') {
+          setRunIntent(normalizeRunIntent(normalizedPayload.intent));
+          updateRunStatus('routing');
           return;
         }
-        if (eventType === 'run.tool_started') {
-          setRunStatus('executing');
-          setToolCalls((current) => mergeToolCall(current, payload, 'started'));
+        if (normalizedEventType === 'run.planned') {
+          updateRunStatus('planning');
           return;
         }
-        if (eventType === 'run.tool_finished') {
-          setToolCalls((current) => mergeToolCall(current, payload, 'finished'));
+        if (
+          normalizedEventType === 'run.context_assembled' ||
+          normalizedEventType === 'run.retrieval_started' ||
+          normalizedEventType === 'run.retrieval_finished'
+        ) {
+          updateRunStatus('retrieving');
           return;
         }
-        if (eventType === 'run.eval_decided') {
-          setRunStatus('validating');
+        if (normalizedEventType === 'run.tool_started') {
+          updateRunStatus('executing_tools');
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'started'));
           return;
         }
-        if (eventType === 'run.model_usage') {
-          setRunStatus('composing');
+        if (normalizedEventType === 'run.tool_finished') {
+          setToolCalls((current) => mergeToolCall(current, normalizedPayload, 'finished'));
           return;
         }
-        if (eventType === 'run.answer_stream') {
-          setRunStatus('validating');
+        if (normalizedEventType === 'run.eval_decided') {
+          updateRunStatus('validating');
+          return;
+        }
+        if (normalizedEventType === 'run.model_usage') {
+          updateRunStatus('composing');
+          return;
+        }
+        if (normalizedEventType === 'run.answer_stream') {
+          updateRunStatus('composing');
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => current + (payload.text ?? ''));
+          if (!hasPersistedAnswer && normalizedPayload.text) {
+            receivedAssistantText = true;
+            setAssistantText((current) => current + normalizedPayload.text!);
+          }
           return;
         }
-        if (eventType === 'run.completed') {
-          setRunStatus('completed');
+        if (normalizedEventType === 'run.completed') {
+          if (terminalStatus) return;
+          setCancelling(false);
+          setCancelAcknowledged(false);
+          setRetryAvailable(false);
+          setRetrying(false);
+          // 终态可能在首次消息请求完成前回放；完成事件接管刷新时必须结束页面加载态。
+          setLoading(false);
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
           setApproval(undefined);
           setAssistantTime((current) => current || new Date().toISOString());
-          if (!hasPersistedAnswer) setAssistantText((current) => payload.answer ?? current);
-          if (sessionId) {
-            void loadSessionMessages(sessionId).then((rows) => {
-              const assistant = rows.find(
-                (message) => message.agent_run_id === activeRunId && message.role === 'assistant',
-              );
-              setAssistantMessageId(assistant?.message_id);
-            });
+          if (!hasPersistedAnswer && normalizedPayload.answer) {
+            receivedAssistantText = true;
+            setAssistantText((current) => normalizedPayload.answer ?? current);
           }
+          const degraded = normalizedPayload.result_type === 'safety_degraded';
+          setSafetyDegraded(degraded);
           setCitations(
-            (payload.citations ?? []).map((citation) => ({
-              id: citation.citation_id,
-              title: citation.title,
-              snippet: citation.snippet,
-              source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
-            })),
+            degraded
+              ? []
+              : (normalizedPayload.citations ?? []).map((citation) => ({
+                  id: citation.citation_id,
+                  title: citation.title,
+                  snippet: citation.snippet,
+                  source: [citation.version, citation.section_path].filter(Boolean).join(' · '),
+                })),
           );
-          setBudgetConfirmation(
-            payload.result_type === 'safety_degraded' &&
-              (payload.requires_confirmation === true || payload.budget_actions?.requires_confirmation === true),
-          );
+          setBudgetConfirmation((current) => current || budgetConfirmationRequested(normalizedPayload));
+          void settleTerminal('completed');
           return;
         }
-        if (eventType === 'run.checkpoint_saved') {
-          if (payload.approval_request_id) {
-            setRunStatus('waiting_user');
+        if (normalizedEventType === 'run.checkpoint_saved') {
+          if (normalizedPayload.approval_request_id) {
+            updateRunStatus('waiting_user');
             setCheckpointAvailable(false);
+            setCheckpointRecovery(undefined);
             setApproval({
-              id: payload.approval_request_id,
-              operation: payload.operation,
-              resourceType: payload.resource_type,
-              toolName: payload.tool_name,
-              details: payload.details ?? {},
+              id: normalizedPayload.approval_request_id,
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              toolName: normalizedPayload.tool_name,
+              details: normalizedPayload.details ?? {},
             });
           } else {
-            setRunStatus('waiting_user');
+            updateRunStatus('waiting_user');
+            setCheckpointRecovery(recoveryRequestFromEvent(normalizedPayload));
             setCheckpointAvailable(true);
           }
           return;
         }
-        if (eventType === 'run.failed') {
-          setRunStatus('failed');
+        if (normalizedEventType === 'run.failed') {
+          if (terminalStatus) return;
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setCheckpointAvailable(false);
-          setError(runtimeErrorMessage(payload));
+          setCheckpointRecovery(undefined);
+          setSafetyDegraded(false);
+          setRetrying(false);
+          setBudgetSubmitting(false);
+          setRetryAvailable(normalizedPayload.retryable === true);
+          if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
+          const failureMessage = runtimeErrorMessage(normalizedPayload);
+          setError(failureMessage);
+          void settleTerminal('failed', failureMessage, normalizedPayload.retryable === true);
           return;
         }
-        if (eventType === 'run.cancelled') {
-          setRunStatus('cancelled');
+        if (normalizedEventType === 'run.cancelled') {
+          if (terminalStatus) return;
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
+          setRetryAvailable(false);
+          setRetrying(false);
+          setBudgetConfirmation(false);
+          setBudgetSubmitting(false);
+          void settleTerminal('cancelled');
           return;
         }
-        if (eventType === 'run.superseded') {
-          setRunStatus('superseded');
+        if (normalizedEventType === 'run.superseded') {
+          if (terminalStatus) return;
+          setCancelling(false);
+          setCancelAcknowledged(false);
           setCheckpointAvailable(false);
+          setCheckpointRecovery(undefined);
+          setBudgetConfirmation(false);
+          setBudgetSubmitting(false);
+          void settleTerminal('superseded');
           return;
         }
-        if (eventType === 'run.clarification_requested') {
-          setRunStatus('waiting_user');
-          if (payload.approval_request_id) {
+        if (normalizedEventType === 'run.clarification_requested') {
+          updateRunStatus('waiting_user');
+          if (normalizedPayload.approval_request_id) {
             setCheckpointAvailable(false);
             setApproval({
-              id: payload.approval_request_id,
-              operation: payload.operation,
-              resourceType: payload.resource_type,
-              toolName: payload.tool_name,
-              details: payload.details ?? {},
+              id: normalizedPayload.approval_request_id,
+              operation: normalizedPayload.operation,
+              resourceType: normalizedPayload.resource_type,
+              toolName: normalizedPayload.tool_name,
+              details: normalizedPayload.details ?? {},
             });
           }
           return;
         }
-        setRunStatus(payload.status ?? eventType.replace('run.', ''));
+        if (normalizedEventType === 'run.cancel_acknowledged') {
+          setCancelAcknowledged(true);
+          return;
+        }
+        if (!terminalStatus)
+          setRunStatus(normalizedPayload.status ?? normalizedPayload.state ?? normalizedEventType.replace('run.', ''));
       },
       {
         maxAttempts: 5,
+        lastEventId: streamResume.lastEventId,
         onStateChange: (nextConnection) => {
-          if (streamActive && mountedRef.current) setConnection(nextConnection);
+          if (!streamActive || !mountedRef.current) return;
+          setConnection(nextConnection);
+          if (['reconnecting', 'exhausted', 'closed'].includes(nextConnection.state))
+            reconcileFromServer(nextConnection.state === 'exhausted');
         },
         onError: () => {
           if (!streamActive || !mountedRef.current) return;
@@ -2042,37 +3473,350 @@ function RealChatPage() {
         },
       },
     );
-    streamRef.current = stream;
+    streamRef.current = activeStream;
+    if (terminalStatus) {
+      activeStream.close();
+      if (streamRef.current === activeStream) streamRef.current = undefined;
+    }
+    // 页面进入已有 Run 时先校准一次服务端状态；非终态不会覆盖当前 SSE 阶段。
+    reconcileFromServer(false);
     return () => {
       streamActive = false;
-      stream.close();
-      if (streamRef.current === stream) streamRef.current = undefined;
+      activeStream.close();
+      if (runReconciliationControllerRef.current) {
+        runReconciliationControllerRef.current.abort();
+        runReconciliationControllerRef.current = undefined;
+      }
+      if (streamRef.current === activeStream) streamRef.current = undefined;
     };
-  }, [activeRunId, sessionId]);
+  }, [activeRunId, sessionId, streamGeneration]);
+
+  const startRunAction = () => {
+    runActionControllerRef.current?.abort();
+    const controller = new AbortController();
+    runActionControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentRunAction = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && runActionControllerRef.current === controller;
+
+  const finishRunAction = (controller: AbortController) => {
+    if (runActionControllerRef.current === controller) runActionControllerRef.current = undefined;
+  };
+
+  const submitApprovalAction = async (
+    action: 'confirm' | 'reject',
+    approvalId: string,
+    parameters: Record<string, unknown>,
+  ) => {
+    if (approvalSubmitting) return;
+    const controller = startRunAction();
+    setApprovalSubmitting(true);
+    try {
+      if (action === 'reject') {
+        await rejectAgentWrite(approvalId, parameters, controller.signal);
+        if (!isCurrentRunAction(controller)) return;
+        return;
+      }
+      await confirmAgentWrite(approvalId, parameters, controller.signal);
+      await executeAgentWrite(approvalId, parameters, controller.signal);
+      if (!isCurrentRunAction(controller)) return;
+    } catch (reason) {
+      if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+      setError(reason instanceof Error ? reason.message : action === 'confirm' ? '饮食记录写入失败' : '取消写入失败');
+    } finally {
+      if (isCurrentRunAction(controller)) setApprovalSubmitting(false);
+      finishRunAction(controller);
+    }
+  };
 
   const send = async () => {
     const content = input.trim();
     if (!content || sending) return;
     setError(undefined);
     setSending(true);
+    setRetryAvailable(false);
+    setSafetyDegraded(false);
+    setBudgetConfirmation(false);
+    setBudgetFacts({});
+    setBudgetSubmitting(false);
+    // 新消息开始后清理上一条 Run 的瞬态展示，避免旧工具和反馈状态挂到新回答上。
+    setRunIntent('knowledge_qna');
+    setToolCalls([]);
+    setAssistantText('');
+    setAssistantTime('');
+    setAssistantMessageId(undefined);
+    sendControllerRef.current?.abort();
+    const controller = new AbortController();
+    sendControllerRef.current = controller;
+    let createdSessionId: string | undefined;
     try {
       let target = sessionId;
       if (!target) {
-        const created = await createSession(content.slice(0, 40));
+        const created = await createSession(content.slice(0, 40), controller.signal);
         target = String(created.session_id);
-        navigate(`/chat/${target}`, { replace: true });
+        if (!target || target === 'undefined') throw new Error('会话创建响应缺少 session_id。');
+        createdSessionId = target;
       }
-      const saved = await sendUserMessage(target, content);
+      const saved = await sendUserMessage(target, content, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted || sendControllerRef.current !== controller) return;
+      if (createdSessionId) {
+        // 新会话先确认首条消息已被服务端接收，再切换路由加载真实消息和 Run。
+        setInput('');
+        navigate(`/chat/${encodeURIComponent(createdSessionId)}`, { replace: true });
+        return;
+      }
       setMessages((current) => [...current, saved].sort((a, b) => a.sequence_no - b.sequence_no));
-      if (saved.agent_run_id) setActiveRunId(String(saved.agent_run_id));
+      if (saved.agent_run_id) {
+        // 新 Run 不得继承旧 Run 的 SSE 游标，避免跳过新运行的首批事件。
+        streamResumeRef.current = { preserveContent: false };
+        setCancelAcknowledged(false);
+        setActiveRunId(String(saved.agent_run_id));
+      } else {
+        setActiveRunId(undefined);
+        setRunStatus('idle');
+      }
       setCitations([]);
       setInput('');
     } catch (reason) {
-      if (reason instanceof ApiError && reason.code === 'FORBIDDEN') setError(reason.message);
-      setError(reason instanceof Error ? reason.message : '消息发送失败');
+      if (!mountedRef.current || controller.signal.aborted || isAbortError(reason)) return;
+      const message = reason instanceof Error ? reason.message : '消息发送失败';
+      if (createdSessionId) {
+        // 会话已创建但首条消息失败时保留真实会话，用户可以在当前路由重试发送。
+        navigate(`/chat/${encodeURIComponent(createdSessionId)}`, {
+          replace: true,
+          state: { sendError: message, pendingPrompt: content } satisfies ChatNavigationState,
+        });
+        return;
+      }
+      setError(message);
     } finally {
-      setSending(false);
+      if (sendControllerRef.current === controller) {
+        sendControllerRef.current = undefined;
+        if (mountedRef.current && !controller.signal.aborted) setSending(false);
+      }
     }
+  };
+
+  const retryFailed = () => {
+    if (!activeRunId || !retryAvailable || retrying) return;
+    const resumeCursor = connection.lastEventId;
+    streamRef.current?.close();
+    streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: false };
+    setRetrying(true);
+    setRetryAvailable(false);
+    setError(undefined);
+    const controller = startRunAction();
+    void retryAgentRun(activeRunId, controller.signal)
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setRunStatus('queued');
+        setToolCalls([]);
+        setAssistantText('');
+        setAssistantTime('');
+        setAssistantMessageId(undefined);
+        setRunIntent('knowledge_qna');
+        setCitations([]);
+        setSafetyDegraded(false);
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setRetryAvailable(true);
+        setError(reason instanceof Error ? reason.message : '重试请求失败');
+      })
+      .finally(() => {
+        if (isCurrentRunAction(controller)) setRetrying(false);
+        finishRunAction(controller);
+      });
+  };
+
+  const cancelActiveRun = () => {
+    if (cancelling || !activeRunId) return;
+    const currentStream = streamRef.current;
+    const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
+    // 取消请求发出前关闭旧连接，收到 HTTP 接受响应后再从原游标续接终态。
+    currentStream?.close();
+    if (streamRef.current === currentStream) streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+    setCancelAcknowledged(false);
+    setCancelling(true);
+    setBudgetConfirmation(false);
+    setBudgetSubmitting(false);
+    const controller = startRunAction();
+    void cancelAgentRun(activeRunId, 'user_requested', controller.signal)
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setCheckpointAvailable(false);
+        // HTTP 200 只表示取消请求已被接受，真正的 cancelled 必须来自 SSE 终态事件。
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '取消运行失败');
+        setCancelling(false);
+        // 取消失败时恢复原订阅，继续接收尚未结束的运行事件。
+        setStreamGeneration((current) => current + 1);
+      })
+      .finally(() => {
+        finishRunAction(controller);
+      });
+  };
+
+  const refreshMessages = async (targetSessionId: string) => {
+    messageLoadControllerRef.current?.abort();
+    const controller = new AbortController();
+    messageLoadControllerRef.current = controller;
+    const loadGeneration = ++messageLoadGenerationRef.current;
+    try {
+      const rows = await loadSessionMessages(targetSessionId, {}, controller.signal);
+      if (!mountedRef.current || controller.signal.aborted || loadGeneration !== messageLoadGenerationRef.current)
+        return false;
+      setMessages([...rows].sort((a, b) => a.sequence_no - b.sequence_no));
+      return true;
+    } finally {
+      if (messageLoadControllerRef.current === controller) messageLoadControllerRef.current = undefined;
+    }
+  };
+
+  const startMessageEdit = (message: RealMessage) => {
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setEditingMessageId(message.message_id);
+    setEditingContent(message.content);
+  };
+
+  const cancelMessageEdit = () => {
+    if (messageMutation?.action === 'edit') return;
+    setEditingMessageId(undefined);
+    setEditingContent('');
+    setMessageError(undefined);
+  };
+
+  const startMessageMutation = () => {
+    messageMutationControllerRef.current?.abort();
+    const controller = new AbortController();
+    messageMutationControllerRef.current = controller;
+    return controller;
+  };
+
+  const isCurrentMessageMutation = (controller: AbortController) =>
+    mountedRef.current && !controller.signal.aborted && messageMutationControllerRef.current === controller;
+
+  const finishMessageMutation = (controller: AbortController) => {
+    if (messageMutationControllerRef.current === controller) messageMutationControllerRef.current = undefined;
+  };
+
+  const saveMessageEdit = async (message: RealMessage) => {
+    if (!sessionId || !editingContent.trim() || messageMutation) return;
+    const originalContent = message.content;
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setMessageMutation({ messageId: message.message_id, action: 'edit' });
+    const controller = startMessageMutation();
+    try {
+      await updateMessage(sessionId, message.message_id, editingContent.trim(), controller.signal);
+      if (!isCurrentMessageMutation(controller)) return;
+      const refreshed = await refreshMessages(sessionId);
+      if (!refreshed || !isCurrentMessageMutation(controller)) return;
+      setEditingMessageId(undefined);
+      setEditingContent('');
+      setMessageNotice('消息已更新。');
+    } catch (reason) {
+      if (!isCurrentMessageMutation(controller) || isAbortError(reason)) return;
+      // 服务端失败时恢复原文，避免本地草稿被误认为已经写入。
+      setEditingContent(originalContent);
+      setMessageError(messageMutationError(reason, '消息更新失败，请稍后重试。'));
+    } finally {
+      if (isCurrentMessageMutation(controller)) setMessageMutation(undefined);
+      finishMessageMutation(controller);
+    }
+  };
+
+  const confirmMessageDelete = async () => {
+    if (!sessionId || !messageToDelete || messageMutation) return;
+    setMessageError(undefined);
+    setMessageNotice(undefined);
+    setMessageMutation({ messageId: messageToDelete.message_id, action: 'delete' });
+    const controller = startMessageMutation();
+    try {
+      await deleteMessage(sessionId, messageToDelete.message_id, controller.signal);
+      if (!isCurrentMessageMutation(controller)) return;
+      const refreshed = await refreshMessages(sessionId);
+      if (!refreshed || !isCurrentMessageMutation(controller)) return;
+      setMessageToDelete(undefined);
+      setMessageNotice('消息已删除。');
+    } catch (reason) {
+      if (!isCurrentMessageMutation(controller) || isAbortError(reason)) return;
+      // 删除请求未成功时不改变本地列表，原消息继续保留。
+      setMessageError(messageMutationError(reason, '消息删除失败，请稍后重试。'));
+    } finally {
+      if (isCurrentMessageMutation(controller)) setMessageMutation(undefined);
+      finishMessageMutation(controller);
+    }
+  };
+
+  const recoverFromCheckpoint = () => {
+    if (!activeRunId || approvalSubmitting) return;
+    const controller = startRunAction();
+    const recovery = checkpointRecovery;
+    setApprovalSubmitting(true);
+    const request = recovery
+      ? recoverAgentRun(activeRunId, recovery, controller.signal)
+      : recoverAgentRunFromCheckpoint(activeRunId, controller.signal);
+    void request
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setCheckpointAvailable(false);
+        setCheckpointRecovery(undefined);
+        setRunStatus('queued');
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '运行恢复失败');
+      })
+      .finally(() => {
+        if (isCurrentRunAction(controller)) setApprovalSubmitting(false);
+        finishRunAction(controller);
+      });
+  };
+
+  const extendBudgetFromConfirmation = () => {
+    if (!activeRunId || budgetFacts.additionalTokens == null || !budgetFacts.additionalCostCny || budgetSubmitting)
+      return;
+    const currentStream = streamRef.current;
+    const resumeCursor = currentStream?.getConnection().lastEventId ?? connection.lastEventId;
+    // 预算追加会创建新的 dispatch attempt，先关闭旧连接，再从原游标接收新 Run 事件。
+    currentStream?.close();
+    if (streamRef.current === currentStream) streamRef.current = undefined;
+    streamResumeRef.current = { lastEventId: resumeCursor, preserveContent: true };
+    const controller = startRunAction();
+    setBudgetSubmitting(true);
+    void extendAgentRunBudget(
+      activeRunId,
+      budgetFacts.additionalTokens,
+      budgetFacts.additionalCostCny,
+      undefined,
+      controller.signal,
+    )
+      .then(() => {
+        if (!isCurrentRunAction(controller)) return;
+        setBudgetConfirmation(false);
+        setRunStatus('queued');
+        setStreamGeneration((current) => current + 1);
+      })
+      .catch((reason) => {
+        if (!isCurrentRunAction(controller) || isAbortError(reason)) return;
+        setError(reason instanceof Error ? reason.message : '预算追加失败');
+        setStreamGeneration((current) => current + 1);
+      })
+      .finally(() => {
+        if (isCurrentRunAction(controller)) setBudgetSubmitting(false);
+        finishRunAction(controller);
+      });
   };
 
   const realRun: AgentRunView = {
@@ -2096,6 +3840,8 @@ function RealChatPage() {
     source: undefined,
     agentRunId: message.agent_run_id,
   }));
+  const budgetPercent =
+    budgetFacts.ratio == null ? undefined : Math.max(0, Math.min(100, Math.round(budgetFacts.ratio * 100)));
 
   return (
     <ChatSurface
@@ -2111,31 +3857,42 @@ function RealChatPage() {
       disabled={loading || sending || cancelling}
       onChange={setInput}
       onSend={() => void send()}
-      onStop={() => {
-        if (cancelling || !activeRunId) return;
-        streamRef.current?.close();
-        setCancelling(true);
-        void cancelAgentRun(activeRunId)
-          .then(() => {
-            if (!mountedRef.current) return;
-            setRunStatus('cancelled');
-            setCheckpointAvailable(false);
-            setConnection((current) => ({ ...current, state: 'closed' }));
-          })
-          .catch((reason) => {
-            if (mountedRef.current) setError(reason instanceof Error ? reason.message : '取消运行失败');
-          })
-          .finally(() => {
-            if (mountedRef.current) setCancelling(false);
-          });
-      }}
+      onStop={cancelActiveRun}
       placeholder="追问或添加自定义指令..."
     >
       {loading ? <p className={styles.systemMessage}>正在加载消息...</p> : null}
       {!loading && mappedMessages.length === 0 ? (
         <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
       ) : null}
-      {error ? <ErrorState message={error} /> : null}
+      {error ? (
+        <div className={styles.runtimeErrorBlock}>
+          <ErrorState message={error} />
+          {retryAvailable ? (
+            <Button disabled={retrying} onClick={retryFailed} variant="outline">
+              {retrying ? '正在重试...' : '重试'}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {messageError && !messageToDelete ? (
+        <Alert className={styles.messageMutationNotice} role="alert" variant="destructive">
+          <AlertTitle>消息操作失败</AlertTitle>
+          <AlertDescription>{messageError}</AlertDescription>
+        </Alert>
+      ) : null}
+      {messageNotice ? (
+        <p className={styles.messageMutationSuccess} role="status">
+          {messageNotice}
+        </p>
+      ) : null}
+      {safetyDegraded ? (
+        <Alert className={styles.safetyDegradedNotice} role="status" variant="warning">
+          <AlertTitle>安全降级提示</AlertTitle>
+          <AlertDescription>
+            当前回答基于有限数据，个人条件或外部工具未完整应用；本次结果不代表完整分析，后续追问仍会发送到当前会话。
+          </AlertDescription>
+        </Alert>
+      ) : null}
       {connection.state === 'reconnecting' ? (
         <div className={styles.connectionNotice} role="status" aria-live="polite">
           <LoaderCircle aria-hidden="true" />
@@ -2160,14 +3917,68 @@ function RealChatPage() {
         <div className={styles.connectionNotice} role="status" aria-live="polite">
           <LoaderCircle aria-hidden="true" />
           <div>
-            <strong>正在取消当前运行...</strong>
-            <span>已停止接收新的运行事件，等待服务确认。</span>
+            <strong>{cancelAcknowledged ? '取消请求已确认，等待运行终态...' : '正在取消当前运行...'}</strong>
+            <span>已停止接收新的运行事件，等待服务返回 cancelled 终态。</span>
           </div>
         </div>
       ) : null}
       {mappedMessages.map((message) => (
-        <MessageBubble key={message.id} message={message}>
-          {message.role === 'assistant' && message.agentRunId === activeRunId && runStatus === 'completed' ? (
+        <MessageBubble
+          key={message.id}
+          message={message}
+          editing={editingMessageId === message.id}
+          editValue={editingMessageId === message.id ? editingContent : undefined}
+          editPending={messageMutation?.messageId === message.id}
+          onEditChange={setEditingContent}
+          onEditSave={() => {
+            const source = messages.find((item) => item.message_id === message.id);
+            if (source) void saveMessageEdit(source);
+          }}
+          onEditCancel={cancelMessageEdit}
+          userActions={
+            message.role === 'user' ? (
+              <>
+                <Button
+                  aria-label="编辑消息"
+                  title="编辑消息"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={styles.messageActionButton}
+                  disabled={Boolean(messageMutation)}
+                  onClick={() => {
+                    const source = messages.find((item) => item.message_id === message.id);
+                    if (source) startMessageEdit(source);
+                  }}
+                >
+                  <Pencil aria-hidden="true" />
+                </Button>
+                <Button
+                  aria-label="删除消息"
+                  title="删除消息"
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={styles.messageActionButton}
+                  disabled={Boolean(messageMutation)}
+                  onClick={() => {
+                    const source = messages.find((item) => item.message_id === message.id);
+                    if (!source) return;
+                    setMessageError(undefined);
+                    setMessageNotice(undefined);
+                    setMessageToDelete(source);
+                  }}
+                >
+                  <Trash2 aria-hidden="true" />
+                </Button>
+              </>
+            ) : null
+          }
+        >
+          {message.role === 'assistant' &&
+          message.agentRunId === activeRunId &&
+          runStatus === 'completed' &&
+          !safetyDegraded ? (
             <CitationList citations={citations} />
           ) : null}
           {message.role === 'assistant' && message.agentRunId ? (
@@ -2185,7 +3996,7 @@ function RealChatPage() {
             agentRunId: activeRunId,
           }}
         >
-          {runStatus === 'completed' ? <CitationList citations={citations} /> : null}
+          {runStatus === 'completed' && !safetyDegraded ? <CitationList citations={citations} /> : null}
           {assistantMessageId && activeRunId ? (
             <AgentFeedback runId={activeRunId} messageId={assistantMessageId} />
           ) : null}
@@ -2208,22 +4019,13 @@ function RealChatPage() {
                 errorText="当前写入类型无法识别，请重新发送需求。"
                 data={approvalData(approval.details, resourceType)}
                 onConfirm={() => {
-                  if (!supported) return;
-                  const parameters = approvalParameters(approval.details, resourceType);
-                  setApprovalSubmitting(true);
-                  void confirmAgentWrite(approval.id, parameters)
-                    .then(() => executeAgentWrite(approval.id, parameters))
-                    .catch((reason) => setError(reason instanceof Error ? reason.message : '饮食记录写入失败'))
-                    .finally(() => setApprovalSubmitting(false));
+                  if (supported)
+                    submitApprovalAction('confirm', approval.id, approvalParameters(approval.details, resourceType));
                 }}
                 onEdit={() => setError('请发送一条新消息修改食物和份量。')}
                 onCancel={() => {
-                  if (!supported) return;
-                  const parameters = approvalParameters(approval.details, resourceType);
-                  setApprovalSubmitting(true);
-                  void rejectAgentWrite(approval.id, parameters)
-                    .catch((reason) => setError(reason instanceof Error ? reason.message : '取消写入失败'))
-                    .finally(() => setApprovalSubmitting(false));
+                  if (supported)
+                    submitApprovalAction('reject', approval.id, approvalParameters(approval.details, resourceType));
                 }}
               />
             );
@@ -2234,20 +4036,19 @@ function RealChatPage() {
         <div className={styles.cardWrap}>
           <ConfirmationCard
             title="运行已暂停，可从检查点继续"
-            helperText="系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。"
+            helperText={
+              checkpointRecovery
+                ? '页面将转发服务端事件中的 checkpoint 元数据，由 Java 校验后创建新的 dispatch attempt。'
+                : '系统已保存运行进度。继续后会创建新的 dispatch attempt，不会重复已完成的工具调用。'
+            }
+            confirmLabel={checkpointRecovery ? '提交恢复请求' : '从 checkpoint 恢复'}
+            state={approvalSubmitting ? 'disabled' : 'normal'}
             data={[
               { label: '恢复方式', value: '从已校验 checkpoint 恢复' },
               { label: '安全校验', value: 'Java 服务端完成' },
             ]}
-            onConfirm={() => {
-              void recoverAgentRun(activeRunId)
-                .then(() => {
-                  setCheckpointAvailable(false);
-                  setRunStatus('queued');
-                })
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '运行恢复失败'));
-            }}
-            onEdit={() => setError('当前恢复入口不接受浏览器修改 checkpoint 内容。')}
+            onConfirm={recoverFromCheckpoint}
+            onEdit={() => setError('恢复参数来自服务端 checkpoint 事件，页面不提供手工修改。')}
             onCancel={() => setCheckpointAvailable(false)}
           />
         </div>
@@ -2257,19 +4058,194 @@ function RealChatPage() {
           <ConfirmationCard
             title="本次运行已达到预算上限"
             helperText="继续执行会创建新的预算 revision，并接续当前 Run。"
+            confirmLabel="追加预算"
+            cancelLabel="结束当前 Run"
+            state={
+              budgetSubmitting
+                ? 'disabled'
+                : budgetFacts.additionalTokens != null && budgetFacts.additionalCostCny
+                  ? 'normal'
+                  : 'error'
+            }
+            errorText="后端尚未返回可确认的追加额度，页面不会猜测 Token 或费用。"
             data={[
-              { label: '追加 Token', value: '30000' },
-              { label: '追加成本上限', value: '¥1.00' },
+              {
+                label: '已用 Token',
+                value: budgetFacts.usedTokens == null ? '后端未返回' : budgetFacts.usedTokens.toLocaleString('en-US'),
+              },
+              {
+                label: 'Token 上限',
+                value: budgetFacts.maxTokens == null ? '后端未返回' : budgetFacts.maxTokens.toLocaleString('en-US'),
+              },
+              { label: '使用比例', value: budgetPercent == null ? '后端未返回' : `${budgetPercent}%` },
+              {
+                label: '追加 Token',
+                value:
+                  budgetFacts.additionalTokens == null
+                    ? '后端未返回'
+                    : budgetFacts.additionalTokens.toLocaleString('en-US'),
+              },
+              {
+                label: '追加成本上限',
+                value: budgetFacts.additionalCostCny ? `¥${budgetFacts.additionalCostCny}` : '后端未返回',
+              },
             ]}
-            onConfirm={() => {
-              void extendAgentRunBudget(activeRunId, 30000, '1.00')
-                .then(() => setBudgetConfirmation(false))
-                .catch((reason) => setError(reason instanceof Error ? reason.message : '预算追加失败'));
-            }}
-            onEdit={() => setError('当前开发版本使用固定追加额度。')}
-            onCancel={() => setBudgetConfirmation(false)}
+            onConfirm={extendBudgetFromConfirmation}
+            onEdit={() => setError('追加额度由后端返回，页面不能修改。')}
+            onCancel={cancelActiveRun}
           />
         </div>
+      ) : null}
+      <Dialog
+        open={Boolean(messageToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !messageMutation) {
+            setMessageToDelete(undefined);
+            setMessageError(undefined);
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>删除这条消息？</DialogTitle>
+            <DialogDescription>删除后消息会从当前会话中移除，后端不会复用原消息顺序号。</DialogDescription>
+          </DialogHeader>
+          <p className={styles.messageDeleteQuote}>{messageToDelete?.content}</p>
+          {messageError ? (
+            <Alert className={styles.messageMutationNotice} role="alert" variant="destructive">
+              <AlertTitle>消息操作失败</AlertTitle>
+              <AlertDescription>{messageError}</AlertDescription>
+            </Alert>
+          ) : null}
+          <DialogFooter>
+            <Button
+              variant="outline"
+              type="button"
+              disabled={messageMutation?.action === 'delete'}
+              onClick={() => setMessageToDelete(undefined)}
+            >
+              取消
+            </Button>
+            <Button
+              variant="destructive"
+              type="button"
+              disabled={messageMutation?.action === 'delete'}
+              onClick={() => void confirmMessageDelete()}
+            >
+              {messageMutation?.action === 'delete' ? (
+                <LoaderCircle className="animate-spin" aria-hidden="true" />
+              ) : (
+                <Trash2 aria-hidden="true" />
+              )}
+              删除消息
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </ChatSurface>
+  );
+}
+
+function ChatRunPage() {
+  const { session_id: sessionId } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const messagesRef = useRef<HTMLDivElement>(null);
+  const onSessionCreated = useCallback(
+    (createdSessionId: string) => {
+      navigate(`/chat/${encodeURIComponent(createdSessionId)}?transport=chat-run`, { replace: true });
+    },
+    [navigate],
+  );
+  const agent = useRealAgentReplay(true, sessionId, searchParams.get('prompt'), { onSessionCreated });
+  const skippableTool = [...agent.run.toolCalls]
+    .reverse()
+    .find(
+      (tool) =>
+        Boolean(tool.proposalId) && tool.skippable === true && (tool.status === 'failed' || tool.status === 'timeout'),
+    );
+
+  useEffect(() => {
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
+  }, [agent.messages, agent.assistantText]);
+
+  return (
+    <ChatSurface
+      run={agent.run}
+      messagesRef={messagesRef}
+      input={agent.input}
+      running={agent.running}
+      disabled={agent.loading || agent.cancelling}
+      onChange={agent.setInput}
+      onSend={() => void agent.send()}
+      onStop={agent.stop}
+      showKnowledgeTopNav
+      placeholder="追问或添加自定义指令..."
+    >
+      <span className={styles.srOnly} data-chat-transport="chat-run">
+        ChatRun 兼容模式
+      </span>
+      {agent.loading ? <p className={styles.systemMessage}>正在加载 ChatRun 消息...</p> : null}
+      {!agent.loading && agent.messages.length === 0 ? (
+        <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
+      ) : null}
+      {agent.error ? (
+        <div className={styles.runtimeErrorBlock}>
+          <ErrorState message={agent.error} />
+          {agent.run.connection?.state === 'exhausted' ? (
+            <Button variant="outline" type="button" onClick={agent.reconnect}>
+              <RefreshCw aria-hidden="true" />
+              重新连接
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+      {skippableTool && agent.run.status === 'failed' ? (
+        <div className={styles.runtimeErrorBlock}>
+          <Button variant="outline" type="button" disabled={agent.skipping} onClick={() => agent.skipTool()}>
+            <CircleSlash aria-hidden="true" />
+            {agent.skipping ? '正在跳过...' : '跳过此步骤'}
+          </Button>
+        </div>
+      ) : null}
+      {agent.run.connection?.state === 'connecting' ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <span>正在连接 ChatRun 实时事件...</span>
+        </div>
+      ) : null}
+      {agent.run.connection?.state === 'reconnecting' ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>连接已中断，正在重新连接...</strong>
+            <span>
+              第 {agent.run.connection?.attempt} 次重连尝试（最多 {agent.run.connection?.maxAttempts} 次）
+            </span>
+          </div>
+        </div>
+      ) : null}
+      {agent.cancelling ? (
+        <div className={styles.connectionNotice} role="status" aria-live="polite">
+          <LoaderCircle aria-hidden="true" />
+          <div>
+            <strong>{agent.cancelAcknowledged ? '取消请求已确认，等待运行终态...' : '正在取消当前运行...'}</strong>
+            <span>取消请求已接受，仍需等待 ChatRun 的 cancelled 事件。</span>
+          </div>
+        </div>
+      ) : null}
+      {agent.messages.map((message) => (
+        <MessageBubble key={message.id} message={message} />
+      ))}
+      {agent.assistantText ? (
+        <MessageBubble
+          message={{
+            id: `chat-run-answer-${agent.activeRunId ?? 'pending'}`,
+            role: 'assistant',
+            content: agent.assistantText,
+            time: agent.assistantTime || new Date().toISOString(),
+          }}
+        />
       ) : null}
     </ChatSurface>
   );
@@ -2279,13 +4255,16 @@ function MockChatPage() {
   const params = useParams();
   const sessionId = params.session_id;
   const [searchParams] = useSearchParams();
-  const isFigmaFixture = searchParams.get('state') === 'figma-v2';
+  const isFigmaFixture = isFigmaFixtureState(searchParams.get('state'));
   const agent = useAgentReplay(sessionId, searchParams.get('prompt'));
   const messagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    // Figma 默认态需要保留画板的初始构图，让用户消息在紧凑视口中保持可见。
+    // 普通 Mock 会话仍然跟随最新消息滚动，真实模式由独立的消息流逻辑负责滚动。
+    if (isFigmaFixture) return;
     messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
-  }, [agent.messages, agent.card]);
+  }, [agent.messages, agent.card, isFigmaFixture]);
 
   return (
     <ChatSurface
@@ -2299,8 +4278,17 @@ function MockChatPage() {
       profileIdOverride={isFigmaFixture ? '1234567' : undefined}
       showKnowledgeTopNav={!isFigmaFixture}
       pageVariant={isFigmaFixture ? 'figma-default' : undefined}
-      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_SIDEBAR_AVATAR : undefined}
-      topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_TOPBAR_AVATAR : undefined}
+      sidebarAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      topAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
+      sidebarFixture={
+        isFigmaFixture
+          ? {
+              sessions: FIGMA_CHAT_SIDEBAR_SESSIONS,
+              currentPage: 1,
+              sessionCountLabel: '共 15 条会话',
+            }
+          : undefined
+      }
       onChange={agent.setInput}
       onSend={() => agent.send()}
       onStop={agent.stop}
@@ -2310,7 +4298,7 @@ function MockChatPage() {
         <MessageBubble
           key={message.id}
           message={{ ...message, wide: isFigmaFixture }}
-          userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_MESSAGE_AVATAR : undefined}
+          userAvatarSrc={isFigmaFixture ? FIXTURE_CHAT_ACCOUNT_AVATAR : undefined}
           userAvatarGender={isFigmaFixture ? FIXTURE_CHAT_AVATAR_GENDERS.defaultMessage : undefined}
         >
           {index === agent.messages.length - 1 && agent.card.type === 'confirmation' ? (

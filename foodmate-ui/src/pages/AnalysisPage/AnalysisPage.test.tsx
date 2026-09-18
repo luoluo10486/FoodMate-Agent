@@ -49,12 +49,17 @@ describe('AnalysisPage', () => {
     expect(screen.getByText('能量摄入与目标对比')).toBeInTheDocument();
   });
 
-  it('renders the Figma filter controls with session history', async () => {
+  it.each(['v2', 'figma-v2'])('renders the Figma filter controls with session history for state=%s', async (state) => {
     const user = userEvent.setup();
-    renderPage('/analysis?state=v2');
+    renderPage(`/analysis?state=${state}`);
 
     expect(screen.getByLabelText('摄入分析')).toHaveClass(styles.figmaDefault);
     expect(screen.getByRole('tablist')).toHaveClass(styles.filters);
+    expect(screen.getAllByRole('tab')).toHaveLength(3);
+    expect(screen.queryByRole('tab', { name: '今天' })).not.toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '7 天' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '30 天' })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: '90 天' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '自定义范围' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '全部餐次' })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('搜索会话...')).toBeInTheDocument();
@@ -64,7 +69,7 @@ describe('AnalysisPage', () => {
     expect(
       document.querySelector('img[src="/assets/figma/workspace/analysis/intake-analysis.svg"]'),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText('摄入分析')).toHaveAttribute('data-figma-node-id', '640:974');
+    expect(screen.getByLabelText('摄入分析')).toHaveAttribute('data-figma-node-id', '640:773');
 
     await user.click(screen.getByRole('button', { name: '全部餐次' }));
     expect(screen.getByText('当前分析覆盖全部餐次。')).toBeInTheDocument();
@@ -93,6 +98,9 @@ describe('AnalysisPage', () => {
     expect(screen.getByLabelText('分析摘要加载中')).toHaveAttribute('aria-busy', 'true');
     expect(screen.getByLabelText('分析摘要加载中')).toHaveClass(styles.loadingMetrics);
     expect(screen.getByLabelText('能量摄入分析加载中')).toBeInTheDocument();
+    expect(
+      document.querySelectorAll('img[src="/assets/figma/analysis/intake-analysis-loading-insight-dot.svg"]'),
+    ).toHaveLength(3);
     expect(screen.queryByText('1,940 kcal')).not.toBeInTheDocument();
     loadingRender.unmount();
 

@@ -11,9 +11,9 @@ describe('analysisService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('loads user-scoped nutrition analysis for a supported range', async () => {
+  it('loads user-scoped nutrition analysis for today', async () => {
     const data = {
-      range: '7d',
+      range: 'today',
       from: '2026-08-15T00:00:00Z',
       to: '2026-08-22T00:00:00Z',
       total_items: 4,
@@ -31,10 +31,39 @@ describe('analysisService', () => {
     };
     const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
+    const controller = new AbortController();
 
-    await expect(loadNutritionAnalysis('7d')).resolves.toEqual(data);
+    await expect(loadNutritionAnalysis('today', controller.signal)).resolves.toEqual(data);
     expect(fetchMock).toHaveBeenCalledWith(
-      '/api/nutrition-analysis?range=7d',
+      '/api/nutrition-analysis?range=today',
+      expect.objectContaining({ method: 'GET', credentials: 'include', signal: controller.signal }),
+    );
+  });
+
+  it.each(['7d', '30d'] as const)('loads the backend-supported %s range without remapping', async (range) => {
+    const data = {
+      range,
+      from: '2026-08-15T00:00:00Z',
+      to: '2026-08-22T00:00:00Z',
+      total_items: 0,
+      matched_items: 0,
+      coverage: 0,
+      calories_kcal: 0,
+      protein_g: 0,
+      fat_g: 0,
+      carbs_g: 0,
+      calorie_target: null,
+      protein_target: null,
+      incomplete: false,
+      unmatched_names: [],
+      disclaimer: '仅用于饮食记录参考',
+    };
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ success: true, data }), { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(loadNutritionAnalysis(range)).resolves.toEqual(data);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/nutrition-analysis?range=${range}`,
       expect.objectContaining({ method: 'GET', credentials: 'include' }),
     );
   });

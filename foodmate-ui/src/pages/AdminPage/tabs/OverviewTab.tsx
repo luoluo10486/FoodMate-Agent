@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { RefreshCw } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input as ShadcnInput } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '../../../constants/routes';
+import { isAbortError } from '../../../services/apiClient';
 import { loadAdminDashboard, loadAdminQuery, type AdminQueryRun } from '../../../services/adminService';
 import { adminOverviewMetrics, adminOverviewRows } from './AdminShared';
 import styles from '../AdminPage.module.css';
@@ -27,10 +30,15 @@ type OverviewRow = {
   toolCount: string;
   result: string;
   errorCode: string;
+  degraded: boolean;
+  createdAt?: string;
 };
 
 const overviewMetrics: OverviewMetric[] = adminOverviewMetrics;
-const overviewRows: OverviewRow[] = adminOverviewRows;
+const overviewRows: OverviewRow[] = adminOverviewRows.map((row) => ({
+  ...row,
+  degraded: row.errorCode !== '-',
+}));
 // Figma 概览页展示的是系统总量，mock 行只负责还原首屏可见记录。
 const overviewFixtureTotal = 12480;
 
@@ -44,16 +52,20 @@ function queryRowsToOverviewRows(rows: AdminQueryRun[]): OverviewRow[] {
     duration: row.duration_ms == null ? '-' : `${(Number(row.duration_ms) / 1000).toFixed(1)}s`,
     cost: '-',
     toolCount: '-',
-    result: row.status || '-',
-    errorCode: '-',
+    result: row.result_type || row.status || '-',
+    errorCode: row.error_code || '-',
+    degraded: row.degraded === true,
   }));
 }
 
 function OverviewPill({ value, tone }: { value: string; tone: 'green' | 'coral' | 'amber' | 'neutral' | 'teal' }) {
   return (
-    <span className={`${styles.overviewPill} ${styles[`overviewPill${tone[0].toUpperCase()}${tone.slice(1)}`]}`}>
+    <Badge
+      variant="outline"
+      className={`${styles.overviewPill} ${styles[`overviewPill${tone[0].toUpperCase()}${tone.slice(1)}`]}`}
+    >
       {value}
-    </span>
+    </Badge>
   );
 }
 
@@ -73,16 +85,24 @@ function OverviewFilterSelect({
   options,
   onChange,
   ariaLabel,
+  disabled = false,
+  disabledReason,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
   ariaLabel: string;
+  disabled?: boolean;
+  disabledReason?: string;
 }) {
   return (
-    <Select value={value} onValueChange={onChange}>
-      <SelectTrigger className={styles.overviewFilter} aria-label={ariaLabel}>
+    <Select value={value} onValueChange={onChange} disabled={disabled}>
+      <SelectTrigger
+        className={styles.overviewFilter}
+        aria-label={ariaLabel}
+        title={disabled ? disabledReason : undefined}
+      >
         <span className={styles.overviewFilterLabel}>{label}:</span>
         <SelectValue />
         <span
@@ -110,60 +130,89 @@ function formatResultCount(value: number) {
   return value.toLocaleString('en-US');
 }
 
+function matchesFixtureTimeFilter(createdAt: string | undefined, timeFilter: string) {
+  if (timeFilter === 'all' || !createdAt) return true;
+  const createdAtMs = Date.parse(createdAt);
+  if (Number.isNaN(createdAtMs)) return true;
+  const hours = timeFilter === '24h' ? 24 : timeFilter === '7d' ? 24 * 7 : 24 * 30;
+  return Date.now() - createdAtMs <= hours * 60 * 60 * 1000;
+}
+
 export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refreshNonce?: number }) {
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const [metrics, setMetrics] = useState<OverviewMetric[]>(isRealMode ? [] : overviewMetrics);
   const [rows, setRows] = useState<OverviewRow[]>(isRealMode ? [] : overviewRows);
   const [resultFilter, setResultFilter] = useState('all');
   const [degradedFilter, setDegradedFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(isRealMode ? 0 : overviewFixtureTotal);
   const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(isRealMode);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const requestIdRef = useRef(0);
 
   useEffect(() => {
     if (!isRealMode) return;
-    let active = true;
-    // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
+    const requestId = ++requestIdRef.current;
+    const controller = new AbortController();
+    // 由 effect 统一管理请求生命周期，清除旧错误后重新开始一次请求。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
+    setLoading(true);
     Promise.all([
-      loadAdminDashboard(),
-      loadAdminQuery<AdminQueryRun>('runs', {
-        page,
-        size: 6,
-        query: query.trim() || undefined,
-        status: resultFilter === 'all' ? undefined : resultFilter,
-      }),
+      loadAdminDashboard(controller.signal),
+      loadAdminQuery<AdminQueryRun>(
+        'runs',
+        {
+          page,
+          size: 6,
+          query: query.trim() || undefined,
+          status: resultFilter === 'all' ? undefined : resultFilter,
+          from:
+            timeFilter === 'all'
+              ? undefined
+              : new Date(
+                  Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
+                ).toISOString(),
+          degraded: degradedFilter === 'all' ? undefined : degradedFilter === 'yes',
+        },
+        controller.signal,
+      ),
     ])
       .then(([dashboard, runPage]) => {
-        if (!active) return;
+        if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         setMetrics(dashboard.overview_metrics.slice(0, 3));
         setRows(queryRowsToOverviewRows(runPage.items));
         setTotal(runPage.total);
       })
       .catch((error) => {
-        if (!active) return;
+        if (controller.signal.aborted || isAbortError(error) || requestId !== requestIdRef.current) return;
         setMetrics([]);
         setRows([]);
         setTotal(0);
         setLoadError(error instanceof Error ? error.message : '管理概览数据加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && requestId === requestIdRef.current) setLoading(false);
       });
     return () => {
-      active = false;
+      requestIdRef.current += 1;
+      controller.abort();
     };
-  }, [isRealMode, page, query, refreshNonce, resultFilter]);
+  }, [degradedFilter, isRealMode, page, query, refreshNonce, resultFilter, retryNonce, timeFilter]);
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
     return rows.filter((row) => {
+      const matchesTime = matchesFixtureTimeFilter(row.createdAt, timeFilter);
       const matchesResult = resultFilter === 'all' || row.result === resultFilter;
-      const matchesDegraded =
-        degradedFilter === 'all' || (degradedFilter === 'yes' ? row.errorCode !== '-' : row.errorCode === '-');
+      const matchesDegraded = degradedFilter === 'all' || row.degraded === (degradedFilter === 'yes');
       const matchesQuery = !normalizedQuery || `${row.runId} ${row.user}`.toLowerCase().includes(normalizedQuery);
-      return matchesResult && matchesDegraded && matchesQuery;
+      return matchesTime && matchesResult && matchesDegraded && matchesQuery;
     });
-  }, [degradedFilter, query, resultFilter, rows]);
+  }, [degradedFilter, query, resultFilter, rows, timeFilter]);
 
   const pageSize = 6;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -174,14 +223,17 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         <div className={styles.overviewFilterGroup}>
           <OverviewFilterSelect
             label="时间"
-            value="all"
+            value={timeFilter}
             options={[
               { value: 'all', label: '全部' },
               { value: '24h', label: '近 24h' },
               { value: '7d', label: '近 7 天' },
               { value: '30d', label: '近 30 天' },
             ]}
-            onChange={() => undefined}
+            onChange={(value) => {
+              setTimeFilter(value);
+              setPage(1);
+            }}
             ariaLabel="时间范围"
           />
           <OverviewFilterSelect
@@ -298,12 +350,9 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
                     <span className={styles.overviewErrorCode}>{row.errorCode}</span>
                   </TableCell>
                   <TableCell>
-                    <Link
-                      className={styles.overviewActionButton}
-                      to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(row.runId)}`}
-                    >
-                      查看详情
-                    </Link>
+                    <Button asChild variant="outline" size="sm" className={styles.overviewActionButton}>
+                      <Link to={`${ROUTES.ADMIN}/runs?run=${encodeURIComponent(row.runId)}`}>查看详情</Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
@@ -312,8 +361,19 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         </div>
         {!filteredRows.length ? (
           <div className={styles.runEmptyState} role="status">
-            <strong>{loadError ? '真实接口加载失败' : '暂无概览记录'}</strong>
-            <span>{loadError || '当前筛选条件没有可展示的运行记录。'}</span>
+            <strong>{loading ? '正在加载概览数据...' : loadError ? '真实接口加载失败' : '暂无概览记录'}</strong>
+            <span>{loading ? '正在读取最新运行记录。' : loadError || '当前筛选条件没有可展示的运行记录。'}</span>
+            {loadError ? (
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={loading}
+                onClick={() => setRetryNonce((value) => value + 1)}
+              >
+                <RefreshCw aria-hidden="true" />
+                重试
+              </Button>
+            ) : null}
           </div>
         ) : null}
       </Card>
@@ -327,7 +387,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
         <div className={styles.overviewPageButtons}>
           <Button
             className={styles.overviewPageButton}
-            disabled={page === 1}
+            disabled={loading || page === 1}
             onClick={() => setPage((current) => Math.max(1, current - 1))}
           >
             上一页
@@ -336,7 +396,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
             <Button
               className={`${styles.overviewPageButton} ${page === value ? styles.overviewPageActive : ''}`}
               key={value}
-              disabled={isRealMode}
+              disabled={loading || isRealMode}
               onClick={() => setPage(value)}
             >
               {value}
@@ -344,7 +404,7 @@ export function OverviewSection({ refreshNonce = 0 }: { onAction?: unknown; refr
           ))}
           <Button
             className={styles.overviewPageButton}
-            disabled={page >= totalPages}
+            disabled={loading || page >= totalPages}
             onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
           >
             下一页

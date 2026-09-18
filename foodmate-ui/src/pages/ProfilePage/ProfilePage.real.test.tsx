@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePage } from './ProfilePage';
-import { confirmMemory, loadMemories } from '../../services/memoryService';
+import { confirmMemory, loadMemories, updateMemory, type MemoryRecord } from '../../services/memoryService';
 
 vi.mock('../../services/memoryService', () => ({
   confirmMemory: vi.fn(),
@@ -82,7 +82,125 @@ describe('ProfilePage real memory status', () => {
 
     await user.click(screen.getByRole('button', { name: '确认并替换' }));
 
-    await waitFor(() => expect(confirmMemory).toHaveBeenCalledWith(12));
+    await waitFor(() => expect(confirmMemory).toHaveBeenCalledWith(12, expect.any(AbortSignal)));
+    expect(loadMemories).toHaveBeenCalledTimes(2);
+  });
+
+  it('blocks repeated confirmation while the server mutation is pending', async () => {
+    const user = userEvent.setup();
+    let resolveConfirm: ((value: MemoryRecord) => void) | undefined;
+    vi.mocked(confirmMemory).mockImplementation(
+      () =>
+        new Promise<MemoryRecord>((resolve) => {
+          resolveConfirm = resolve;
+        }),
+    );
+
+    renderPage();
+    const confirmButton = await screen.findByRole('button', { name: '确认并替换' });
+    await user.click(confirmButton);
+    await waitFor(() => expect(confirmButton).toBeDisabled());
+
+    await user.click(confirmButton);
+    expect(confirmMemory).toHaveBeenCalledTimes(1);
+
+    resolveConfirm?.({
+      memory_id: 12,
+      memory_type: 'constraint',
+      memory_value: JSON.stringify('避免花生'),
+      confirmation_status: 'confirmed',
+    });
+    await waitFor(() => expect(loadMemories).toHaveBeenCalledTimes(2));
+  });
+
+  it('clears stale memories and exposes a retry when the real read fails', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMemories)
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify('偏好燕麦'),
+          confirmation_status: 'confirmed',
+        },
+      ])
+      .mockRejectedValueOnce(new Error('记忆接口不可用'))
+      .mockResolvedValueOnce([
+        {
+          memory_id: 13,
+          memory_type: 'goal',
+          memory_value: JSON.stringify('增加蛋白质'),
+          confirmation_status: 'confirmed',
+        },
+      ]);
+
+    renderPage();
+    expect(await screen.findByText(/偏好燕麦/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: '刷新' }));
+    const memoryAlert = await screen.findByText('记忆接口不可用');
+    expect(memoryAlert).toBeInTheDocument();
+    expect(screen.queryByText(/偏好燕麦/)).not.toBeInTheDocument();
+
+    const memoryErrorPanel = memoryAlert.closest('[role="alert"]');
+    expect(memoryErrorPanel).not.toBeNull();
+    await user.click(within(memoryErrorPanel as HTMLElement).getByRole('button', { name: '重试' }));
+    expect(await screen.findByText(/增加蛋白质/)).toBeInTheDocument();
+    expect(screen.queryByText('记忆接口不可用')).not.toBeInTheDocument();
+  });
+
+  it('aborts the real memory request when the tab unmounts', async () => {
+    let capturedSignal: AbortSignal | undefined;
+    vi.mocked(loadMemories).mockImplementation((signal) => {
+      capturedSignal = signal;
+      return new Promise(() => undefined);
+    });
+
+    const view = renderPage();
+    await waitFor(() => expect(capturedSignal).toBeDefined());
+    view.unmount();
+
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('updates a memory and reloads the server value after editing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(updateMemory).mockResolvedValue({
+      memory_id: 11,
+      memory_type: 'preference',
+      memory_value: JSON.stringify({ value: '偏好黑麦' }),
+      confirmation_status: 'confirmed',
+      updated_at: '2026-09-06T08:03:00Z',
+    });
+    vi.mocked(loadMemories)
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify({ value: '偏好燕麦' }),
+          confirmation_status: 'confirmed',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          memory_id: 11,
+          memory_type: 'preference',
+          memory_value: JSON.stringify({ value: '偏好黑麦' }),
+          confirmation_status: 'confirmed',
+        },
+      ]);
+
+    renderPage();
+    expect(await screen.findByText(/偏好燕麦/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '编辑记忆' }));
+
+    const editor = screen.getByRole('textbox');
+    await user.clear(editor);
+    await user.type(editor, '偏好黑麦');
+    await user.click(screen.getByRole('button', { name: '保存记忆' }));
+
+    await waitFor(() => expect(updateMemory).toHaveBeenCalledWith(11, '偏好黑麦', undefined, expect.any(AbortSignal)));
+    expect(await screen.findByText(/偏好黑麦/)).toBeInTheDocument();
     expect(loadMemories).toHaveBeenCalledTimes(2);
   });
 });

@@ -1,4 +1,4 @@
-/** Admin-specific composed components built on the shared shadcn primitives. */
+/** 基于共享 shadcn 基础组件组合管理端页面能力。 */
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,9 @@ import {
   adminUserRows,
   adminUserSessionRows,
   adminToolRows,
-  canManage,
   operationAuditColumns,
   sectionMeta,
+  useAdminAccess,
 } from './AdminShared';
 import type { AdminActionPayload } from './types';
 import styles from '../AdminPage.module.css';
@@ -78,12 +78,12 @@ export function AdminOnlyNotice({ title }: { title: string }) {
       <Badge variant="destructive">ADMIN_ONLY</Badge>
       <h1>{title}</h1>
       <p>该页面包含用户敏感信息或恢复类高风险能力，按后端接口契约仅 admin 可访问。</p>
-      <Link to={ROUTES.ADMIN}>
-        <Button variant="outline">
+      <Button asChild variant="outline">
+        <Link to={ROUTES.ADMIN}>
           <ArrowLeft aria-hidden="true" />
           返回概览
-        </Button>
-      </Link>
+        </Link>
+      </Button>
     </Card>
   );
 }
@@ -121,6 +121,8 @@ export function OperationAuditCard() {
 }
 
 export function AdminActionsCard({ onAction }: { onAction: (payload: AdminActionPayload) => void }) {
+  const { canManage } = useAdminAccess();
+
   return (
     <Card className={styles.card}>
       <strong>管理操作</strong>

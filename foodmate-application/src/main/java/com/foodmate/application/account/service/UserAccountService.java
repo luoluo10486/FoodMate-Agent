@@ -32,6 +32,8 @@ public interface UserAccountService {
 
     List<AuthSessionView> listAuthSessions(long userId);
 
+    List<AuthSessionView> listAuthSessions(long userId, String currentSessionToken);
+
     List<AdminUserView> listUsersForAdmin();
 
     void revokeAuthSession(long userId, long authSessionId);
@@ -39,6 +41,8 @@ public interface UserAccountService {
     void revokeAllAuthSessions(long userId);
 
     String createPasswordResetToken(String email);
+
+    AdminPasswordReset createAdminPasswordReset(long userId);
 
     void resetPassword(String token, String newPassword);
 
@@ -75,7 +79,7 @@ public interface UserAccountService {
 
     void deleteMessage(long userId, long sessionId, long messageId);
 
-    List<SearchResult> searchSessions(long userId, String query, int page, int size);
+    PageResult<SearchResult> searchSessions(long userId, String query, int page, int size);
 
     void archiveSession(long userId, long sessionId);
 
@@ -123,7 +127,8 @@ public interface UserAccountService {
             Instant expiresAt,
             Instant lastSeenAt,
             Instant createdAt,
-            Instant revokedAt) {}
+            Instant revokedAt,
+            boolean current) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record AdminUserView(
@@ -143,6 +148,9 @@ public interface UserAccountService {
             String nickname,
             String role,
             String status) {}
+
+    /** 管理员发起密码重置时交给通知端口的最小敏感数据。 */
+    record AdminPasswordReset(long userId, String recipient, String token) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record ProfileRecord(
@@ -171,9 +179,11 @@ public interface UserAccountService {
                     update.dietGoal() == null ? dietGoal : update.dietGoal(),
                     update.calorieTarget() == null ? calorieTarget : update.calorieTarget(),
                     update.proteinTarget() == null ? proteinTarget : update.proteinTarget(),
-                    allergens,
-                    dislikes,
-                    preferredUnits);
+                    update.allergensJson() == null ? allergens : update.allergensJson(),
+                    update.dislikesJson() == null ? dislikes : update.dislikesJson(),
+                    update.preferredUnitsJson() == null
+                            ? preferredUnits
+                            : update.preferredUnitsJson());
         }
     }
 
@@ -185,7 +195,10 @@ public interface UserAccountService {
             String activityLevel,
             String dietGoal,
             Integer calorieTarget,
-            Integer proteinTarget) {}
+            Integer proteinTarget,
+            String allergensJson,
+            String dislikesJson,
+            String preferredUnitsJson) {}
 
     @JsonNaming(PropertyNamingStrategies.SnakeCaseStrategy.class)
     record SessionRecord(

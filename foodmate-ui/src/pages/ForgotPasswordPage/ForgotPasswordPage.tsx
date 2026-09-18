@@ -1,28 +1,46 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../../components/ui/button';
 import { notify } from '../../lib/notice';
+import { apiFieldError, isAbortError } from '../../services/apiClient';
 import { requestPasswordReset } from '../../services/authService';
 import { AuthBrand, AuthCard, AuthField, AuthShell, AuthSubmit } from '../Auth/AuthVisual';
 import styles from '../LoginPage/LoginPage.module.css';
 
 export function ForgotPasswordPage() {
   const navigate = useNavigate();
+  const requestControllerRef = useRef<AbortController>();
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const [emailError, setEmailError] = useState<string>();
+
+  useEffect(() => {
+    return () => requestControllerRef.current?.abort();
+  }, []);
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setEmailError(undefined);
     setSubmitting(true);
+    requestControllerRef.current?.abort();
+    const controller = new AbortController();
+    requestControllerRef.current = controller;
     try {
-      await requestPasswordReset(email);
+      await requestPasswordReset(email, controller.signal);
+      if (controller.signal.aborted) return;
       setSent(true);
     } catch (error) {
-      notify(error instanceof Error ? error.message : '密码重置请求失败', 'error');
+      if (controller.signal.aborted || isAbortError(error)) return;
+      const fieldError = apiFieldError(error, 'email');
+      if (fieldError) setEmailError(fieldError);
+      else notify(error instanceof Error ? error.message : '密码重置请求失败', 'error');
     } finally {
-      setSubmitting(false);
+      if (requestControllerRef.current === controller) {
+        requestControllerRef.current = undefined;
+        if (!controller.signal.aborted) setSubmitting(false);
+      }
     }
   };
 
@@ -45,7 +63,11 @@ export function ForgotPasswordPage() {
               leadingIcon="mail"
               leadingIconSrc="/assets/figma/auth/foodmate-forgot-mail.svg"
               value={email}
-              onChange={(event) => setEmail(event.target.value)}
+              error={emailError}
+              onChange={(event) => {
+                setEmail(event.target.value);
+                setEmailError(undefined);
+              }}
             />
             <div className={styles.authActionStack} data-node-id="680:293">
               <AuthSubmit disabled={submitting}>{submitting ? '发送中...' : '发送重置邮件'}</AuthSubmit>

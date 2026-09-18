@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Copy, Download, Eye, RefreshCw, Search } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,15 +9,18 @@ import { Input as ShadcnInput } from '@/components/ui/input';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { AdminOnlyNotice } from './AdminComponents';
-import { adminOperationAuditRows, canViewAudit, statusTag } from './AdminShared';
+import { adminOperationAuditRows, statusTag, useAdminAccess } from './AdminShared';
 import {
   downloadAdminExport,
+  loadAdminAuditReport,
   loadAdminExportStatus,
   loadAdminOperationAuditsPage,
   requestAdminExport,
+  type AdminAuditReport,
   type AdminExportStatus,
 } from '../../../services/adminService';
 import styles from '../AdminPage.module.css';
+import { isAbortError } from '../../../services/apiClient';
 
 type AuditSource = {
   key: string;
@@ -60,6 +63,29 @@ type AuditRecord = {
   errorCode: string;
   clientInfo: string;
 };
+
+type ExportDisplayState = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'consumed' | 'unknown';
+
+function exportDisplayState(job: AdminExportStatus): ExportDisplayState {
+  if (job.download_consumed_at) return 'consumed';
+  const normalizedStatus = job.status.toLowerCase();
+  if (normalizedStatus === 'completed' && job.expires_at) {
+    const expiresAt = Date.parse(job.expires_at);
+    if (!Number.isNaN(expiresAt) && expiresAt <= Date.now()) return 'expired';
+  }
+  if (normalizedStatus === 'queued' || normalizedStatus === 'running' || normalizedStatus === 'completed') {
+    return normalizedStatus;
+  }
+  if (normalizedStatus === 'failed' || normalizedStatus === 'expired') return normalizedStatus;
+  return 'unknown';
+}
+
+function exportStatusMessage(job: AdminExportStatus) {
+  const state = exportDisplayState(job);
+  return job.failure_code
+    ? `导出任务 #${job.export_job_id} 当前状态：${state} · 错误码：${job.failure_code}`
+    : `导出任务 #${job.export_job_id} 当前状态：${state}`;
+}
 
 const pageSize = 8;
 
@@ -371,7 +397,7 @@ function FigmaOperationAuditSection() {
                 <TableCell>
                   <FigmaAuditTarget targetId={row.targetId} />
                 </TableCell>
-                <TableCell>{row.result}</TableCell>
+                <TableCell className={styles.auditFigmaResult}>{row.result}</TableCell>
                 <TableCell className={styles.auditFigmaRequest}>{row.requestId}</TableCell>
                 <TableCell className={styles.auditFigmaTrace}>{row.traceId}</TableCell>
                 <TableCell className={styles.auditFigmaSource}>{row.clientInfo}</TableCell>
@@ -488,6 +514,117 @@ function withinTime(createdAt: string, filter: string) {
   return Date.now() - timestamp <= days * 24 * 60 * 60 * 1000;
 }
 
+const auditReportCheckLabels: Record<string, string> = {
+  OPERATION_AUDIT: '操作审计',
+  RUNTIME_DISPATCH_OUTBOX: 'Agent 分发队列',
+  KNOWLEDGE_INDEX_OUTBOX: '知识库索引队列',
+  KNOWLEDGE_VISIBILITY_OUTBOX: '知识库可见性队列',
+  AGENT_RUN_SSE_OUTBOX: 'Agent SSE 队列',
+  KNOWLEDGE_IMPORT: '知识库导入',
+  RUNTIME_DLQ: '运行 DLQ',
+};
+
+function formatAuditReportTime(value: string | null | undefined) {
+  if (!value) return '-';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('zh-CN', { hour12: false });
+}
+
+function AuditReportCard({
+  report,
+  loading,
+  error,
+  onRetry,
+}: {
+  report?: AdminAuditReport;
+  loading: boolean;
+  error: string;
+  onRetry: () => void;
+}) {
+  return (
+    <section className={styles.auditReportCard} aria-label="运营审计报告">
+      <div className={styles.auditReportHeader}>
+        <div>
+          <strong>运营审计报告</strong>
+          <p>服务端聚合队列、导入任务和操作审计状态，不包含业务载荷。</p>
+        </div>
+        <Button variant="outline" size="sm" disabled={loading} onClick={onRetry}>
+          <RefreshCw aria-hidden="true" />
+          {loading ? '刷新中...' : '刷新报告'}
+        </Button>
+      </div>
+
+      {error ? (
+        <div className={styles.auditReportError} role="alert">
+          <span>{error}</span>
+          <Button variant="outline" size="sm" disabled={loading} onClick={onRetry}>
+            <RefreshCw aria-hidden="true" />
+            重试
+          </Button>
+        </div>
+      ) : null}
+
+      {loading && !report ? (
+        <div className={styles.auditReportLoading} role="status">
+          正在读取服务端审计报告...
+        </div>
+      ) : report ? (
+        <>
+          <dl className={styles.auditReportMeta}>
+            <div>
+              <dt>报告状态</dt>
+              <dd>{statusTag(report.status)}</dd>
+            </div>
+            <div>
+              <dt>生成时间</dt>
+              <dd>{formatAuditReportTime(report.generated_at)}</dd>
+            </div>
+            <div>
+              <dt>陈旧阈值</dt>
+              <dd>{report.stale_threshold_minutes} 分钟</dd>
+            </div>
+          </dl>
+          <div className={styles.auditReportChecks}>
+            {report.checks.length ? (
+              report.checks.map((check) => (
+                <article key={check.code} className={styles.auditReportCheck}>
+                  <div className={styles.auditReportCheckHeader}>
+                    <strong>{auditReportCheckLabels[check.code] ?? check.code}</strong>
+                    {statusTag(check.status)}
+                  </div>
+                  <dl>
+                    <div>
+                      <dt>待处理</dt>
+                      <dd>{check.pending_count.toLocaleString('zh-CN')}</dd>
+                    </div>
+                    <div>
+                      <dt>失败</dt>
+                      <dd>{check.failed_count.toLocaleString('zh-CN')}</dd>
+                    </div>
+                    <div>
+                      <dt>最早时间</dt>
+                      <dd>{formatAuditReportTime(check.oldest_at)}</dd>
+                    </div>
+                  </dl>
+                  {check.reason_codes.length ? (
+                    <p className={styles.auditReportReasons}>原因：{check.reason_codes.join('、')}</p>
+                  ) : (
+                    <p className={styles.auditReportPassed}>未发现待处理项</p>
+                  )}
+                </article>
+              ))
+            ) : (
+              <p className={styles.auditReportLoading} role="status">
+                当前报告没有检查项。
+              </p>
+            )}
+          </div>
+        </>
+      ) : null}
+    </section>
+  );
+}
+
 function AuditFilter({
   label,
   ariaLabel,
@@ -586,6 +723,7 @@ function AuditDetail({ row, onClose }: { row: AuditRecord; onClose: () => void }
 }
 
 function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+  const { canManage, canViewAudit } = useAdminAccess();
   const isRealMode = import.meta.env.VITE_AGENT_MODE === 'real';
   const mockRows = (adminOperationAuditRows as AuditSource[]).map(normalizeAuditRow);
   const [realRows, setRealRows] = useState<AuditRecord[]>([]);
@@ -601,72 +739,170 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
   const [exportJob, setExportJob] = useState<AdminExportStatus>();
   const [exportBusy, setExportBusy] = useState(false);
   const [exportMessage, setExportMessage] = useState('');
+  const [listLoading, setListLoading] = useState(isRealMode);
+  const [listRetryNonce, setListRetryNonce] = useState(0);
+  const [auditReport, setAuditReport] = useState<AdminAuditReport>();
+  const [auditReportLoading, setAuditReportLoading] = useState(false);
+  const [auditReportError, setAuditReportError] = useState('');
+  const listRequestVersion = useRef(0);
+  const listController = useRef<AbortController>();
+  const reportRequestVersion = useRef(0);
+  const reportController = useRef<AbortController>();
+  const exportRequestVersion = useRef(0);
+  const exportController = useRef<AbortController>();
+  const exportTimer = useRef<number>();
+
+  const loadAuditReport = useCallback(async () => {
+    if (!isRealMode || !canViewAudit) return;
+    reportController.current?.abort();
+    const controller = new AbortController();
+    reportController.current = controller;
+    const version = ++reportRequestVersion.current;
+    setAuditReportLoading(true);
+    setAuditReportError('');
+    setAuditReport(undefined);
+    try {
+      const report = await loadAdminAuditReport(controller.signal);
+      if (controller.signal.aborted || version !== reportRequestVersion.current) return;
+      setAuditReport(report);
+    } catch (error) {
+      if (controller.signal.aborted || version !== reportRequestVersion.current || isAbortError(error)) return;
+      setAuditReport(undefined);
+      setAuditReportError(error instanceof Error ? error.message : '运营审计报告加载失败');
+    } finally {
+      if (!controller.signal.aborted && version === reportRequestVersion.current) setAuditReportLoading(false);
+    }
+  }, [canViewAudit, isRealMode]);
+
+  useEffect(() => {
+    // 审计报告随页面刷新重新读取，状态变化由异步请求结果驱动。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void loadAuditReport();
+  }, [loadAuditReport, refreshNonce]);
+
+  const beginExportRequest = useCallback(() => {
+    exportController.current?.abort();
+    if (exportTimer.current !== undefined) {
+      window.clearTimeout(exportTimer.current);
+      exportTimer.current = undefined;
+    }
+    const controller = new AbortController();
+    exportController.current = controller;
+    const version = ++exportRequestVersion.current;
+    return { controller, version };
+  }, []);
+
+  const trackExport = useCallback(
+    (jobId: number) => {
+      const { controller, version } = beginExportRequest();
+      setExportBusy(true);
+
+      const poll = async (): Promise<void> => {
+        try {
+          const status = await loadAdminExportStatus(jobId, controller.signal);
+          if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+          setExportJob(status);
+          const state = exportDisplayState(status);
+          setExportMessage(exportStatusMessage(status));
+          if (state === 'queued' || state === 'running') {
+            exportTimer.current = window.setTimeout(() => void poll(), 1000);
+            return;
+          }
+          setExportBusy(false);
+        } catch (error) {
+          if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+          setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
+          setExportBusy(false);
+        }
+      };
+
+      void poll();
+    },
+    [beginExportRequest],
+  );
 
   const createExport = async () => {
+    const { controller, version } = beginExportRequest();
     setExportBusy(true);
+    setExportJob(undefined);
     setExportMessage('');
     try {
       const created = await requestAdminExport(
         'operation-audits',
         { query: query.trim() || undefined, status: resultFilter === 'all' ? undefined : resultFilter },
         ['operator_id', 'action', 'target_type', 'target_id', 'result', 'request_id', 'trace_id', 'created_at'],
+        controller.signal,
       );
-      const status = await loadAdminExportStatus(created.export_job_id);
-      setExportJob(status);
-      setExportMessage(`导出任务 #${created.export_job_id} 已创建，当前状态：${status.status}`);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportMessage(`导出任务 #${created.export_job_id} 已创建，正在读取服务端状态...`);
+      trackExport(created.export_job_id);
     } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
       setExportMessage(error instanceof Error ? error.message : '导出任务创建失败');
-    } finally {
       setExportBusy(false);
     }
   };
 
   const refreshExport = async () => {
     if (!exportJob) return;
-    setExportBusy(true);
-    try {
-      const status = await loadAdminExportStatus(exportJob.export_job_id);
-      setExportJob(status);
-      setExportMessage(`导出任务 #${status.export_job_id} 当前状态：${status.status}`);
-    } catch (error) {
-      setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
-    } finally {
-      setExportBusy(false);
-    }
+    trackExport(exportJob.export_job_id);
   };
 
   const consumeExport = async () => {
-    if (!exportJob || exportJob.status !== 'completed') return;
+    if (!exportJob || exportDisplayState(exportJob) !== 'completed') return;
+    const { controller, version } = beginExportRequest();
     setExportBusy(true);
     try {
-      const result = await downloadAdminExport(exportJob.export_job_id);
+      const result = await downloadAdminExport(exportJob.export_job_id, controller.signal);
       window.open(result.download_url, '_blank', 'noopener,noreferrer');
-      setExportJob({ ...exportJob, download_consumed_at: new Date().toISOString() });
-      setExportMessage('下载链接已生成，下载资格已消费一次。');
+      const status = await loadAdminExportStatus(exportJob.export_job_id, controller.signal);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportJob(status);
+      setExportMessage(
+        exportDisplayState(status) === 'consumed'
+          ? '下载链接已生成，下载资格已消费一次。'
+          : '下载链接已生成，服务端状态仍在确认。',
+      );
     } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
       setExportMessage(error instanceof Error ? error.message : '导出下载失败');
     } finally {
-      setExportBusy(false);
+      if (!controller.signal.aborted && version === exportRequestVersion.current) setExportBusy(false);
     }
   };
 
   useEffect(() => {
     if (!isRealMode) return;
-    loadAdminOperationAuditsPage({
-      page,
-      size: pageSize,
-      query: query.trim() || undefined,
-      status: resultFilter,
-      action: actionFilter,
-      targetType: targetFilter,
-      from:
-        timeFilter === 'all'
-          ? undefined
-          : new Date(
-              Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
-            ).toISOString(),
-    })
+    listController.current?.abort();
+    const controller = new AbortController();
+    listController.current = controller;
+    const version = ++listRequestVersion.current;
+    // 条件变化后先清空旧结果，避免新请求完成前继续展示过期的服务端事实。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setListLoading(true);
+    setLoadError('');
+    setRealRows([]);
+    setTotalRows(0);
+
+    void loadAdminOperationAuditsPage(
+      {
+        page,
+        size: pageSize,
+        query: query.trim() || undefined,
+        status: resultFilter,
+        action: actionFilter,
+        targetType: targetFilter,
+        from:
+          timeFilter === 'all'
+            ? undefined
+            : new Date(
+                Date.now() - (timeFilter === '24h' ? 1 : timeFilter === '7d' ? 7 : 30) * 24 * 60 * 60 * 1000,
+              ).toISOString(),
+      },
+      controller.signal,
+    )
       .then((result) => {
+        if (controller.signal.aborted || version !== listRequestVersion.current) return;
         setLoadError('');
         setRealRows(
           result.items.map((row, index) =>
@@ -680,11 +916,29 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
         setTotalRows(result.total);
       })
       .catch((error) => {
+        if (controller.signal.aborted || version !== listRequestVersion.current || isAbortError(error)) return;
         setRealRows([]);
         setTotalRows(0);
         setLoadError(error instanceof Error ? error.message : '操作审计加载失败');
+      })
+      .finally(() => {
+        if (!controller.signal.aborted && version === listRequestVersion.current) setListLoading(false);
       });
-  }, [actionFilter, isRealMode, page, query, refreshNonce, resultFilter, targetFilter, timeFilter]);
+    return () => controller.abort();
+  }, [actionFilter, isRealMode, listRetryNonce, page, query, refreshNonce, resultFilter, targetFilter, timeFilter]);
+
+  useEffect(
+    () => () => {
+      reportController.current?.abort();
+      listController.current?.abort();
+      exportController.current?.abort();
+      if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current);
+      reportRequestVersion.current += 1;
+      listRequestVersion.current += 1;
+      exportRequestVersion.current += 1;
+    },
+    [],
+  );
 
   const rows = isRealMode ? realRows : mockRows;
 
@@ -773,9 +1027,18 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
 
   return (
     <>
+      <AuditReportCard
+        report={auditReport}
+        loading={auditReportLoading}
+        error={auditReportError}
+        onRetry={() => void loadAuditReport()}
+      />
       {loadError ? (
         <div className={styles.auditError} role="alert">
           {loadError}
+          <Button variant="outline" size="sm" onClick={() => setListRetryNonce((current) => current + 1)}>
+            重试
+          </Button>
         </div>
       ) : null}
       <section className={styles.auditFilters} aria-label="操作审计筛选">
@@ -838,25 +1101,25 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
             <p>记录只读展示，包含请求摘要、前后状态和链路标识。</p>
           </div>
           <div className={styles.auditTableActions}>
-            {isRealMode && canViewAudit ? (
+            {isRealMode && canManage ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void createExport()}>
                 <Download aria-hidden="true" />
                 导出当前结果
               </Button>
             ) : null}
-            <Badge variant="outline">仅 admin / superadmin</Badge>
+            <Badge variant="outline">operator 只读 · admin/superadmin 可导出</Badge>
           </div>
         </div>
         {isRealMode && exportMessage ? (
           <div className={styles.auditExportStatus} role="status">
             <span>{exportMessage}</span>
-            {exportJob && exportJob.status !== 'completed' && exportJob.status !== 'failed' ? (
+            {exportJob && ['queued', 'running'].includes(exportDisplayState(exportJob)) ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void refreshExport()}>
                 <RefreshCw aria-hidden="true" />
                 检查状态
               </Button>
             ) : null}
-            {exportJob?.status === 'completed' && !exportJob.download_consumed_at ? (
+            {exportJob && exportDisplayState(exportJob) === 'completed' ? (
               <Button variant="outline" size="sm" disabled={exportBusy} onClick={() => void consumeExport()}>
                 <Download aria-hidden="true" />
                 下载 JSON
@@ -864,7 +1127,11 @@ function RealOperationAuditSection({ refreshNonce = 0 }: { refreshNonce?: number
             ) : null}
           </div>
         ) : null}
-        {visibleRows.length ? (
+        {listLoading ? (
+          <div className={styles.auditEmptyState} role="status">
+            正在读取服务端操作审计...
+          </div>
+        ) : visibleRows.length ? (
           <DataTable
             className={styles.auditTableScroll}
             tableClassName={styles.auditTable}

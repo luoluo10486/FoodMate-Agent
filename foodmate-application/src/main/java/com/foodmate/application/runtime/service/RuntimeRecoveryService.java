@@ -10,6 +10,9 @@ public interface RuntimeRecoveryService {
 
     RecoveryResult recoverFromPersistedCheckpoint(long userId, long runId);
 
+    /** 仅允许 Runtime 明确标记为可重试的失败 Run 创建新的 dispatch attempt。 */
+    RecoveryResult retryFailedRun(long userId, long runId);
+
     record RecoveryCommand(
             long userId,
             long runId,

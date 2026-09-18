@@ -1,9 +1,11 @@
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import {
   DEFAULT_AVATARS,
   FIXTURE_ADMIN_AVATARS,
+  FIXTURE_ACCOUNT_AVATAR,
   FIXTURE_CHAT_AVATARS,
   FIXTURE_KNOWLEDGE_AVATARS,
   FIXTURE_PROFILE_AVATARS,
@@ -13,6 +15,7 @@ import {
   getAvatarSourceKind,
   isAllowedAvatarRuntimeSource,
   isRegisteredDefaultAvatar,
+  resolvePersistedAvatarUrl,
   resolveAvatarUrl,
 } from './avatar';
 
@@ -28,6 +31,10 @@ describe('avatar defaults', () => {
     expect(REGISTERED_DEFAULT_AVATARS).toEqual([DEFAULT_AVATARS.male, DEFAULT_AVATARS.female]);
     expect(REGISTERED_DEFAULT_AVATARS).toHaveLength(2);
     expect(REGISTERED_DEFAULT_AVATARS.every(isRegisteredDefaultAvatar)).toBe(true);
+    expect(readdirSync(resolve(process.cwd(), 'public/assets/avatars')).sort()).toEqual([
+      'default-female.svg',
+      'default-male.svg',
+    ]);
   });
 
   it('keeps the two supplied SVG files byte-for-byte registered', () => {
@@ -48,24 +55,32 @@ describe('avatar defaults', () => {
     expect(getAvatarSourceKind(DEFAULT_AVATARS.male)).toBe('default-male');
     expect(getAvatarSourceKind(DEFAULT_AVATARS.female)).toBe('default-female');
     expect(getAvatarSourceKind('blob:http://localhost/avatar-preview')).toBe('uploaded');
-    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('default-male');
+    expect(getAvatarSourceKind('/api/users/me/avatar')).toBe('uploaded');
   });
 
-  it('does not guess an avatar for an unset gender and only preserves temporary previews', () => {
+  it('does not guess an avatar for an unset gender and preserves trusted upload sources', () => {
     expect(getDefaultAvatarForGender('-')).toBeUndefined();
-    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe(DEFAULT_AVATARS.female);
-    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolveAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
+    expect(resolveAvatarUrl('/api/users/me/avatar?download=1', '男')).toBe('/api/users/me/avatar?download=1');
     expect(resolveAvatarUrl('blob:http://localhost/avatar-preview', '女')).toBe('blob:http://localhost/avatar-preview');
     expect(resolveAvatarUrl('', '女')).toBe(DEFAULT_AVATARS.female);
     expect(resolveAvatarUrl('', '-')).toBe(DEFAULT_AVATARS.male);
   });
 
-  it('allows only registered defaults or explicit temporary previews at the runtime boundary', () => {
+  it('removes stale temporary previews from persisted account avatars', () => {
+    expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '女')).toBe(DEFAULT_AVATARS.female);
+    expect(resolvePersistedAvatarUrl('blob:http://localhost/old-avatar', '男')).toBe(DEFAULT_AVATARS.male);
+    expect(resolvePersistedAvatarUrl('/api/users/me/avatar', '女')).toBe('/api/users/me/avatar');
+  });
+
+  it('allows only registered defaults or trusted upload sources at the runtime boundary', () => {
     expect(isAllowedAvatarRuntimeSource(DEFAULT_AVATARS.male)).toBe(true);
     expect(isAllowedAvatarRuntimeSource(DEFAULT_AVATARS.female)).toBe(true);
     expect(isAllowedAvatarRuntimeSource('blob:http://localhost/avatar-preview')).toBe(true);
+    expect(isAllowedAvatarRuntimeSource('/api/users/me/avatar')).toBe(true);
     expect(isAllowedAvatarRuntimeSource('/uploads/person.png')).toBe(false);
     expect(isAllowedAvatarRuntimeSource('https://cdn.example.com/person.png')).toBe(false);
+    expect(isAllowedAvatarRuntimeSource('https://cdn.example.com/api/users/me/avatar')).toBe(false);
   });
 
   it('normalizes a stale registered default to the current gender', () => {
@@ -109,7 +124,12 @@ describe('avatar defaults', () => {
 
     expect(fixtureAvatars.every(isRegisteredDefaultAvatar)).toBe(true);
     expect(fixtureAvatars.filter((avatar) => avatar === DEFAULT_AVATARS.male).length).toBeGreaterThan(0);
-    expect(FIXTURE_CHAT_AVATARS.message).toBe(DEFAULT_AVATARS.male);
-    expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(DEFAULT_AVATARS.male);
+    expect(FIXTURE_ACCOUNT_AVATAR).toBe(DEFAULT_AVATARS.male);
+    expect(FIXTURE_WORKSPACE_AVATARS.sidebar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_WORKSPACE_AVATARS.topbar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.sidebar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.topbar).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.message).toBe(FIXTURE_ACCOUNT_AVATAR);
+    expect(FIXTURE_CHAT_AVATARS.agentStateMessage).toBe(FIXTURE_ACCOUNT_AVATAR);
   });
 });

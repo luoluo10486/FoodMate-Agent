@@ -16,8 +16,13 @@ export type NutritionFoodCandidate = {
 };
 
 /** 查询已审核目录，供用户明确选择营养事实。 */
-export async function searchNutritionFoods(query: string, limit = 8): Promise<NutritionFoodCandidate[]> {
+export async function searchNutritionFoods(
+  query: string,
+  limit = 8,
+  signal?: AbortSignal,
+): Promise<NutritionFoodCandidate[]> {
   return apiRequest<NutritionFoodCandidate[]>(
     `/api/nutrition-foods/search?query=${encodeURIComponent(query)}&limit=${limit}`,
+    signal ? { signal } : undefined,
   );
 }

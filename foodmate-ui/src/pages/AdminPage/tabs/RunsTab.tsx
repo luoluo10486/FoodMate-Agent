@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
   Activity,
@@ -32,6 +32,8 @@ import {
 import {
   loadAdminTraceDetail,
   loadAdminQuery,
+  type AdminQueryParams,
+  replayAdminDlq,
   type AdminRunRow,
   type AdminQueryRun,
   type AdminQueryTrace,
@@ -43,6 +45,8 @@ import {
   type AdminToolCallRow,
   type AdminTraceRow,
 } from '../../../services/adminService';
+import type { AdminActionPayload } from './types';
+import { isAbortError } from '../../../services/apiClient';
 
 type AdminDlqRow = {
   key: string;
@@ -143,8 +147,9 @@ function queryRunRow(row: AdminQueryRun, index: number): AdminRunRow {
     durationMs: Number(row.duration_ms ?? 0),
     traceId: row.trace_id || '-',
     sessionId: row.session_id == null ? undefined : String(row.session_id),
-    resultType: row.status || '-',
-    errorCode: '-',
+    resultType: row.result_type || '-',
+    errorCode: row.error_code || '-',
+    degraded: row.degraded === true,
     stage: row.intent || '-',
     model: '-',
   };
@@ -508,31 +513,59 @@ function RunDetailSheet({
   );
 }
 
-function DataPlaceholder({ filtered, tab: _tab, error }: { filtered: boolean; tab: GovernanceTab; error?: string }) {
+function DataPlaceholder({
+  filtered,
+  tab: _tab,
+  error,
+  loading,
+  onRetry,
+}: {
+  filtered: boolean;
+  tab: GovernanceTab;
+  error?: string;
+  loading: boolean;
+  onRetry: () => void;
+}) {
   const title = error
     ? '真实接口加载失败'
-    : filtered
-      ? '未找到匹配记录'
-      : isRealMode
-        ? '真实接口暂未返回数据'
-        : '暂无治理记录';
-  const description = filtered
-    ? '请调整关键词、状态或错误码筛选条件。'
-    : error
-      ? error
-      : isRealMode
-        ? '当前接口没有返回该类记录。'
-        : 'mock 数据集中没有可展示的记录。';
+    : loading
+      ? '正在加载治理记录'
+      : filtered
+        ? '未找到匹配记录'
+        : isRealMode
+          ? '真实接口暂未返回数据'
+          : '暂无治理记录';
+  const description = error
+    ? error
+    : loading
+      ? '正在读取当前页签的最新数据。'
+      : filtered
+        ? '请调整关键词、状态或错误码筛选条件。'
+        : isRealMode
+          ? '当前接口没有返回该类记录。'
+          : 'mock 数据集中没有可展示的记录。';
   return (
     <div className={styles.runEmptyState} role="status">
       <AlertTriangle aria-hidden="true" />
       <strong>{title}</strong>
       <span>{description}</span>
+      {error ? (
+        <Button variant="outline" size="sm" disabled={loading} onClick={onRetry}>
+          <RotateCcw aria-hidden="true" />
+          重试
+        </Button>
+      ) : null}
     </div>
   );
 }
 
-export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+type RunsSectionProps = {
+  refreshNonce?: number;
+  onAction?: (payload: AdminActionPayload) => void;
+  canReplayDlq?: boolean;
+};
+
+export function RunsSection({ refreshNonce = 0, onAction, canReplayDlq = false }: RunsSectionProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [dashboard, setDashboard] = useState<DashboardState>(isRealMode ? emptyDashboard : mockDashboard);
   const [query, setQuery] = useState('');
@@ -546,6 +579,9 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [retryNonce, setRetryNonce] = useState(0);
+  const governanceRequestIdRef = useRef(0);
+  const traceDetailRequestIdRef = useRef(0);
   const activeTab = tabFromSearch(searchParams);
 
   const selectDetail = (nextSelection?: DetailSelection) => {
@@ -561,32 +597,37 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
 
   useEffect(() => {
     if (!isRealMode) return;
-    let mounted = true;
-    // The effect owns the request lifecycle, so clearing the previous error starts a new subscription.
+    const requestId = ++governanceRequestIdRef.current;
+    const controller = new AbortController();
+    // 当前 effect 独占一次治理查询，清除旧错误后再建立新的请求生命周期。
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoadError('');
     // 运行治理只加载当前页签，避免把五类运营明细一次性拉入浏览器。
-    const status = resultFilter === 'error' ? 'failed' : statusFilter;
-    const params = {
+    const status = isRealMode ? statusFilter : resultFilter === 'error' ? 'failed' : statusFilter;
+    const params: AdminQueryParams = {
       page,
       size: governancePageSize,
       query: query.trim() || undefined,
       status,
     };
+    if (activeTab === 'agent-runs') {
+      params.resultType = resultFilter === 'all' ? undefined : resultFilter;
+      params.errorCode = errorFilter.trim() || undefined;
+    }
     setLoading(true);
     const request =
       activeTab === 'agent-runs'
-        ? loadAdminQuery<AdminQueryRun>('runs', params)
+        ? loadAdminQuery<AdminQueryRun>('runs', params, controller.signal)
         : activeTab === 'tool-calls'
-          ? loadAdminQuery<AdminQueryToolCall>('tool-calls', params)
+          ? loadAdminQuery<AdminQueryToolCall>('tool-calls', params, controller.signal)
           : activeTab === 'sql-audits'
-            ? loadAdminQuery<AdminQuerySqlAudit>('sql-audits', params)
+            ? loadAdminQuery<AdminQuerySqlAudit>('sql-audits', params, controller.signal)
             : activeTab === 'traces'
-              ? loadAdminQuery<AdminQueryTrace>('traces', params)
-              : loadAdminQuery<AdminQueryDlq>('dlq', params);
+              ? loadAdminQuery<AdminQueryTrace>('traces', params, controller.signal)
+              : loadAdminQuery<AdminQueryDlq>('dlq', params, controller.signal);
     request
       .then((result) => {
-        if (!mounted) return;
+        if (controller.signal.aborted || requestId !== governanceRequestIdRef.current) return;
         setTotal(result.total);
         const nextDashboard = { ...emptyDashboard };
         if (activeTab === 'agent-runs') nextDashboard.runs = (result.items as AdminQueryRun[]).map(queryRunRow);
@@ -599,36 +640,41 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
         setDashboard(nextDashboard);
       })
       .catch((error) => {
-        if (mounted) {
-          setDashboard(emptyDashboard);
-          setLoadError(error instanceof Error ? error.message : '运行治理数据加载失败');
-        }
+        if (controller.signal.aborted || isAbortError(error) || requestId !== governanceRequestIdRef.current) return;
+        setDashboard(emptyDashboard);
+        setLoadError(error instanceof Error ? error.message : '运行治理数据加载失败');
       })
       .finally(() => {
-        if (mounted) setLoading(false);
+        if (!controller.signal.aborted && requestId === governanceRequestIdRef.current) setLoading(false);
       });
     return () => {
-      mounted = false;
+      governanceRequestIdRef.current += 1;
+      controller.abort();
     };
-  }, [activeTab, errorFilter, page, query, refreshNonce, resultFilter, statusFilter]);
+  }, [activeTab, errorFilter, page, query, refreshNonce, resultFilter, retryNonce, statusFilter]);
 
   useEffect(() => {
+    const requestId = ++traceDetailRequestIdRef.current;
     if (!isRealMode || selection?.type !== 'trace' || selection.row.traceId === '-') {
+      // 当前选择不再是 Trace 时，旧详情不得继续回写。
       return;
     }
-    let mounted = true;
-    loadAdminTraceDetail(selection.row.traceId)
+    const controller = new AbortController();
+    loadAdminTraceDetail(selection.row.traceId, controller.signal)
       .then((detail) => {
-        if (mounted) setTraceDetail(detail);
+        if (controller.signal.aborted || requestId !== traceDetailRequestIdRef.current) return;
+        setTraceDetail(detail);
       })
-      .catch(() => {
-        if (mounted) setTraceDetail(undefined);
+      .catch((error) => {
+        if (controller.signal.aborted || isAbortError(error) || requestId !== traceDetailRequestIdRef.current) return;
+        setTraceDetail(undefined);
       })
       .finally(() => {
-        if (mounted) setTraceDetailLoading(false);
+        if (!controller.signal.aborted && requestId === traceDetailRequestIdRef.current) setTraceDetailLoading(false);
       });
     return () => {
-      mounted = false;
+      traceDetailRequestIdRef.current += 1;
+      controller.abort();
     };
   }, [selection]);
 
@@ -750,6 +796,15 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
     activeTab === 'dlq'
       ? ['pending', 'needs_attention', 'resolved_duplicate', 'resolved_terminal', 'resolved_replayed']
       : ['completed', 'failed', 'running', 'waiting_user', 'cancelled'];
+  const resultOptions = isRealMode
+    ? [
+        { value: 'normal', label: 'normal' },
+        { value: 'safety_degraded', label: 'safety_degraded' },
+      ]
+    : [
+        { value: 'answer', label: 'answer' },
+        { value: 'error', label: 'error' },
+      ];
 
   const runColumns: TableColumnProps<AdminRunRow>[] = [
     { title: 'Run ID', dataIndex: 'runId' },
@@ -839,6 +894,40 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
       render: (_, row) => statusTag(row.reconciliationState),
     },
     { title: '首次发现', dataIndex: 'firstSeenAt' },
+    {
+      title: '操作',
+      render: (_, row) => {
+        const dlqId = Number(row.dlqId);
+        const replayable =
+          canReplayDlq &&
+          Number.isInteger(dlqId) &&
+          dlqId > 0 &&
+          ['pending', 'needs_attention'].includes(row.reconciliationState);
+        if (!replayable || !onAction) {
+          return <span>{canReplayDlq ? '不可重放' : '仅 superadmin'}</span>;
+        }
+        return (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() =>
+              onAction({
+                action: '重放 DLQ 消息',
+                targetLabel: row.messageId,
+                targetType: 'dlq',
+                targetId: row.dlqId,
+                execute: async (signal) => {
+                  await replayAdminDlq(dlqId, signal);
+                },
+              })
+            }
+          >
+            <RotateCcw aria-hidden="true" />
+            重放
+          </Button>
+        );
+      },
+    },
   ];
 
   return (
@@ -901,8 +990,11 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">全部结果</SelectItem>
-              <SelectItem value="answer">answer</SelectItem>
-              <SelectItem value="error">error</SelectItem>
+              {resultOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </label>
@@ -947,6 +1039,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all' || resultFilter !== 'all')}
                 tab="agent-runs"
                 error={loadError}
+                loading={loading}
+                onRetry={() => setRetryNonce((value) => value + 1)}
               />
             )}
           </TabsContent>
@@ -958,6 +1052,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
                 tab="tool-calls"
                 error={loadError}
+                loading={loading}
+                onRetry={() => setRetryNonce((value) => value + 1)}
               />
             )}
           </TabsContent>
@@ -969,6 +1065,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
                 tab="sql-audits"
                 error={loadError}
+                loading={loading}
+                onRetry={() => setRetryNonce((value) => value + 1)}
               />
             )}
           </TabsContent>
@@ -980,6 +1078,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
                 tab="traces"
                 error={loadError}
+                loading={loading}
+                onRetry={() => setRetryNonce((value) => value + 1)}
               />
             )}
           </TabsContent>
@@ -991,6 +1091,8 @@ export function RunsSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
                 filtered={Boolean(query || errorFilter || statusFilter !== 'all')}
                 tab="dlq"
                 error={loadError}
+                loading={loading}
+                onRetry={() => setRetryNonce((value) => value + 1)}
               />
             )}
           </TabsContent>

@@ -1,0 +1,16 @@
+{
+  "artboardName": "meal-plan-wizard-step2",
+  "figmaNodeId": "692:2934",
+  "figmaPng": "docxs/设计/figma-png/meal-plan-wizard-step2.png",
+  "browserPng": ".qa/figma-pixel-acceptance/recaptured/dpr1-meal-plan-wizard-step2-browser-2026-09-13.png",
+  "tool": "scripts/png-diff.mjs",
+  "status": "COMPARED",
+  "width": 1440,
+  "height": 1024,
+  "pixelCount": 1474560,
+  "differentPixels": 375091,
+  "differentRatio": 0.25437486436631945,
+  "meanAbsoluteError": 5.405299038357205,
+  "rmse": 25.522225923288367,
+  "maxChannelDelta": 254
+}

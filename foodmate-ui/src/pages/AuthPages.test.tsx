@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 import { ForgotPasswordPage } from './ForgotPasswordPage/ForgotPasswordPage';
 import { LoginPage } from './LoginPage/LoginPage';
@@ -8,7 +8,8 @@ import { RegisterPage } from './RegisterPage/RegisterPage';
 import { ResetPasswordPage } from './ResetPasswordPage/ResetPasswordPage';
 
 function LocationProbe() {
-  return <output data-testid="location">当前路由</output>;
+  const location = useLocation();
+  return <output data-testid="location">{location.pathname + location.search}</output>;
 }
 
 function renderAuth(initialEntry: string) {
@@ -151,7 +152,7 @@ describe('authentication pages', () => {
     expect(screen.getByRole('button', { name: '登录已禁用' })).toHaveProperty('disabled', true);
   });
 
-  it('uses the Figma account-disabled error banner, support action and example values', () => {
+  it('uses the Figma account-disabled error banner and marks the unavailable support action', () => {
     renderAuth('/login?state=account-disabled');
 
     expect(
@@ -176,7 +177,10 @@ describe('authentication pages', () => {
     expect(screen.getByLabelText('密码')).toHaveValue('password');
     expect(screen.getByRole('alert')).toHaveTextContent('账号已禁用');
     expect(screen.getByRole('alert')).toHaveTextContent('你的账号已被管理员禁用');
-    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('loginAlertAction');
+    const supportAction = screen.getByRole('button', { name: '联系客服（入口暂未配置）' });
+    expect(supportAction).toHaveClass('loginAlertAction');
+    expect(supportAction).toBeDisabled();
+    expect(supportAction).toHaveAttribute('title', '客服入口暂未配置');
     expect(screen.queryByRole('button', { name: '登录' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: '账号不可用' })).toHaveProperty('disabled', true);
   });
@@ -208,6 +212,139 @@ describe('authentication pages', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('系统维护中，请稍后再试。');
     expect(screen.getByRole('button', { name: '刷新页面' })).toHaveClass('loginAlertAction');
     expect(screen.getByRole('button', { name: '系统维护中' })).toHaveProperty('disabled', true);
+  });
+
+  it('does not render Figma login states in real mode', () => {
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    try {
+      renderAuth('/login?state=account-disabled');
+
+      expect(screen.getByRole('button', { name: '登录' })).toBeEnabled();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByLabelText('邮箱地址')).toHaveValue('');
+      expect(screen.getByLabelText('密码')).toHaveValue('');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
+  it('renders the backend credential error without redirecting in real mode', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'AUTH_INVALID_CREDENTIALS', message: '用户名或密码错误' },
+          }),
+          { status: 401 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/login?visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'wrong@example.com');
+      await user.type(screen.getByLabelText('密码'), 'wrong-password');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByRole('alert')).toHaveTextContent('邮箱或密码错误，请重试'));
+      expect(screen.queryByTestId('location')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '登录' })).toBeEnabled();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('renders backend login field errors on the matching controls', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: {
+              code: 'INVALID_ARGUMENT',
+              message: '请求参数无效',
+              details: { username_or_email: '请输入有效的邮箱或用户名', password: '密码不能为空' },
+            },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/login?visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'not-an-email');
+      await user.type(screen.getByLabelText('密码'), 'bad-password');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByText('请输入有效的邮箱或用户名')).toBeInTheDocument());
+      expect(screen.getByText('密码不能为空')).toBeInTheDocument();
+      expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('aria-invalid', 'true');
+      expect(screen.getByLabelText('邮箱地址')).toHaveAttribute('aria-describedby', 'login-username-error');
+      expect(screen.getByLabelText('密码')).toHaveAttribute('aria-invalid', 'true');
+
+      await user.type(screen.getByLabelText('邮箱地址'), '2');
+      expect(screen.queryByText('请输入有效的邮箱或用户名')).not.toBeInTheDocument();
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it('returns to a safe internal redirect after real login', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: { user_id: 7, username: 'real-user', role: 'user', session_expires_at: '2026-09-14T00:00:00Z' },
+            }),
+            { status: 200 },
+          ),
+        )
+        .mockResolvedValueOnce(
+          new Response(
+            JSON.stringify({
+              success: true,
+              data: {
+                user_id: 7,
+                username: 'real-user',
+                email: 'real@example.com',
+                role: 'user',
+                status: 'active',
+                gender: '男',
+              },
+            }),
+            { status: 200 },
+          ),
+        ),
+    );
+
+    try {
+      renderAuth('/login?redirect=%2Fchat%2F7%3Fmode%3Dcompact&visual-qa=1');
+      await user.type(screen.getByLabelText('邮箱地址'), 'real@example.com');
+      await user.type(screen.getByLabelText('密码'), 'StrongPass99!');
+      await user.click(screen.getByRole('button', { name: '登录' }));
+
+      await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/chat/7?mode=compact'));
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+      localStorage.clear();
+    }
   });
 
   it('routes login recovery and registration actions to independent Figma pages', async () => {
@@ -273,6 +410,38 @@ describe('authentication pages', () => {
     }
   });
 
+  it('renders backend registration field errors on the matching controls', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { email: '邮箱已注册' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/register');
+      await user.type(screen.getByLabelText('用户名'), 'real-user');
+      await user.type(screen.getByLabelText('邮箱地址'), 'real@example.com');
+      await user.type(screen.getByLabelText('密码'), 'StrongPass99!');
+      await user.type(screen.getByLabelText('确认密码'), 'StrongPass99!');
+      await user.click(screen.getByRole('button', { name: '注册' }));
+
+      await waitFor(() => expect(screen.getByText('邮箱已注册')).toBeInTheDocument());
+      expect(document.querySelector('input[name="email"]')).toHaveAttribute('aria-invalid', 'true');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
+  });
+
   it('uses the shared shadcn icon button for password visibility', async () => {
     const user = userEvent.setup();
     renderAuth('/register');
@@ -306,9 +475,10 @@ describe('authentication pages', () => {
     expect(document.querySelector('img[src="/assets/figma/auth/foodmate-login-eye.svg"]')).toBeInTheDocument();
   });
 
-  it('keeps account support and service recovery actions available as shadcn buttons', () => {
+  it('keeps support and service recovery actions as shadcn buttons with accurate availability', () => {
     renderAuth('/login?state=account-disabled');
-    expect(screen.getByRole('button', { name: '联系客服' })).toHaveClass('inline-flex');
+    expect(screen.getByRole('button', { name: '联系客服（入口暂未配置）' })).toHaveClass('inline-flex');
+    expect(screen.getByRole('button', { name: '联系客服（入口暂未配置）' })).toBeDisabled();
 
     renderAuth('/login?state=service-unavailable');
     expect(screen.getByRole('button', { name: '刷新页面' })).toHaveClass('inline-flex');
@@ -327,6 +497,37 @@ describe('authentication pages', () => {
     await user.type(screen.getByLabelText('邮箱地址'), 'demo@example.com');
     await user.click(screen.getByRole('button', { name: '发送重置邮件' }));
     expect(screen.getByRole('status')).toHaveTextContent('重置邮件请求已完成');
+  });
+
+  it('renders backend forgot-password field errors on the email control', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { email: '邮箱格式不正确' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/forgot-password');
+      await user.type(screen.getByLabelText('邮箱地址'), 'invalid@example.com');
+      await user.click(screen.getByRole('button', { name: '发送重置邮件' }));
+
+      await waitFor(() => expect(screen.getByText('邮箱格式不正确')).toBeInTheDocument());
+      const emailInput = document.querySelector('input[name="email"]');
+      expect(emailInput).toHaveAttribute('aria-invalid', 'true');
+      expect(emailInput).toHaveAttribute('aria-describedby', 'email-error');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('separates the Figma brand and primary tokens on forgot-password', () => {
@@ -355,6 +556,36 @@ describe('authentication pages', () => {
     expect(screen.getByText('高安全')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '确认重置' }));
     expect(screen.getByRole('heading', { name: '重置密码' })).toBeInTheDocument();
+  });
+
+  it('renders backend reset-password field errors on the password control', async () => {
+    const user = userEvent.setup();
+    vi.stubEnv('VITE_AGENT_MODE', 'real');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: { code: 'INVALID_ARGUMENT', message: '请求参数无效', details: { new_password: '密码强度不足' } },
+          }),
+          { status: 400 },
+        ),
+      ),
+    );
+
+    try {
+      renderAuth('/reset-password?token=reset-token');
+      await user.type(screen.getByLabelText('新密码'), 'weak-password');
+      await user.type(screen.getByLabelText('确认新密码'), 'weak-password');
+      await user.click(screen.getByRole('button', { name: '确认重置' }));
+
+      await waitFor(() => expect(screen.getByText('密码强度不足')).toBeInTheDocument());
+      expect(document.querySelector('input[name="password"]')).toHaveAttribute('aria-invalid', 'true');
+    } finally {
+      vi.unstubAllEnvs();
+      vi.unstubAllGlobals();
+    }
   });
 
   it('separates the Figma brand and primary tokens on reset-password', () => {

@@ -1,12 +1,20 @@
-import { Copy } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { AlertCircle, Copy, Download, LoaderCircle, RefreshCw } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import styles from '../AdminPage.module.css';
-import { ModelGovernanceSection } from './ModelGovernanceTab';
+import {
+  downloadAdminExport,
+  loadAdminExportStatus,
+  loadAdminUsagePage,
+  requestAdminExport,
+  type AdminExportStatus,
+  type AdminUsageRow,
+} from '../../../services/adminService';
+import { isAbortError } from '../../../services/apiClient';
 import type { AdminActionPayload } from './types';
 
 type FigmaUsageRow = {
@@ -133,17 +141,17 @@ function emitUsageNotice(message: string) {
   window.dispatchEvent(new CustomEvent('foodmate:admin-notice', { detail: { message, tone: 'info' } }));
 }
 
-function UsageStatus({ status }: { status: FigmaUsageRow['status'] }) {
-  return (
-    <span className={`${styles.usageStatus} ${status === 'failed' ? styles.usageStatusFailed : ''}`}>{status}</span>
-  );
+function UsageStatus({ status }: { status: string }) {
+  const normalizedStatus = status.toLowerCase();
+  const isFailed = ['failed', 'timeout', 'cancelled'].includes(normalizedStatus);
+  return <span className={`${styles.usageStatus} ${isFailed ? styles.usageStatusFailed : ''}`}>{status}</span>;
 }
 
-function UsageProvider({ provider, rowIndex }: { provider: FigmaUsageRow['provider']; rowIndex: number }) {
+function UsageProvider({ provider, rowIndex }: { provider: string; rowIndex: number }) {
   const providerClass =
-    provider === 'Anthropic'
+    provider.toLowerCase() === 'anthropic'
       ? styles.usageProviderAnthropic
-      : provider === 'Postgres'
+      : provider.toLowerCase() === 'postgres'
         ? styles.usageProviderPostgres
         : rowIndex === 2 || rowIndex === 5
           ? styles.usageProviderOpenAiWarm
@@ -191,7 +199,7 @@ function FigmaUsageSection() {
     try {
       await navigator.clipboard?.writeText(runId);
     } catch {
-      // Clipboard access can be unavailable in embedded or insecure preview contexts.
+      // 嵌入式页面或非安全预览环境可能无法访问剪贴板。
     }
     setCopiedRunId(runId);
     window.setTimeout(() => setCopiedRunId(''), 1600);
@@ -405,15 +413,467 @@ function FigmaUsageSection() {
 }
 
 export function UsageSection({
-  onAction,
   refreshNonce,
 }: {
   onAction: (payload: AdminActionPayload) => void;
   refreshNonce: number;
 }) {
   if (import.meta.env.VITE_AGENT_MODE === 'real') {
-    return <ModelGovernanceSection onAction={onAction} refreshNonce={refreshNonce} />;
+    return <RealUsageSection refreshNonce={refreshNonce} />;
   }
 
   return <FigmaUsageSection />;
+}
+
+type RealUsageFilter = 'all' | 'success' | 'failed' | 'timeout' | 'cancelled';
+
+function parseTokenValue(value: string) {
+  const matched = value.trim().match(/^([\d,.]+)\s*([kKmMbB])?$/);
+  if (!matched) return undefined;
+  const number = Number(matched[1].replaceAll(',', ''));
+  if (!Number.isFinite(number)) return undefined;
+  const multiplier = matched[2]?.toLowerCase() === 'k' ? 1_000 : matched[2]?.toLowerCase() === 'm' ? 1_000_000 : 1;
+  return number * multiplier;
+}
+
+function formatTokenTotal(rows: AdminUsageRow[]) {
+  const values = rows.map((row) => parseTokenValue(row.tokens)).filter((value): value is number => value != null);
+  if (!values.length) return '-';
+  const total = values.reduce((sum, value) => sum + value, 0);
+  if (total >= 1_000_000) return `${(total / 1_000_000).toFixed(2)}M`;
+  if (total >= 1_000) return `${(total / 1_000).toFixed(2)}K`;
+  return total.toLocaleString('en-US');
+}
+
+function formatCostTotal(rows: AdminUsageRow[]) {
+  const values = rows.map((row) => Number(row.cost)).filter((value) => Number.isFinite(value));
+  if (!values.length) return '-';
+  return values.reduce((sum, value) => sum + value, 0).toFixed(2);
+}
+
+type ExportDisplayState = 'queued' | 'running' | 'completed' | 'failed' | 'expired' | 'consumed' | 'unknown';
+
+function exportDisplayState(job: AdminExportStatus): ExportDisplayState {
+  if (job.download_consumed_at) return 'consumed';
+  const normalizedStatus = job.status.toLowerCase();
+  if (normalizedStatus === 'completed' && job.expires_at) {
+    const expiresAt = Date.parse(job.expires_at);
+    if (!Number.isNaN(expiresAt) && expiresAt <= Date.now()) return 'expired';
+  }
+  if (normalizedStatus === 'queued' || normalizedStatus === 'running' || normalizedStatus === 'completed') {
+    return normalizedStatus;
+  }
+  if (normalizedStatus === 'failed' || normalizedStatus === 'expired') return normalizedStatus;
+  return 'unknown';
+}
+
+function exportStatusMessage(job: AdminExportStatus) {
+  const state = exportDisplayState(job);
+  return job.failure_code
+    ? `导出任务 #${job.export_job_id} 当前状态：${state} · 错误码：${job.failure_code}`
+    : `导出任务 #${job.export_job_id} 当前状态：${state}`;
+}
+
+const usageExportFields = ['provider', 'model', 'scene', 'tokens', 'cost', 'latency_ms', 'status'];
+
+function pageNumbers(totalPages: number, currentPage: number) {
+  const start = Math.min(Math.max(1, currentPage - 2), Math.max(1, totalPages - 4));
+  const end = Math.min(totalPages, start + 4);
+  return Array.from({ length: end - start + 1 }, (_, index) => start + index);
+}
+
+function RealUsageSection({ refreshNonce = 0 }: { refreshNonce?: number }) {
+  const pageSize = 20;
+  const [rows, setRows] = useState<AdminUsageRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [result, setResult] = useState<RealUsageFilter>('all');
+  const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [retryNonce, setRetryNonce] = useState(0);
+  const [exportJob, setExportJob] = useState<AdminExportStatus>();
+  const [exportBusy, setExportBusy] = useState(false);
+  const [exportMessage, setExportMessage] = useState('');
+  const exportController = useRef<AbortController>();
+  const exportTimer = useRef<number>();
+  const exportRequestVersion = useRef(0);
+
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    // 每次筛选、分页或刷新都重新读取权威接口，失败时清空当前结果，禁止回退到 Fixture。
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setLoading(true);
+    setLoadError('');
+    void loadAdminUsagePage(
+      {
+        page,
+        size: pageSize,
+        query: search.trim() || undefined,
+        status: result === 'all' ? undefined : result,
+      },
+      controller.signal,
+    )
+      .then((data) => {
+        if (!active || controller.signal.aborted) return;
+        setRows(data.items);
+        setTotal(data.total);
+        setPage(data.page);
+      })
+      .catch((error) => {
+        if (!active || controller.signal.aborted || isAbortError(error)) return;
+        setRows([]);
+        setTotal(0);
+        setLoadError(error instanceof Error ? error.message : '模型用量加载失败');
+      })
+      .finally(() => {
+        if (active && !controller.signal.aborted) setLoading(false);
+      });
+    return () => {
+      active = false;
+      controller.abort();
+    };
+  }, [page, refreshNonce, result, retryNonce, search]);
+
+  const beginExportRequest = useCallback(() => {
+    exportController.current?.abort();
+    if (exportTimer.current !== undefined) {
+      window.clearTimeout(exportTimer.current);
+      exportTimer.current = undefined;
+    }
+    const controller = new AbortController();
+    exportController.current = controller;
+    const version = ++exportRequestVersion.current;
+    return { controller, version };
+  }, []);
+
+  const trackExport = useCallback(
+    (jobId: number) => {
+      const { controller, version } = beginExportRequest();
+      setExportBusy(true);
+
+      const poll = async (): Promise<void> => {
+        try {
+          const status = await loadAdminExportStatus(jobId, controller.signal);
+          if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+          setExportJob(status);
+          setExportMessage(exportStatusMessage(status));
+          const state = exportDisplayState(status);
+          if (state === 'queued' || state === 'running') {
+            exportTimer.current = window.setTimeout(() => void poll(), 1000);
+            return;
+          }
+          setExportBusy(false);
+        } catch (error) {
+          if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+          setExportMessage(error instanceof Error ? error.message : '导出状态查询失败');
+          setExportBusy(false);
+        }
+      };
+
+      void poll();
+    },
+    [beginExportRequest],
+  );
+
+  const createUsageExport = async () => {
+    const { controller, version } = beginExportRequest();
+    setExportBusy(true);
+    setExportJob(undefined);
+    setExportMessage('正在创建模型用量导出任务...');
+    try {
+      const created = await requestAdminExport(
+        'usage',
+        { query: search.trim() || undefined, status: result === 'all' ? undefined : result },
+        usageExportFields,
+        controller.signal,
+      );
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportMessage(`导出任务 #${created.export_job_id} 已创建，正在读取服务端状态...`);
+      trackExport(created.export_job_id);
+    } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+      setExportMessage(error instanceof Error ? error.message : '导出任务创建失败');
+      setExportBusy(false);
+    }
+  };
+
+  const refreshExport = () => {
+    if (!exportJob) return;
+    trackExport(exportJob.export_job_id);
+  };
+
+  const consumeExport = async () => {
+    if (!exportJob || exportDisplayState(exportJob) !== 'completed') return;
+    const { controller, version } = beginExportRequest();
+    setExportBusy(true);
+    try {
+      const result = await downloadAdminExport(exportJob.export_job_id, controller.signal);
+      window.open(result.download_url, '_blank', 'noopener,noreferrer');
+      const status = await loadAdminExportStatus(exportJob.export_job_id, controller.signal);
+      if (controller.signal.aborted || version !== exportRequestVersion.current) return;
+      setExportJob(status);
+      setExportMessage(
+        exportDisplayState(status) === 'consumed'
+          ? '下载链接已生成，下载资格已消费一次。'
+          : '下载链接已生成，服务端状态仍在确认。',
+      );
+    } catch (error) {
+      if (controller.signal.aborted || version !== exportRequestVersion.current || isAbortError(error)) return;
+      setExportMessage(error instanceof Error ? error.message : '导出下载失败');
+    } finally {
+      if (!controller.signal.aborted && version === exportRequestVersion.current) setExportBusy(false);
+    }
+  };
+
+  useEffect(
+    () => () => {
+      exportRequestVersion.current += 1;
+      exportController.current?.abort();
+      if (exportTimer.current !== undefined) window.clearTimeout(exportTimer.current);
+    },
+    [],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+  const rangeStart = total === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const rangeEnd = Math.min(currentPage * pageSize, total);
+  const summary = useMemo(
+    () => ({
+      tokens: formatTokenTotal(rows),
+      cost: formatCostTotal(rows),
+      successCount: rows.filter((row) => ['success', 'completed'].includes(row.status.toLowerCase())).length,
+      failedCount: rows.filter((row) => ['failed', 'timeout', 'cancelled'].includes(row.status.toLowerCase())).length,
+    }),
+    [rows],
+  );
+
+  const updateResult = (value: string) => {
+    setResult(value as RealUsageFilter);
+    setPage(1);
+  };
+
+  const updateSearch = (value: string) => {
+    setSearch(value);
+    setPage(1);
+  };
+
+  return (
+    <div className={styles.usageFigmaPage} data-usage-mode="real">
+      <section className={styles.usageFilters} aria-label="模型用量筛选">
+        <div className={styles.usageFilterGroup}>
+          <UsageFilterSelect
+            label="结果"
+            value={result}
+            onValueChange={updateResult}
+            ariaLabel="结果筛选"
+            options={[
+              { value: 'all', label: '全部' },
+              { value: 'success', label: '成功' },
+              { value: 'failed', label: '失败' },
+              { value: 'timeout', label: '超时' },
+              { value: 'cancelled', label: '已取消' },
+            ]}
+          />
+        </div>
+        <div className={styles.usageFilterActions}>
+          <div className={styles.usageSearch}>
+            <span className={styles.usageSearchIcon} data-figma-asset="admin-overview-search" aria-hidden="true" />
+            <Input
+              aria-label="供应商 / 模型 / 场景"
+              className={styles.usageSearchInput}
+              placeholder="供应商 / 模型 / 场景..."
+              value={search}
+              onChange={(event) => updateSearch(event.target.value)}
+            />
+          </div>
+          <Button type="button" variant="outline" disabled={exportBusy} onClick={() => void createUsageExport()}>
+            <Download aria-hidden="true" />
+            {exportBusy ? '导出处理中...' : '导出当前结果'}
+          </Button>
+        </div>
+      </section>
+
+      {exportMessage ? (
+        <div className={styles.usageExportStatus} role="status" aria-live="polite">
+          <span>{exportMessage}</span>
+          {exportJob && ['queued', 'running'].includes(exportDisplayState(exportJob)) ? (
+            <Button type="button" variant="outline" size="sm" disabled={exportBusy} onClick={refreshExport}>
+              <RefreshCw aria-hidden="true" />
+              检查状态
+            </Button>
+          ) : null}
+          {exportJob && exportDisplayState(exportJob) === 'completed' ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={exportBusy}
+              onClick={() => void consumeExport()}
+            >
+              <Download aria-hidden="true" />
+              下载 JSON
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
+
+      <section className={styles.usageStats} aria-label="模型用量统计">
+        <Card className={styles.usageStatCard}>
+          <span>当前页 Token</span>
+          <strong>{summary.tokens}</strong>
+        </Card>
+        <Card className={`${styles.usageStatCard} ${styles.usageStatOutput}`}>
+          <span>当前页成本</span>
+          <strong>{summary.cost}</strong>
+        </Card>
+        <Card className={`${styles.usageStatCard} ${styles.usageStatCost}`}>
+          <span>记录总数</span>
+          <strong>{total.toLocaleString('zh-CN')}</strong>
+        </Card>
+      </section>
+
+      <section className={styles.usageTableCard} aria-label="模型用量明细" aria-busy={loading}>
+        <div className={styles.usageTableScroll}>
+          <Table className={styles.usageTable}>
+            <TableHeader>
+              <TableRow>
+                <TableHead>供应商</TableHead>
+                <TableHead>模型</TableHead>
+                <TableHead>场景</TableHead>
+                <TableHead>Token</TableHead>
+                <TableHead>成本</TableHead>
+                <TableHead>耗时</TableHead>
+                <TableHead>状态</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {loading && !rows.length ? (
+                <TableRow>
+                  <TableCell colSpan={7} className={styles.usageEmpty}>
+                    <span className={styles.usageLoadingState} role="status">
+                      <LoaderCircle aria-hidden="true" />
+                      正在加载模型用量...
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ) : loadError ? (
+                <TableRow>
+                  <TableCell colSpan={7} className={styles.usageEmpty}>
+                    <span className={styles.usageErrorState} role="alert">
+                      <span className={styles.usageErrorMessage}>
+                        <AlertCircle aria-hidden="true" />
+                        {loadError}
+                      </span>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRetryNonce((value) => value + 1)}
+                      >
+                        <RefreshCw aria-hidden="true" />
+                        重试
+                      </Button>
+                    </span>
+                  </TableCell>
+                </TableRow>
+              ) : rows.length ? (
+                rows.map((row, rowIndex) => (
+                  <TableRow key={row.key}>
+                    <TableCell>
+                      <UsageProvider provider={row.provider} rowIndex={rowIndex} />
+                    </TableCell>
+                    <TableCell className={styles.usageMono}>{row.model}</TableCell>
+                    <TableCell className={styles.usageCellMuted}>{row.scene}</TableCell>
+                    <TableCell className={styles.usageMono}>{row.tokens}</TableCell>
+                    <TableCell className={styles.usageCellMuted}>{row.cost}</TableCell>
+                    <TableCell
+                      className={
+                        row.status.toLowerCase() === 'failed' ? styles.usageLatencyFailed : styles.usageLatency
+                      }
+                    >
+                      {row.latencyMs > 0 ? `${row.latencyMs} ms` : '-'}
+                    </TableCell>
+                    <TableCell>
+                      <UsageStatus status={row.status} />
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={7} className={styles.usageEmpty}>
+                    没有匹配的模型用量记录
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      </section>
+
+      <nav className={styles.usagePagination} aria-label="模型用量分页">
+        <p>
+          显示第 {rangeStart} 到 {rangeEnd} 条，共 {total.toLocaleString('en-US')} 条结果
+        </p>
+        <div className={styles.usagePageButtons}>
+          <Button
+            variant="outline"
+            className={styles.usagePageButton}
+            aria-label="上一页"
+            disabled={currentPage === 1 || loading}
+            onClick={() => setPage((value) => Math.max(1, value - 1))}
+          >
+            上一页
+          </Button>
+          {pageNumbers(totalPages, currentPage).map((pageNumber) => (
+            <Button
+              key={pageNumber}
+              variant={currentPage === pageNumber ? 'default' : 'outline'}
+              className={`${styles.usagePageButton} ${currentPage === pageNumber ? styles.usagePageButtonActive : ''}`}
+              aria-label={`第 ${pageNumber} 页`}
+              disabled={loading}
+              onClick={() => setPage(pageNumber)}
+            >
+              {pageNumber}
+            </Button>
+          ))}
+          <Button
+            variant="outline"
+            className={styles.usagePageButton}
+            aria-label="下一页"
+            disabled={currentPage === totalPages || loading}
+            onClick={() => setPage((value) => Math.min(totalPages, value + 1))}
+          >
+            下一页
+          </Button>
+        </div>
+      </nav>
+
+      <Card className={styles.usageAnalytics} aria-label="模型用量分析">
+        <article>
+          <h2>当前查询 Token</h2>
+          <p>
+            {summary.tokens} · 当前页已返回 {rows.length} 条
+          </p>
+          <p>输入和输出拆分由后端明细接口决定，当前接口只提供总 Token。</p>
+        </article>
+        <article>
+          <h2>状态分布</h2>
+          <p>
+            成功 {summary.successCount} 条 · 失败 {summary.failedCount} 条
+          </p>
+          <p>统计范围为当前页返回记录。</p>
+        </article>
+        <article>
+          <h2>查询条件</h2>
+          <p>
+            {result === 'all' ? '全部结果' : result} · {search.trim() || '无关键词'}
+          </p>
+          <p>总计 {total.toLocaleString('zh-CN')} 条记录。</p>
+        </article>
+      </Card>
+    </div>
+  );
 }

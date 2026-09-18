@@ -1,20 +1,62 @@
 export type ApiErrorCode = 'AUTH_REQUIRED' | 'FORBIDDEN' | 'NETWORK_ERROR' | 'SERVER_ERROR' | string;
 
+export type ApiResponseMeta = {
+  request_id?: string;
+  trace_id?: string;
+};
+
 export class ApiError extends Error {
+  public readonly requestId?: string;
+  public readonly traceId?: string;
+
   constructor(
     public readonly code: ApiErrorCode,
     message: string,
     public readonly status?: number,
+    public readonly details?: unknown,
+    public readonly meta?: ApiResponseMeta,
   ) {
     super(message);
     this.name = 'ApiError';
+    this.requestId = meta?.request_id;
+    this.traceId = meta?.trace_id;
   }
 }
 
-type ApiEnvelope<T> = { success: boolean; data: T; error?: { code: string; message: string } };
+type ApiEnvelope<T> = {
+  success: boolean;
+  data: T;
+  error?: { code: string; message: string; details?: unknown };
+  meta?: ApiResponseMeta;
+};
 const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
 const unsafeMethods = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 let refreshInFlight: Promise<void> | undefined;
+
+export function isAbortError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'name' in error &&
+    (error as { name?: unknown }).name === 'AbortError'
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function snakeCase(value: string): string {
+  return value.replace(/[A-Z]/g, (character) => `_${character.toLowerCase()}`);
+}
+
+export function apiFieldError(error: unknown, field: string): string | undefined {
+  if (!(error instanceof ApiError) || !isRecord(error.details)) return undefined;
+  const value = error.details[field] ?? error.details[snakeCase(field)];
+  if (typeof value === 'string') return value;
+  if (Array.isArray(value) && value.every((item) => typeof item === 'string')) return value.join('、');
+  return undefined;
+}
 
 function csrfToken() {
   return document.cookie
@@ -34,12 +76,16 @@ async function send(path: string, init: RequestInit): Promise<Response> {
   if (unsafeMethods.has(method) && csrf) headers.set('X-CSRF-Token', csrf);
   try {
     return await fetch(`${baseUrl}${path}`, { ...init, method, credentials: 'include', headers });
-  } catch {
+  } catch (error) {
+    // 组件卸载或请求切换导致的取消不是网络故障，必须原样交给调用方忽略。
+    if (isAbortError(error)) throw error;
     throw new ApiError('NETWORK_ERROR', '网络连接失败，请检查网络后重试');
   }
 }
 
-async function envelope<T>(response: Response): Promise<ApiEnvelope<T> | undefined> {
+async function envelope<T>(response: Response, allowEmpty = true): Promise<ApiEnvelope<T> | undefined> {
+  if (allowEmpty && (response.status === 204 || response.status === 205))
+    return { success: true, data: undefined as T };
   let body: ApiEnvelope<T> | undefined;
   try {
     body = (await response.json()) as ApiEnvelope<T>;
@@ -53,12 +99,14 @@ async function refreshAuthSession(): Promise<void> {
   if (!refreshInFlight) {
     refreshInFlight = (async () => {
       const response = await send('/api/auth/refresh', { method: 'POST' });
-      const body = await envelope<void>(response);
+      const body = await envelope<void>(response, false);
       if (!response.ok || !body?.success)
         throw new ApiError(
           body?.error?.code ?? 'AUTH_REFRESH_TOKEN_INVALID',
           body?.error?.message ?? '登录已失效，请重新登录',
           response.status,
+          body?.error?.details,
+          body?.meta,
         );
     })().finally(() => {
       refreshInFlight = undefined;
@@ -85,16 +133,28 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
     }
   }
   const body = await envelope<T>(response);
-  if (response.status === 401) {
+  // 登录、注册和密码重置接口的 401 是业务结果，必须保留后端错误码交给页面处理。
+  // 只有受保护资源和 refresh 自身的 401 才代表当前会话不可用。
+  const isProtectedRequest = !path.startsWith('/api/auth/');
+  if (response.status === 401 && (isProtectedRequest || path === '/api/auth/refresh')) {
     redirectToLogin();
     throw new ApiError('AUTH_REQUIRED', '登录已失效，请重新登录', 401);
   }
-  if (response.status === 403) throw new ApiError('FORBIDDEN', body?.error?.message ?? '当前账号无权执行此操作', 403);
+  if (response.status === 403)
+    throw new ApiError(
+      body?.error?.code ?? 'FORBIDDEN',
+      body?.error?.message ?? '当前账号无权执行此操作',
+      403,
+      body?.error?.details,
+      body?.meta,
+    );
   if (!response.ok || !body?.success)
     throw new ApiError(
       body?.error?.code ?? 'SERVER_ERROR',
       body?.error?.message ?? `请求失败（${response.status}）`,
       response.status,
+      body?.error?.details,
+      body?.meta,
     );
   return body.data;
 }

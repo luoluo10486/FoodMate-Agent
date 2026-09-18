@@ -213,6 +213,33 @@ class MqRuntimeTests(TestCase):
         self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
         self.assertEqual([command], executed)
 
+    def test_skip_listener_uses_skip_id_and_notifies_once(self):
+        inbox = RedisCommandInbox(FakeRedis(), "test")
+        executed, skipped = [], []
+        listener = _CommandListener(inbox, executed.append, apply_skip=skipped.append)
+        command = {
+            "skip_id": "skip-1",
+            "proposal_id": "proposal-1",
+            "request_hash": "sha256:skip",
+        }
+        message = SimpleNamespace(
+            body=json.dumps(command).encode(),
+            get_property=lambda name: "SkipCommand" if name == "foodmate_message_type" else None,
+        )
+
+        self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
+        self.assertEqual(ConsumeResult.SUCCESS, listener.consume(message))
+        self.assertEqual([], executed)
+        self.assertEqual([command], skipped)
+
+    def test_run_and_skip_inbox_keys_are_independent(self):
+        inbox = RedisCommandInbox(FakeRedis(), "test")
+        run = {"dispatch_id": "same-key", "request_hash": "sha256:run"}
+        skip = {"skip_id": "same-key", "request_hash": "sha256:skip"}
+
+        self.assertEqual("claimed", inbox.claim("same-key", "sha256:run", run, "command"))
+        self.assertEqual("claimed", inbox.claim("same-key", "sha256:skip", skip, "skip"))
+
     def test_result_listener_is_idempotent_and_rejects_hash_conflict(self):
         inbox = RedisResultInbox(FakeRedis(), "test")
         received = []

@@ -50,11 +50,15 @@ public interface AdminOperationalQueryMapper {
             "<script>SELECT r.agent_run_id,r.session_id,r.intent,r.status,r.trace_id,EXTRACT(EPOCH"
                     + " FROM (r.updated_at-r.created_at))*1000 AS duration_ms,CASE WHEN s.user_id IS"
                     + " NULL THEN NULL ELSE CONCAT('user-',MD5(CAST(s.user_id AS TEXT))) END AS"
-                    + " actor_ref FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id LEFT"
+                    + " actor_ref,r.result_type,r.error_code FROM agent_runs r JOIN sessions s ON s.session_id=r.session_id LEFT"
                     + " JOIN users u ON u.user_id=s.user_id WHERE r.is_deleted=FALSE<if test='q.text !="
                     + " null and q.text != &quot;&quot;'> AND (r.intent ILIKE CONCAT('%',#{q.text},'%')"
                     + " OR r.trace_id ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null"
-                    + " and q.status != &quot;&quot;'> AND r.status=#{q.status}</if> ORDER BY"
+                    + " and q.status != &quot;&quot;'> AND r.status=#{q.status}</if><if test='q.resultType != null"
+                    + " and q.resultType != &quot;&quot;'> AND r.result_type=#{q.resultType}</if><if test='q.errorCode != null"
+                    + " and q.errorCode != &quot;&quot;'> AND r.error_code ILIKE CONCAT('%',#{q.errorCode},'%')</if><if test='q.degraded != null and q.degraded'>"
+                    + " AND r.result_type='safety_degraded'</if><if test='q.degraded != null and !q.degraded'>"
+                    + " AND COALESCE(r.result_type,'') &lt;&gt; 'safety_degraded'</if> ORDER BY"
                     + " <choose><when test=\"q.sort == 'duration_ms'\">duration_ms</when><when"
                     + " test=\"q.sort =="
                     + " 'status'\">r.status</when><otherwise>r.created_at</otherwise></choose>"
@@ -68,7 +72,11 @@ public interface AdminOperationalQueryMapper {
                     + " WHERE r.is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'>"
                     + " AND (r.intent ILIKE CONCAT('%',#{q.text},'%') OR r.trace_id ILIKE"
                     + " CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and q.status !="
-                    + " &quot;&quot;'> AND r.status=#{q.status}</if></script>")
+                    + " &quot;&quot;'> AND r.status=#{q.status}</if><if test='q.resultType != null and q.resultType != &quot;&quot;'>"
+                    + " AND r.result_type=#{q.resultType}</if><if test='q.errorCode != null and q.errorCode != &quot;&quot;'>"
+                    + " AND r.error_code ILIKE CONCAT('%',#{q.errorCode},'%')</if><if test='q.degraded != null and q.degraded'>"
+                    + " AND r.result_type='safety_degraded'</if><if test='q.degraded != null and !q.degraded'>"
+                    + " AND COALESCE(r.result_type,'') &lt;&gt; 'safety_degraded'</if></script>")
     long countRuns(@Param("q") Query query);
 
     @Select(
@@ -237,14 +245,11 @@ public interface AdminOperationalQueryMapper {
     List<UsageRow> usage(@Param("q") Query query);
 
     @Select(
-            "<script>SELECT provider_code AS provider,model_name AS"
-                    + " model,scene,COALESCE((usage_json->>'total_tokens'),'0') AS"
-                    + " tokens,cost_amount AS cost,latency_ms,status FROM model_usage_logs WHERE"
-                    + " is_deleted=FALSE<if test='q.text != null and q.text != &quot;&quot;'> AND"
-                    + " (provider_code ILIKE CONCAT('%',#{q.text},'%') OR model_name ILIKE"
-                    + " CONCAT('%',#{q.text},'%') OR scene ILIKE CONCAT('%',#{q.text},'%'))</if><if"
-                    + " test='q.status != null and q.status != &quot;&quot;'> AND"
-                    + " status=#{q.status}</if></script>")
+            "<script>SELECT COUNT(*) FROM model_usage_logs WHERE is_deleted=FALSE<if"
+                    + " test='q.text != null and q.text != &quot;&quot;'> AND (provider_code ILIKE"
+                    + " CONCAT('%',#{q.text},'%') OR model_name ILIKE CONCAT('%',#{q.text},'%') OR"
+                    + " scene ILIKE CONCAT('%',#{q.text},'%'))</if><if test='q.status != null and"
+                    + " q.status != &quot;&quot;'> AND status=#{q.status}</if></script>")
     long countUsage(@Param("q") Query query);
 
     @Select(

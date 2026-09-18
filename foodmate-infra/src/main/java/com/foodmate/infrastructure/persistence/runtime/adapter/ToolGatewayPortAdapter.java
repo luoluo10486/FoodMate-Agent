@@ -12,6 +12,8 @@ import java.util.List;
 import org.springframework.context.annotation.Profile;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 @Component
 @Profile("local")
@@ -38,11 +40,14 @@ public class ToolGatewayPortAdapter implements ToolGatewayPort {
     }
 
     @Override
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public List<JsonNode> executeRead(String statement) {
         return executeRead(statement, List.of(), 5_000);
     }
 
     @Override
+    // SQL 执行失败时由独立事务回滚连接，外层 Proposal 事务仍需写入失败审计和 Result。
+    @Transactional(propagation = Propagation.REQUIRES_NEW, readOnly = true)
     public List<JsonNode> executeRead(String statement, List<Object> parameters, int timeoutMs) {
         return jdbcTemplate.query(
                 connection -> {

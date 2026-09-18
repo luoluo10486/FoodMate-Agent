@@ -135,6 +135,9 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 request.from(),
                 request.action(),
                 request.targetType(),
+                request.resultType(),
+                request.errorCode(),
+                request.degraded(),
                 request.size(),
                 (request.page() - 1) * request.size());
     }
@@ -142,8 +145,12 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
     private static String defaultSort(String resource) {
         return switch (resource) {
             case "users" -> "created_at";
+            case "traces" -> "started_at";
             case "tools" -> "name";
             case "usage" -> "created_at";
+            case "knowledge" -> "updated_at";
+            case "deleted" -> "deleted_at";
+            case "dlq" -> "first_seen_at";
             default -> "created_at";
         };
     }
@@ -179,7 +186,10 @@ public class AdminOperationalQueryServiceImpl implements AdminOperationalQuerySe
                 row.status(),
                 row.traceId(),
                 row.durationMs(),
-                row.actorRef());
+                row.actorRef(),
+                row.resultType(),
+                row.errorCode(),
+                "safety_degraded".equals(row.resultType()));
     }
 
     private User user(AdminOperationalQueryRepository.UserRow row) {

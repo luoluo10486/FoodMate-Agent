@@ -1,18 +1,7 @@
-import { csrfToken } from './authService';
+import { apiRequest } from './apiClient';
 
-const baseUrl = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
-type ApiResponse<T> = { success: boolean; data: T; error?: { message: string } };
-
-async function api<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const headers = new Headers(init.headers);
-  if (init.body && !(init.body instanceof FormData) && !headers.has('Content-Type'))
-    headers.set('Content-Type', 'application/json');
-  const token = csrfToken();
-  if (token && init.method && init.method !== 'GET') headers.set('X-CSRF-Token', token);
-  const response = await fetch(`${baseUrl}${path}`, { ...init, credentials: 'include', headers });
-  const body = (await response.json()) as ApiResponse<T>;
-  if (!response.ok || !body.success) throw new Error(body.error?.message ?? '请求失败');
-  return body.data;
+function requestInit(signal?: AbortSignal): RequestInit {
+  return signal ? { signal } : {};
 }
 
 export type Profile = {
@@ -32,6 +21,7 @@ export type Profile = {
 export type AuthSession = {
   auth_session_id: number;
   device_id?: string;
+  current?: boolean;
   user_agent?: string;
   ip_address?: string;
   expires_at: string;
@@ -48,44 +38,92 @@ export type ProfileUpdateRequest = {
   diet_goal?: string;
   calorie_target?: number;
   protein_target?: number;
+  allergens?: string[];
+  dislikes?: string[];
+  preferred_units?: Record<string, string>;
 };
 
-export const getProfile = () => api<Profile>('/api/users/me/profile');
-export const updateProfile = (profile: ProfileUpdateRequest) =>
-  api<Profile>('/api/users/me/profile', { method: 'PUT', body: JSON.stringify(profile) });
-export const changePassword = (currentPassword: string, newPassword: string) =>
-  api<void>('/api/users/me/password', {
+type ExportJobResponse = {
+  export_job_id?: number;
+  exportJobId?: number;
+  status?: string;
+  expires_at?: string;
+  expiresAt?: string;
+  completed_at?: string;
+  completedAt?: string;
+  download_consumed_at?: string;
+  downloadConsumedAt?: string;
+  failure_code?: string;
+  failureCode?: string;
+};
+
+export type ExportJob = {
+  export_job_id: number;
+  status: string;
+  expires_at?: string;
+  completed_at?: string;
+  download_consumed_at?: string;
+  failure_code?: string;
+};
+
+export const getProfile = (signal?: AbortSignal) =>
+  apiRequest<Profile>('/api/users/me/profile', signal ? { signal } : {});
+export const updateProfile = (profile: ProfileUpdateRequest, signal?: AbortSignal) =>
+  apiRequest<Profile>('/api/users/me/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profile),
+    ...requestInit(signal),
+  });
+export const changePassword = (currentPassword: string, newPassword: string, signal?: AbortSignal) =>
+  apiRequest<void>('/api/users/me/password', {
     method: 'POST',
     body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    ...requestInit(signal),
   });
-export const getAuthSessions = () => api<AuthSession[]>('/api/users/me/sessions');
-export const revokeAuthSession = (id: number) => api<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE' });
-export const revokeAllAuthSessions = () => api<void>('/api/users/me/sessions/revoke-all', { method: 'POST' });
-export const uploadAvatar = (file: File) => {
+export const getAuthSessions = (signal?: AbortSignal) =>
+  apiRequest<AuthSession[]>('/api/users/me/sessions', signal ? { signal } : {});
+export const revokeAuthSession = (id: number, signal?: AbortSignal) =>
+  apiRequest<void>(`/api/users/me/sessions/${id}`, { method: 'DELETE', ...requestInit(signal) });
+export const revokeAllAuthSessions = (signal?: AbortSignal) =>
+  apiRequest<void>('/api/users/me/sessions/revoke-all', { method: 'POST', ...requestInit(signal) });
+export const uploadAvatar = (file: File, signal?: AbortSignal) => {
   const form = new FormData();
   form.append('file', file);
-  return api<{
+  return apiRequest<{
     avatar_asset_id: number;
     avatar_url: string;
     mime_type: string;
     size_bytes: number;
-  }>('/api/users/me/avatar', { method: 'POST', body: form });
+  }>('/api/users/me/avatar', { method: 'POST', body: form, ...requestInit(signal) });
 };
-export const deleteAvatar = () => api<void>('/api/users/me/avatar', { method: 'DELETE' });
-export const requestDataExport = () => api<{ export_job_id: number }>('/api/users/me/export', { method: 'POST' });
-export const getDataExport = (id: number) =>
-  api<{
-    export_job_id: number;
-    status: string;
-    expires_at?: string;
-    completed_at?: string;
-    download_consumed_at?: string;
-    failure_code?: string;
-  }>(`/api/users/me/export/${id}`);
-export const downloadDataExport = (id: number) =>
-  api<{ download_url: string }>(`/api/users/me/export/${id}/download`, { method: 'POST' });
-export const requestAccountDeletion = (confirmation: string, currentPassword: string) =>
-  api<{ deletion_job_id: number }>('/api/users/me/deletion', {
+// 头像读取接口返回 302，作为图片地址使用，不经过 JSON 响应解析。
+export const getAvatarUrl = () => {
+  const baseUrl = import.meta.env.DEV ? '' : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '');
+  return `${baseUrl}/api/users/me/avatar`;
+};
+export const deleteAvatar = (signal?: AbortSignal) =>
+  apiRequest<void>('/api/users/me/avatar', { method: 'DELETE', ...requestInit(signal) });
+export const requestDataExport = (signal?: AbortSignal) =>
+  apiRequest<{ export_job_id: number }>('/api/users/me/export', { method: 'POST', ...requestInit(signal) });
+export async function getDataExport(id: number, signal?: AbortSignal): Promise<ExportJob> {
+  const response = await apiRequest<ExportJobResponse>(`/api/users/me/export/${id}`, requestInit(signal));
+  return {
+    export_job_id: response.export_job_id ?? response.exportJobId ?? id,
+    status: response.status ?? 'unknown',
+    expires_at: response.expires_at ?? response.expiresAt ?? undefined,
+    completed_at: response.completed_at ?? response.completedAt ?? undefined,
+    download_consumed_at: response.download_consumed_at ?? response.downloadConsumedAt ?? undefined,
+    failure_code: response.failure_code ?? response.failureCode ?? undefined,
+  };
+}
+export const downloadDataExport = (id: number, signal?: AbortSignal) =>
+  apiRequest<{ download_url: string }>(`/api/users/me/export/${id}/download`, {
+    method: 'POST',
+    ...requestInit(signal),
+  });
+export const requestAccountDeletion = (confirmation: string, currentPassword: string, signal?: AbortSignal) =>
+  apiRequest<{ deletion_job_id: number }>('/api/users/me/deletion', {
     method: 'POST',
     body: JSON.stringify({ confirmation, current_password: currentPassword }),
+    ...requestInit(signal),
   });

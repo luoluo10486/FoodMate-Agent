@@ -20,6 +20,11 @@ export type AgentStreamConnection = {
   lastEventId?: string;
 };
 
+export type AgentStreamHandle = {
+  close: () => void;
+  getConnection: () => AgentStreamConnection;
+};
+
 export type ToolCallStatus = 'pending' | 'running' | 'success' | 'failed' | 'timeout' | 'cancelled';
 
 export type ToolCall = {
@@ -27,6 +32,8 @@ export type ToolCall = {
   name: string;
   displayName: string;
   status: ToolCallStatus;
+  proposalId?: string;
+  skippable?: boolean;
   latencyMs?: number;
   summary: string;
   error?: string;

@@ -24,8 +24,8 @@
       "body": {
         "clientHeight": 1024,
         "clientWidth": 1440,
-      "scrollHeight": 1024,
-      "scrollWidth": 1440
+        "scrollHeight": 1024,
+        "scrollWidth": 1440
       },
       "dpr": 1,
       "fonts": "loaded",
