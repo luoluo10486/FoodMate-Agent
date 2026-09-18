@@ -10,6 +10,14 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.61 最终前端交付门禁（非像素验收，2026-09-18）
+
+- [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过；Vite 构建转换 `2025` 个模块。
+- [x] 构建输出的字体仅为 Noto Sans SC、Space Mono 和 Montserrat；未发现 iconfont 实体包、CSS 映射或虚构 glyph 产物。
+- [x] 接口审计保持 Controller `128`、浏览器接口 `121`、内部接口 `7`、页面/生产消费者 `121/121`，状态字段违规为 `0`。
+- [x] 本节只记录代码和交付门禁，不将其解释为 Figma 像素级 `PASS`。
+- [ ] 生产部署、外部依赖/SSE 长稳、真实云模型稳定性、SSE 压力故障矩阵、iconfont 资料和 105 个画板全量像素差异仍未完成；不执行花瓣像素对比。
+
 ## 1.1.60 Agent/SSE 前端连接状态最终回归（非像素验收，2026-09-18）
 
 - [x] `agentRunService`、`realAgentService`、`chatApi`、Chat Agent 状态和 Chat Fixture 状态共 `5` 个文件、`91/91` 通过。
