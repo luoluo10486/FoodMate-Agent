@@ -110,9 +110,9 @@ const compositeDish = {
   ],
 };
 
-function renderPage() {
+function renderPage(initialEntry = '/analysis?view=records') {
   return render(
-    <MemoryRouter initialEntries={['/analysis?view=records']}>
+    <MemoryRouter initialEntries={[initialEntry]}>
       <DietRecordsPage />
     </MemoryRouter>,
   );
@@ -207,6 +207,7 @@ describe('DietRecordsPage real mode', () => {
     const updated = { ...compositeDish, dish_name: '更新后的鸡肉饭', revision: 5 };
     vi.mocked(loadFoodLogs).mockResolvedValue([]);
     vi.mocked(loadCompositeDishes).mockResolvedValueOnce([compositeDish]).mockResolvedValueOnce([updated]);
+    vi.mocked(loadCompositeDish).mockResolvedValue({ ...compositeDish, revision: 5 });
     vi.mocked(updateCompositeDish).mockResolvedValue(updated);
     const user = userEvent.setup();
     renderPage();
@@ -221,7 +222,7 @@ describe('DietRecordsPage real mode', () => {
     await waitFor(() =>
       expect(updateCompositeDish).toHaveBeenCalledWith(
         '21',
-        4,
+        5,
         expect.objectContaining({ dish_name: '更新后的鸡肉饭' }),
         expect.any(AbortSignal),
       ),
@@ -436,6 +437,51 @@ describe('DietRecordsPage real mode', () => {
     expect(deleteFoodLog).not.toHaveBeenCalled();
     expect(screen.queryByText('服务端燕麦')).not.toBeInTheDocument();
     expect(screen.getByText('保留香蕉')).toBeInTheDocument();
+  });
+
+  it('edits the selected item when a food log contains multiple items', async () => {
+    const updated = {
+      ...multiItemLog,
+      revision: 3,
+      items: [multiItemLog.items[0], { ...multiItemLog.items[1], raw_name: '编辑后的香蕉' }],
+    };
+    vi.mocked(loadFoodLogs).mockResolvedValueOnce([multiItemLog]).mockResolvedValue([updated]);
+    vi.mocked(updateFoodLog).mockResolvedValue(updated);
+    const user = userEvent.setup();
+    renderPage();
+
+    await waitFor(() => expect(screen.getByRole('button', { name: '编辑保留香蕉所在记录' })).toBeInTheDocument());
+    await user.click(screen.getByRole('button', { name: '编辑保留香蕉所在记录' }));
+    const nameInput = screen.getByRole('textbox', { name: '食物名称' });
+    await user.clear(nameInput);
+    await user.type(nameInput, '编辑后的香蕉');
+    await user.click(screen.getByRole('button', { name: '保存' }));
+
+    await waitFor(() =>
+      expect(updateFoodLog).toHaveBeenCalledWith(
+        '11',
+        2,
+        expect.objectContaining({
+          items: [
+            expect.objectContaining({ raw_name: '服务端燕麦' }),
+            expect.objectContaining({ raw_name: '编辑后的香蕉' }),
+          ],
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('clears the linked meal query after closing the record dialog', async () => {
+    vi.mocked(loadFoodLogs).mockResolvedValue([]);
+    const user = userEvent.setup();
+    renderPage('/analysis?mealPlanMealId=meal-701-lunch&mealType=lunch');
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '取消' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(screen.queryByPlaceholderText('例如：煮鸡蛋 2 个')).not.toBeInTheDocument();
   });
 
   it('keeps the edit dialog open and explains a revision conflict', async () => {

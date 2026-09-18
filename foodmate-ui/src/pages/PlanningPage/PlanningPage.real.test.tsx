@@ -231,6 +231,64 @@ describe('PlanningPage real mode', () => {
     expect(createMealPlan).not.toHaveBeenCalled();
   });
 
+  it('fills an empty server meal slot and saves the existing plan draft', async () => {
+    const user = userEvent.setup();
+    const sparsePlan = {
+      ...plan,
+      days_plan: [{ ...plan.days_plan[0], lunch: undefined }],
+    };
+    const updatedPlan = {
+      ...sparsePlan,
+      revision: 4,
+      days_plan: [
+        {
+          ...sparsePlan.days_plan[0],
+          lunch: { name: '补充后的午餐', ingredients: [] },
+        },
+      ],
+    };
+    vi.mocked(loadMealPlans).mockResolvedValue([sparsePlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(sparsePlan);
+    vi.mocked(updateMealPlan).mockResolvedValue(updatedPlan);
+    renderPage('/planning?planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '+ 计划' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
+    await user.type(screen.getByRole('textbox', { name: '第1天午餐名称' }), '补充后的午餐');
+    await user.click(screen.getByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() =>
+      expect(updateMealPlan).toHaveBeenCalledWith(
+        '701',
+        3,
+        expect.objectContaining({
+          days_plan: [
+            expect.objectContaining({
+              lunch: expect.objectContaining({ name: '补充后的午餐' }),
+            }),
+          ],
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
+  it('uses the plan id from the wizard route after a refresh boundary', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(plan);
+    renderPage('/planning?state=wizard-step3&planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() =>
+      expect(updateMealPlan).toHaveBeenCalledWith('701', 3, expect.anything(), expect.any(AbortSignal)),
+    );
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
   it('submits planning constraints to an Agent session instead of directly saving a plan', async () => {
     const user = userEvent.setup();
     vi.mocked(createSession).mockResolvedValue({

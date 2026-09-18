@@ -1046,10 +1046,15 @@ export function PlanningPage() {
   const saveDraft = async () => {
     if (savingDraft || planActionId || planActionController.current) return;
     const requestId = ++planActionRequestId.current;
-    const editingPlan = editingPlanId
-      ? realPlans.find((plan) => plan.meal_plan_id === editingPlanId && !plan.deleted)
+    const routeEditingPlanId =
+      (view === 'wizard-step1' || view === 'wizard-step2' || view === 'wizard-step3') && selectedPlanId
+        ? selectedPlanId
+        : undefined;
+    const activeEditingPlanId = editingPlanId ?? routeEditingPlanId;
+    const editingPlan = activeEditingPlanId
+      ? realPlans.find((plan) => plan.meal_plan_id === activeEditingPlanId && !plan.deleted)
       : undefined;
-    if (editingPlanId && !editingPlan) {
+    if (activeEditingPlanId && !editingPlan) {
       setCreatePlanError('编辑的餐食计划已不存在，请重新打开计划列表。');
       return;
     }
