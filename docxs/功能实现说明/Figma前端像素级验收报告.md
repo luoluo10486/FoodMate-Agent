@@ -10,6 +10,12 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 当前代码门禁（2026-09-18）
+
+- [x] `npm.cmd run lint`、`npm.cmd run format:check`、`npm.cmd run build`（含 TypeScript 类型检查）、`npm.cmd run audit:api` 和 `git diff --check` 均通过。
+- [x] 代码门禁只证明当前前端可检查、可构建和接口映射完整，不把它扩展为 Figma 像素级 `PASS`。
+- [ ] 本轮不重复运行全量 Vitest，不执行 105 个画板 PNG/diff 或花瓣像素对比；历史 `DIFF_REVIEW` 聚合保持不变。
+
 ## 1.1.54 Knowledge、Profile、Admin 与 Chat 代表路由复核（非像素验收，2026-09-18）
 
 | 页面组 | 浏览器路由 | 视口 / DPR | 实际证据 | 结论 |
