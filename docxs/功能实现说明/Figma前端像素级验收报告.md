@@ -10,6 +10,16 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.57 本地 deterministic 业务接口闭环复核（非像素验收，2026-09-18）
+
+本节记录后端真实运行链路对前端页面状态契约的支撑证据，不把业务 E2E 结果解释为 Figma 像素级通过。
+
+- [x] Agent/SSE Run `359221635422621696` 真实返回 `run.completed`；SSE `8` 条事件唯一，`Last-Event-ID` 回放 `1` 条终态，服务端状态为 `completed`。
+- [x] Diet Records、Nutrition Analysis、Meal Planning、Shopping List、Profile Memory 和 Admin 代表接口均通过既有本地 deterministic/REST 链路复核；隔离数据清理无错误。
+- [x] Admin `M16AdminReadQueriesE2ETest` `1/1` 验证管理员投影筛选、敏感字段隐藏和普通用户 `403`；未修改视觉页面或 Figma 文件。
+- [x] Session/Chat 脚本的会话、消息、搜索、归档、恢复和删除通过；其中一次 AgentRun 为 `failed`，已与成功 `run.completed` 证据分开记录。
+- [ ] 本节不生成 PNG、diff JSON 或像素级 `PASS`；不执行 105 个画板全量像素差异或花瓣像素对比，生产/云模型长稳和 iconfont 继续保持未完成/`BLOCKED`。
+
 ## 1.1.56 接口覆盖审计与 Java 后端构建门禁（非像素验收，2026-09-18）
 
 本节记录前端接口消费者和后端构建门禁证据，不将接口测试或 Java 构建结果解释为 Figma 像素级通过。
