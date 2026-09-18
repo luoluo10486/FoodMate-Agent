@@ -10,6 +10,19 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.58 代表页面视觉与响应式运行复核（非像素验收，2026-09-18）
+
+| 页面组 | 运行入口 | 观察结果 | 结论 |
+|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | 侧栏、顶栏、任务输入、快捷操作、营养指标和会话区可见 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | 用户消息正文可读，浅米黄色气泡、统一头像、写入确认、运行轨迹和输入区可见 | 代表复核通过 |
+| Diet Records / Intake Analysis / Meal Planning | `/analysis?view=records...`、`/analysis...`、`/planning...` | 日期/范围、指标、餐次、图表、周计划、约束和购物清单入口可见 | 代表复核通过 |
+| Knowledge / Profile / Admin | `/knowledge...`、`/profile?state=basic...`、`/admin?state=figma-v2...` | 搜索/引用、资料表单、管理筛选、表格和分页入口可见 | 代表复核通过 |
+
+- [x] 本批次使用浏览器实际页面和无障碍树观察，并结合 Workspace/Home 与 Chat 截图复核；没有发现需要代码修复的可复现页面级缺口。
+- [x] 本批次没有修改页面代码、后端接口或 Figma 文件；不把代表复核记为像素级 `PASS`。
+- [ ] 不执行 105 个画板全量 PNG/diff 或花瓣像素对比；历史像素证据聚合保持原状态，iconfont 继续为 `BLOCKED`。
+
 ## 1.1.57 本地 deterministic 业务接口闭环复核（非像素验收，2026-09-18）
 
 本节记录后端真实运行链路对前端页面状态契约的支撑证据，不把业务 E2E 结果解释为 Figma 像素级通过。
