@@ -10,6 +10,20 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.62 代表页面逐组浏览器复核（非像素验收，2026-09-18）
+
+| 页面组 | 本地浏览器入口 | 实际观察 |
+|---|---|---|
+| Auth | `/login?state=v2&visual-qa=1`、`/register?state=v2&visual-qa=1` | 登录/注册字段、密码显示操作和提交入口均可见 |
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | 工作区导航、任务输入、快捷操作、营养指标、活跃会话和待确认队列可见 |
+| Chat/Agent | `/chat?state=figma-v2&visual-qa=1` | 用户消息黑色正文、浅米黄色气泡、工作区/顶栏/消息头像一致，写入确认和输入区可见 |
+| Diet/Analysis/Planning | `/analysis?view=records...`、`/analysis...`、`/planning...` | 记录、分析、计划、约束校验和购物清单关键结构可见 |
+| Knowledge/Profile/Admin | `/knowledge...`、`/profile...`、`/admin...` | 搜索/引用、资料表单、个人中心导航、管理员筛选/表格/分页关键结构可见 |
+
+- [x] 本轮使用本地浏览器无障碍树和截图实际观察，代表页面均完成渲染；没有发现需要代码修复的可复现页面级缺口。
+- [x] 本轮没有生成 PNG/diff JSON、修改 Figma 文件或修改前端/后端代码；本结论只覆盖代表页面的颜色、字体、结构、可读性和交互语义复核。
+- [ ] 本轮不执行 105 个画板全量像素差异或花瓣像素对比，也不将代表复核标记为像素级 `PASS`；历史 `DIFF_REVIEW` 聚合保持原状态。
+
 ## 1.1.61 最终前端交付门禁（非像素验收，2026-09-18）
 
 - [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过；Vite 构建转换 `2025` 个模块。
