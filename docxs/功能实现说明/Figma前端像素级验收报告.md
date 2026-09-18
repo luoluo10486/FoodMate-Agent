@@ -6,9 +6,24 @@
 
 - [x] Figma 在本项目中作为颜色、字体、布局、组件状态和交互语义的唯一视觉来源；页面不要求像素级一比一复制。
 - [x] 已完成页面组按代表路由记录字体加载、页面级宽度、关键内容可见性、控制台错误和交互边界证据。
-- [ ] 本轮只补做 Knowledge、Profile、Admin 及 Chat 可读性/头像一致性的有限复核；不执行 105 个画板全量 PNG/diff，也不执行花瓣像素对比。
+- [x] 本轮已完成 Knowledge、Profile、Admin 代表路由及 Chat 可读性/头像一致性的有限复核；不执行 105 个画板全量 PNG/diff，也不执行花瓣像素对比。
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
+
+## 1.1.54 Knowledge、Profile、Admin 与 Chat 代表路由复核（非像素验收，2026-09-18）
+
+| 页面组 | 浏览器路由 | 视口 / DPR | 实际证据 | 结论 |
+|---|---|---|---|---|
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；搜索、筛选、结果、引用详情和操作入口可见 | 代表复核通过 |
+| Profile 基本资料 | `/profile?state=basic&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；头像、凭证、偏好和资料表单可见 | 代表复核通过 |
+| Profile 记忆/安全/隐私 | `/profile?state=memories|security|privacy&visual-qa=1` | 本地浏览器代表视口 | 四个状态路由均实际加载；记忆列表、密码/设备、导出/注销内容和操作入口可见，控制台 warning/error 为空 | 代表复核通过 |
+| Admin 概览 | `/admin?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；筛选、指标、宽表和内部横向滚动可见 | 代表复核通过 |
+| Admin 用户/知识库/用量 | `/admin/users`、`/admin/knowledge`、`/admin/usage` | 本地浏览器代表视口 | 用户表与详情、知识库上传/索引、用量筛选/统计/明细均实际加载，控制台 warning/error 为空 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `390×844 / 1`，桌面证据沿用前序代表复核 | 用户消息正文为黑色，气泡为浅米黄色；工作区、顶栏和用户消息头像均为 `/assets/avatars/default-male.svg` | 代表复核通过 |
+
+- [x] Admin 移动端可横向滚动的元素仅为管理导航和数据表内部容器；页面级 `document/body width=390`。
+- [x] 本批次没有修改页面代码、后端接口或 Figma 文件；`shadcnBoundary` 定向测试 `1/1`，接口审计保持 Controller `128`、浏览器接口 `121`、内部接口 `7`、页面/生产消费者 `121/121`。
+- [ ] 本节是代表页面人工/运行时复核，不生成像素级 `PASS`，不改变历史 `105 DIFF_REVIEW / 0 PASS` 的像素证据汇总；iconfont 继续为 `BLOCKED`。
 
 ## 1.1.53 Diet Records、Intake Analysis 与 Meal Planning 代表视口复核（非像素验收，2026-09-18）
 
