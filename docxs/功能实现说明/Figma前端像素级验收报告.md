@@ -2,6 +2,20 @@
 
 更新时间：2026-09-16
 
+## 1.1.52 Workspace/Home 与 Chat 页面组代表视口复核（非像素验收，2026-09-18）
+
+本节记录按 Figma 节点 `640:256`、`983:3` 完成的代表页面人工复核。Figma 作为颜色、字体、结构、状态和交互语义来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | `390×844 / 1` | 字体 `loaded`，`scrollWidth=clientWidth=390`，侧栏与用户头像可见 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `1440×900 / 1` | 运行轨迹、消息、写入确认和顶部导航可见，页面宽度为 `1440` | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `390×844 / 1` | 字体 `loaded`，`scrollWidth=clientWidth=390`，用户消息、助手消息、写入确认和输入区可见 | 代表复核通过 |
+
+- [x] Workspace/Home 侧栏、顶部用户区与 Chat 用户消息均使用 `/assets/avatars/default-male.svg`；用户消息使用深色文字与浅米黄色表面。
+- [x] 两个页面控制台 warning/error 均为空；本节没有生成 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
 ## 1.1.50 2026-09-16 Workspace/Home 快捷操作图标资源复核（非像素验收）
 
 本节记录首页快捷操作图标的资源替换和代表页面运行时证据。Figma 继续作为颜色、字体、布局和图标意图来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
