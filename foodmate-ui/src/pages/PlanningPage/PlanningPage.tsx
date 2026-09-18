@@ -1357,7 +1357,7 @@ export function PlanningPage() {
         isFigmaFixture={isFigmaFixture}
         onOpenMeal={(mealPlanMealId, mealType) =>
           navigate(
-            `/diet-records?mealPlanMealId=${encodeURIComponent(mealPlanMealId)}&mealType=${encodeURIComponent(mealType)}`,
+            `/analysis?view=records&mealPlanMealId=${encodeURIComponent(mealPlanMealId)}&mealType=${encodeURIComponent(mealType)}`,
           )
         }
         onEditPlan={selectedPlan ? () => startEditingPlan(selectedPlan) : undefined}

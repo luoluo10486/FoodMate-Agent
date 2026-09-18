@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +46,11 @@ function NavigationProbe() {
       </Button>
     </div>
   );
+}
+
+function RouteProbe() {
+  const location = useLocation();
+  return <div data-testid="route-probe">{location.pathname + location.search}</div>;
 }
 
 vi.mock('../../services/planningService', async (importOriginal) => {
@@ -119,6 +124,7 @@ function renderPage(initialEntry = '/planning', withNavigationProbe = false) {
           }
         />
         <Route path="/chat/:sessionId" element={<div data-testid="chat-route">chat</div>} />
+        <Route path="/analysis" element={<RouteProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -207,6 +213,39 @@ describe('PlanningPage real mode', () => {
     expect(screen.getByText('服务端豆腐')).toBeInTheDocument();
     expect(await screen.findByRole('checkbox', { name: '服务端鸡胸肉 (600g)' })).toBeInTheDocument();
     expect(screen.queryByText('燕麦莓果碗')).not.toBeInTheDocument();
+  });
+
+  it('opens the canonical diet records route with the linked meal query', async () => {
+    const user = userEvent.setup();
+    const recordablePlan = {
+      ...plan,
+      days_plan: [
+        {
+          ...plan.days_plan[0],
+          breakfast: { ...plan.days_plan[0].breakfast, meal_plan_meal_id: 'meal-701-breakfast' },
+        },
+      ],
+      meal_slots: [
+        {
+          meal_plan_meal_id: 'meal-701-breakfast',
+          day_index: 0,
+          meal_type: 'breakfast',
+          meal_name: '服务端燕麦碗',
+          meal: {},
+          food_log_count: 0,
+          completed: false,
+        },
+      ],
+    };
+    vi.mocked(loadMealPlans).mockResolvedValue([recordablePlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(recordablePlan);
+    renderPage('/planning?planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '记录这餐' }));
+
+    expect(await screen.findByTestId('route-probe')).toHaveTextContent(
+      '/analysis?view=records&mealPlanMealId=meal-701-breakfast&mealType=breakfast',
+    );
   });
 
   it('opens the real plan editor when a server meal slot is empty', async () => {
