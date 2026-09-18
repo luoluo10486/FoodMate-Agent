@@ -10,6 +10,15 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.56 接口覆盖审计与 Java 后端构建门禁（非像素验收，2026-09-18）
+
+本节记录前端接口消费者和后端构建门禁证据，不将接口测试或 Java 构建结果解释为 Figma 像素级通过。
+
+- [x] `npm.cmd run audit:api` 通过：Controller `128`、浏览器接口 `121`、内部接口 `7`、文档登记 `121`、生产/页面消费者 `121/121`，状态字段违规为 `0`。
+- [x] `mvnw.cmd verify` 六个 Java 模块全部 `BUILD SUCCESS`；Shared `12`、Application `278`、Infra `122`（跳过 `20` 个环境依赖测试）、API `98`、Bootstrap `64`（跳过 `42` 个环境依赖测试），Spotless 通过。
+- [x] 本批次没有新增接口、修改 HTTP/SSE 协议或生成 Figma PNG/diff；代表视觉复核的验收口径保持不变。
+- [ ] 环境依赖测试跳过项、生产外部依赖、部署环境和 SSE 长稳仍没有在本节关闭；不执行 105 个画板全量像素差异或花瓣像素对比，iconfont 继续为 `BLOCKED`。
+
 ## 当前代码门禁（2026-09-18）
 
 - [x] `npm.cmd run lint`、`npm.cmd run format:check`、`npm.cmd run build`（含 TypeScript 类型检查）、`npm.cmd run audit:api` 和 `git diff --check` 均通过。
