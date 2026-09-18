@@ -10,6 +10,14 @@
 - [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
 - [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
 
+## 1.1.60 Agent/SSE 前端连接状态最终回归（非像素验收，2026-09-18）
+
+- [x] `agentRunService`、`realAgentService`、`chatApi`、Chat Agent 状态和 Chat Fixture 状态共 `5` 个文件、`91/91` 通过。
+- [x] 定向测试覆盖连接状态、游标续接、`sse_event_id` 去重、终态/卸载/会话切换关闭、重连耗尽、取消后文本保留和 retryable/skippable 能力边界。
+- [x] 六类 Agent 状态均有独立状态入口和交互断言；本节不将状态测试结果解释为 Figma 像素级 `PASS`。
+- [x] 本批次没有生成 PNG/diff、修改 Figma 文件或改变后端协议。
+- [ ] 不执行 SSE 压力/长稳和 105 个画板全量像素差异，不执行花瓣对比；iconfont 继续为 `BLOCKED`。
+
 ## 1.1.59 shadcn 页面边界与接口门禁复核（非像素验收，2026-09-18）
 
 - [x] `shadcnBoundary` 定向测试 `1/1` 通过；页面层没有直接声明原生交互控件、直接引入 Radix 或依赖 `AdminPrimitives`。
