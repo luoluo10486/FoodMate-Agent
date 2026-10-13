@@ -1,6 +1,155 @@
 # FoodMate Figma 前端像素级验收报告
 
-更新时间：2026-09-16
+更新时间：2026-09-18
+
+## 当前验收口径（2026-09-18）
+
+- [x] Figma 在本项目中作为颜色、字体、布局、组件状态和交互语义的唯一视觉来源；页面不要求像素级一比一复制。
+- [x] 已完成页面组按代表路由记录字体加载、页面级宽度、关键内容可见性、控制台错误和交互边界证据。
+- [x] 本轮已完成 Knowledge、Profile、Admin 代表路由及 Chat 可读性/头像一致性的有限复核；不执行 105 个画板全量 PNG/diff，也不执行花瓣像素对比。
+- [ ] 历史章节中的 `DIFF_REVIEW` 只表示当时的像素证据状态，不应被解释为当前业务页面未实现；后续新增证据必须明确区分“代表视觉复核”和“像素级验收”。
+- [ ] 没有真实 iconfont 实体包、完整 CSS/Unicode 映射、来源和许可证前，不创建虚构 `@font-face` 或 glyph；资源登记继续为 `BLOCKED`。
+
+## 1.1.63 Agent/SSE deterministic 最新真实闭环复核（非像素验收，2026-09-18）
+
+- [x] Run `359233520352104448` 服务端状态为 `completed`，SSE 持久化事件 `8` 条，唯一终态为 `run.completed`。
+- [x] `Last-Event-ID` 回放返回 `1` 条事件且包含唯一终态；Session `359233520301772800` 的 soft delete 为 `true`，清理错误数为 `0`。
+- [x] 本节只记录前端状态契约对应的本地真实运行证据，不生成 PNG/diff JSON，不标记 Figma 像素级 `PASS`，也不执行花瓣像素对比。
+- [ ] 本节不证明生产 Runtime、消息系统、SSE 长稳、压力故障矩阵或外部服务完成；iconfont 继续保持 `BLOCKED`。
+
+## 1.1.62 代表页面逐组浏览器复核（非像素验收，2026-09-18）
+
+| 页面组 | 本地浏览器入口 | 实际观察 |
+|---|---|---|
+| Auth | `/login?state=v2&visual-qa=1`、`/register?state=v2&visual-qa=1` | 登录/注册字段、密码显示操作和提交入口均可见 |
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | 工作区导航、任务输入、快捷操作、营养指标、活跃会话和待确认队列可见 |
+| Chat/Agent | `/chat?state=figma-v2&visual-qa=1` | 用户消息黑色正文、浅米黄色气泡、工作区/顶栏/消息头像一致，写入确认和输入区可见 |
+| Diet/Analysis/Planning | `/analysis?view=records...`、`/analysis...`、`/planning...` | 记录、分析、计划、约束校验和购物清单关键结构可见 |
+| Knowledge/Profile/Admin | `/knowledge...`、`/profile...`、`/admin...` | 搜索/引用、资料表单、个人中心导航、管理员筛选/表格/分页关键结构可见 |
+
+- [x] 本轮使用本地浏览器无障碍树和截图实际观察，代表页面均完成渲染；没有发现需要代码修复的可复现页面级缺口。
+- [x] 本轮没有生成 PNG/diff JSON、修改 Figma 文件或修改前端/后端代码；本结论只覆盖代表页面的颜色、字体、结构、可读性和交互语义复核。
+- [ ] 本轮不执行 105 个画板全量像素差异或花瓣像素对比，也不将代表复核标记为像素级 `PASS`；历史 `DIFF_REVIEW` 聚合保持原状态。
+
+## 1.1.61 最终前端交付门禁（非像素验收，2026-09-18）
+
+- [x] `typecheck`、`lint`、`format:check`、`build`、`audit:api` 和 `git diff --check` 均通过；Vite 构建转换 `2025` 个模块。
+- [x] 构建输出的字体仅为 Noto Sans SC、Space Mono 和 Montserrat；未发现 iconfont 实体包、CSS 映射或虚构 glyph 产物。
+- [x] 接口审计保持 Controller `128`、浏览器接口 `121`、内部接口 `7`、页面/生产消费者 `121/121`，状态字段违规为 `0`。
+- [x] 本节只记录代码和交付门禁，不将其解释为 Figma 像素级 `PASS`。
+- [ ] 生产部署、外部依赖/SSE 长稳、真实云模型稳定性、SSE 压力故障矩阵、iconfont 资料和 105 个画板全量像素差异仍未完成；不执行花瓣像素对比。
+
+## 1.1.60 Agent/SSE 前端连接状态最终回归（非像素验收，2026-09-18）
+
+- [x] `agentRunService`、`realAgentService`、`chatApi`、Chat Agent 状态和 Chat Fixture 状态共 `5` 个文件、`91/91` 通过。
+- [x] 定向测试覆盖连接状态、游标续接、`sse_event_id` 去重、终态/卸载/会话切换关闭、重连耗尽、取消后文本保留和 retryable/skippable 能力边界。
+- [x] 六类 Agent 状态均有独立状态入口和交互断言；本节不将状态测试结果解释为 Figma 像素级 `PASS`。
+- [x] 本批次没有生成 PNG/diff、修改 Figma 文件或改变后端协议。
+- [ ] 不执行 SSE 压力/长稳和 105 个画板全量像素差异，不执行花瓣对比；iconfont 继续为 `BLOCKED`。
+
+## 1.1.59 shadcn 页面边界与接口门禁复核（非像素验收，2026-09-18）
+
+- [x] `shadcnBoundary` 定向测试 `1/1` 通过；页面层没有直接声明原生交互控件、直接引入 Radix 或依赖 `AdminPrimitives`。
+- [x] 页面层源码扫描结果为空；交互控件继续通过 `src/components/ui`，标准图标继续使用 Lucide，视觉 Token 没有因为本批次被改写。
+- [x] `audit:api` 通过：Controller `128`、浏览器接口 `121`、内部接口 `7`、页面/生产消费者 `121/121`，状态字段违规为 `0`。
+- [x] 本批次没有生成 PNG、diff JSON 或像素级 `PASS`，也没有修改页面或 Figma 文件。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 继续为 `BLOCKED`。
+
+## 1.1.58 代表页面视觉与响应式运行复核（非像素验收，2026-09-18）
+
+| 页面组 | 运行入口 | 观察结果 | 结论 |
+|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | 侧栏、顶栏、任务输入、快捷操作、营养指标和会话区可见 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | 用户消息正文可读，浅米黄色气泡、统一头像、写入确认、运行轨迹和输入区可见 | 代表复核通过 |
+| Diet Records / Intake Analysis / Meal Planning | `/analysis?view=records...`、`/analysis...`、`/planning...` | 日期/范围、指标、餐次、图表、周计划、约束和购物清单入口可见 | 代表复核通过 |
+| Knowledge / Profile / Admin | `/knowledge...`、`/profile?state=basic...`、`/admin?state=figma-v2...` | 搜索/引用、资料表单、管理筛选、表格和分页入口可见 | 代表复核通过 |
+
+- [x] 本批次使用浏览器实际页面和无障碍树观察，并结合 Workspace/Home 与 Chat 截图复核；没有发现需要代码修复的可复现页面级缺口。
+- [x] 本批次没有修改页面代码、后端接口或 Figma 文件；不把代表复核记为像素级 `PASS`。
+- [ ] 不执行 105 个画板全量 PNG/diff 或花瓣像素对比；历史像素证据聚合保持原状态，iconfont 继续为 `BLOCKED`。
+
+## 1.1.57 本地 deterministic 业务接口闭环复核（非像素验收，2026-09-18）
+
+本节记录后端真实运行链路对前端页面状态契约的支撑证据，不把业务 E2E 结果解释为 Figma 像素级通过。
+
+- [x] Agent/SSE Run `359221635422621696` 真实返回 `run.completed`；SSE `8` 条事件唯一，`Last-Event-ID` 回放 `1` 条终态，服务端状态为 `completed`。
+- [x] Diet Records、Nutrition Analysis、Meal Planning、Shopping List、Profile Memory 和 Admin 代表接口均通过既有本地 deterministic/REST 链路复核；隔离数据清理无错误。
+- [x] Admin `M16AdminReadQueriesE2ETest` `1/1` 验证管理员投影筛选、敏感字段隐藏和普通用户 `403`；未修改视觉页面或 Figma 文件。
+- [x] Session/Chat 脚本的会话、消息、搜索、归档、恢复和删除通过；其中一次 AgentRun 为 `failed`，已与成功 `run.completed` 证据分开记录。
+- [ ] 本节不生成 PNG、diff JSON 或像素级 `PASS`；不执行 105 个画板全量像素差异或花瓣像素对比，生产/云模型长稳和 iconfont 继续保持未完成/`BLOCKED`。
+
+## 1.1.56 接口覆盖审计与 Java 后端构建门禁（非像素验收，2026-09-18）
+
+本节记录前端接口消费者和后端构建门禁证据，不将接口测试或 Java 构建结果解释为 Figma 像素级通过。
+
+- [x] `npm.cmd run audit:api` 通过：Controller `128`、浏览器接口 `121`、内部接口 `7`、文档登记 `121`、生产/页面消费者 `121/121`，状态字段违规为 `0`。
+- [x] `mvnw.cmd verify` 六个 Java 模块全部 `BUILD SUCCESS`；Shared `12`、Application `278`、Infra `122`（跳过 `20` 个环境依赖测试）、API `98`、Bootstrap `64`（跳过 `42` 个环境依赖测试），Spotless 通过。
+- [x] 本批次没有新增接口、修改 HTTP/SSE 协议或生成 Figma PNG/diff；代表视觉复核的验收口径保持不变。
+- [ ] 环境依赖测试跳过项、生产外部依赖、部署环境和 SSE 长稳仍没有在本节关闭；不执行 105 个画板全量像素差异或花瓣像素对比，iconfont 继续为 `BLOCKED`。
+
+## 当前代码门禁（2026-09-18）
+
+- [x] `npm.cmd run lint`、`npm.cmd run format:check`、`npm.cmd run build`（含 TypeScript 类型检查）、`npm.cmd run audit:api` 和 `git diff --check` 均通过。
+- [x] 代码门禁只证明当前前端可检查、可构建和接口映射完整，不把它扩展为 Figma 像素级 `PASS`。
+- [ ] 本轮不重复运行全量 Vitest，不执行 105 个画板 PNG/diff 或花瓣像素对比；历史 `DIFF_REVIEW` 聚合保持不变。
+
+## 1.1.55 Auth 页面组 shadcn Label 语义迁移（非像素验收，2026-09-18）
+
+本节记录 Auth 表单控件语义迁移。Figma 登录节点 `647:214` 及其动效上下文继续作为颜色、字体、尺寸、间距和交互意图来源；本节不重新生成 PNG/diff，也不要求页面像素级一比一。
+
+| 页面组 | Figma 节点 | 浏览器入口 | 实际证据 | 结论 |
+|---|---|---|---|---|
+| Login | `647:214` | `/login?visual-qa=1` | 邮箱地址、密码字段通过显式 Label 获得正确控件名称；显示密码按钮保持独立可操作 | 代表语义复核通过 |
+| Register | `680:216` | `/register?visual-qa=1` | 用户名、邮箱地址、密码、确认密码字段均具有正确控件名称；密码按钮保持独立可操作 | 代表语义复核通过 |
+
+- [x] 新增共享 `Label` primitive；`AuthField`、`PasswordField` 和 Login 字段使用 `htmlFor`/`id` 显式关联。
+- [x] 认证字段不再以 `<label>` 包裹密码切换按钮；既有 Figma CSS、导出 SVG 图标、真实认证 service 和 Fixture 状态没有改变。
+- [x] Auth 与 UI primitive 定向测试 `2` 个文件、`44/44` 通过；TypeScript、受影响文件 ESLint、Prettier、浏览器无障碍树和 `git diff --check` 通过。
+- [x] 本批次没有新增 PNG、diff JSON 或像素级 `PASS`；历史 `105 DIFF_REVIEW / 0 PASS / 0 UNMAPPED / 0 SIZE_MISMATCH` 聚合保持不变。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
+## 1.1.54 Knowledge、Profile、Admin 与 Chat 代表路由复核（非像素验收，2026-09-18）
+
+| 页面组 | 浏览器路由 | 视口 / DPR | 实际证据 | 结论 |
+|---|---|---|---|---|
+| Knowledge | `/knowledge?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；搜索、筛选、结果、引用详情和操作入口可见 | 代表复核通过 |
+| Profile 基本资料 | `/profile?state=basic&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；头像、凭证、偏好和资料表单可见 | 代表复核通过 |
+| Profile 记忆/安全/隐私 | `/profile?state=memories|security|privacy&visual-qa=1` | 本地浏览器代表视口 | 四个状态路由均实际加载；记忆列表、密码/设备、导出/注销内容和操作入口可见，控制台 warning/error 为空 | 代表复核通过 |
+| Admin 概览 | `/admin?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；页面级宽度与视口一致；筛选、指标、宽表和内部横向滚动可见 | 代表复核通过 |
+| Admin 用户/知识库/用量 | `/admin/users`、`/admin/knowledge`、`/admin/usage` | 本地浏览器代表视口 | 用户表与详情、知识库上传/索引、用量筛选/统计/明细均实际加载，控制台 warning/error 为空 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `390×844 / 1`，桌面证据沿用前序代表复核 | 用户消息正文为黑色，气泡为浅米黄色；工作区、顶栏和用户消息头像均为 `/assets/avatars/default-male.svg` | 代表复核通过 |
+
+- [x] Admin 移动端可横向滚动的元素仅为管理导航和数据表内部容器；页面级 `document/body width=390`。
+- [x] 本批次没有修改页面代码、后端接口或 Figma 文件；`shadcnBoundary` 定向测试 `1/1`，接口审计保持 Controller `128`、浏览器接口 `121`、内部接口 `7`、页面/生产消费者 `121/121`。
+- [ ] 本节是代表页面人工/运行时复核，不生成像素级 `PASS`，不改变历史 `105 DIFF_REVIEW / 0 PASS` 的像素证据汇总；iconfont 继续为 `BLOCKED`。
+
+## 1.1.53 Diet Records、Intake Analysis 与 Meal Planning 代表视口复核（非像素验收，2026-09-18）
+
+本节记录按 Figma 节点 `640:773`、`640:974`、`640:988` 完成的代表页面人工复核。Figma 作为颜色、字体、结构、状态和交互语义来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Diet Records | `/analysis?view=records&state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；两个视口页面级宽度与视口一致；日期、指标卡、餐次和操作入口可见 | 代表复核通过 |
+| Intake Analysis | `/analysis?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；两个视口页面级宽度与视口一致；范围筛选、图表、洞察和操作入口可见 | 代表复核通过 |
+| Meal Planning | `/planning?state=figma-v2&visual-qa=1` | `1440×900 / 1`、`390×844 / 1` | 字体 `loaded`；两个视口页面级宽度与视口一致；计划摘要、日程、约束校验和购物清单可见 | 代表复核通过 |
+
+- [x] 三页控制台 warning/error 均为空；本节没有生成 PNG、diff JSON 或像素级 `PASS`。
+- [x] 移动端页面级 `scrollWidth=clientWidth=390`，没有用页面整体横向滚动掩盖内容溢出。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
+
+## 1.1.52 Workspace/Home 与 Chat 页面组代表视口复核（非像素验收，2026-09-18）
+
+本节记录按 Figma 节点 `640:256`、`983:3` 完成的代表页面人工复核。Figma 作为颜色、字体、结构、状态和交互语义来源；本节不使用像素差异百分比，也不代表 105 个画板全量验收完成。
+
+| 页面 | 浏览器路由 | 视口 / DPR | 复核证据 | 结论 |
+|---|---|---|---|---|
+| Workspace/Home | `/?state=figma-v2&visual-qa=1` | `390×844 / 1` | 字体 `loaded`，`scrollWidth=clientWidth=390`，侧栏与用户头像可见 | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `1440×900 / 1` | 运行轨迹、消息、写入确认和顶部导航可见，页面宽度为 `1440` | 代表复核通过 |
+| Chat | `/chat?state=figma-v2&visual-qa=1` | `390×844 / 1` | 字体 `loaded`，`scrollWidth=clientWidth=390`，用户消息、助手消息、写入确认和输入区可见 | 代表复核通过 |
+
+- [x] Workspace/Home 侧栏、顶部用户区与 Chat 用户消息均使用 `/assets/avatars/default-male.svg`；用户消息使用深色文字与浅米黄色表面。
+- [x] 两个页面控制台 warning/error 均为空；本节没有生成 PNG、diff JSON 或像素级 `PASS`。
+- [ ] 不执行 105 个画板全量像素差异或花瓣像素对比；iconfont 实体包、完整映射、来源和许可证继续保持 `BLOCKED`。
 
 ## 1.1.50 2026-09-16 Workspace/Home 快捷操作图标资源复核（非像素验收）
 

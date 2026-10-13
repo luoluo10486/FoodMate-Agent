@@ -2,6 +2,13 @@
 
 更新时间：2026-08-12
 
+## 2026-09-18 资源复核
+
+- [x] 已重新扫描仓库跟踪文件、前端源码和生产构建输出；没有发现可登记的 `.woff2`、`.woff`、`.ttf`、`.otf` 或 `iconfont.css`。
+- [x] `npm.cmd run build` 生成的字体仅为 `@fontsource` 提供的 Noto Sans SC、Space Mono 和 Montserrat；没有将文字字体误登记为领域 iconfont。
+- [x] 没有创建虚构 `@font-face`、glyph、Unicode codepoint、CSS class 或 React iconfont wrapper；页面继续使用 Lucide 和已登记 SVG fallback。
+- [ ] 实体资源包、完整 class/Unicode 映射、来源 URL、版本、SHA-256、许可证、授权范围和 glyph-Figma 映射仍缺失，状态继续为 `BLOCKED`。
+
 ## 当前状态
 
 **BLOCKED：未收到可验证的实体 iconfont 资源。**

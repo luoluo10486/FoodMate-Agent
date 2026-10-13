@@ -41,6 +41,14 @@ export type MealPlanningFlowView =
 
 type NavigateToView = (view: MealPlanningFlowView | 'default') => void;
 
+const editableMealSlots = [
+  { key: 'breakfast', label: '早餐' },
+  { key: 'lunch', label: '午餐' },
+  { key: 'dinner', label: '晚餐' },
+] as const;
+
+type EditableMealType = (typeof editableMealSlots)[number]['key'];
+
 const steps = ['设置目标', '设置约束', '确认并生成', '完成计划'];
 
 const plans = [
@@ -160,6 +168,31 @@ function RealWizardStep({
     const normalized = value.trim();
     if (!normalized || draft[field].includes(normalized)) return;
     onDraftChange({ [field]: [...draft[field], normalized] });
+  };
+
+  const updateMealSlot = (dayIndex: number, mealType: EditableMealType, value: string) => {
+    if (!draft.daysPlan) return;
+    const normalized = value.trim();
+    const daysPlan = draft.daysPlan.map((day, currentDayIndex) => {
+      if (currentDayIndex !== dayIndex) return day;
+      const nextDay = { ...day };
+      const currentMeal = day[mealType];
+      const meal =
+        currentMeal && typeof currentMeal === 'object' && !Array.isArray(currentMeal)
+          ? (currentMeal as Record<string, unknown>)
+          : {};
+      if (normalized) nextDay[mealType] = { ...meal, name: normalized };
+      else delete nextDay[mealType];
+      return nextDay;
+    });
+    onDraftChange({ daysPlan });
+  };
+
+  const mealSlotName = (day: Record<string, unknown>, mealType: EditableMealType) => {
+    const meal = day[mealType];
+    if (!meal || typeof meal !== 'object' || Array.isArray(meal)) return '';
+    const name = (meal as Record<string, unknown>).name;
+    return typeof name === 'string' ? name : '';
   };
 
   if (step === 1) {
@@ -318,6 +351,26 @@ function RealWizardStep({
               </div>
             </div>
           </div>
+          {draft.daysPlan ? (
+            <div className={styles.preferenceBlock} aria-label="餐表编辑">
+              <span className={styles.blockLabel}>餐表内容</span>
+              <p className={styles.wizardIntro}>可补充缺失餐次或调整已有菜名，其他餐食数据会原样保留。</p>
+              <div className={styles.formGrid}>
+                {draft.daysPlan.flatMap((day, dayIndex) =>
+                  editableMealSlots.map(({ key, label }) => (
+                    <Field label={`第${dayIndex + 1}天${label}`} key={`${dayIndex}-${key}`}>
+                      <Input
+                        aria-label={`第${dayIndex + 1}天${label}名称`}
+                        placeholder="请输入菜名"
+                        value={mealSlotName(day, key)}
+                        onChange={(event) => updateMealSlot(dayIndex, key, event.target.value)}
+                      />
+                    </Field>
+                  )),
+                )}
+              </div>
+            </div>
+          ) : null}
           {error ? (
             <p className={styles.wizardIntro} role="alert">
               {error}

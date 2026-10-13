@@ -426,6 +426,7 @@ export function DietRecordsPage() {
   const [dialogMealId, setDialogMealId] = useState<MealSection['id']>();
   const [dialogMode, setDialogMode] = useState<'create' | 'edit'>('create');
   const [editingLogId, setEditingLogId] = useState<string>();
+  const [editingFoodLogItemId, setEditingFoodLogItemId] = useState<string>();
   const [dialogDate, setDialogDate] = useState(selectedDate);
   const [foodName, setFoodName] = useState('');
   const [foodAmount, setFoodAmount] = useState('100');
@@ -442,6 +443,7 @@ export function DietRecordsPage() {
   const [compositeDishServings, setCompositeDishServings] = useState('1');
   const [dishDialogOpen, setDishDialogOpen] = useState(false);
   const [editingDishId, setEditingDishId] = useState<string>();
+  const [editingDishRevision, setEditingDishRevision] = useState<number>();
   const [dishName, setDishName] = useState('');
   const [dishTotalServings, setDishTotalServings] = useState('2');
   const [dishComponents, setDishComponents] = useState<CompositeDishDraftComponent[]>([
@@ -471,6 +473,7 @@ export function DietRecordsPage() {
   const foodMutationRequestId = useRef(0);
   const dishMutationAbortController = useRef<AbortController>();
   const dishMutationRequestId = useRef(0);
+  const linkedDialogKeyRef = useRef<string>();
 
   const beginFoodMutation = (mutation: Exclude<FoodMutation, undefined>): MutationRequest => {
     // 新的写操作开始前终止旧请求，避免多个操作同时回写同一份页面状态。
@@ -595,6 +598,7 @@ export function DietRecordsPage() {
       setNotice('');
       setDialogMode('create');
       setEditingLogId(undefined);
+      setEditingFoodLogItemId(undefined);
       setDialogMealId(mealId);
       setDialogDate(date);
       setFoodName('');
@@ -624,13 +628,17 @@ export function DietRecordsPage() {
     ],
   );
 
-  const openEditDialog = (logId: string) => {
+  const openEditDialog = (logId: string, itemId?: string) => {
     const log = realLogs.find((candidate) => candidate.food_log_id === logId);
-    const firstItem = log?.items[0];
+    const selectedItem = log?.items.find(
+      (item) => `${logId}-${item.food_log_item_id}` === itemId || item.food_log_item_id === itemId,
+    );
+    const firstItem = selectedItem ?? log?.items[0];
     if (!log || !firstItem) return;
     setNotice('');
     setDialogMode('edit');
     setEditingLogId(log.food_log_id);
+    setEditingFoodLogItemId(firstItem.food_log_item_id);
     setDialogMealId(log.meal_type as MealSection['id']);
     setDialogDate(new Date(log.meal_time));
     setFoodName(firstItem.raw_name);
@@ -645,9 +653,16 @@ export function DietRecordsPage() {
 
   const closeFoodDialog = (cancelMutation = true) => {
     if (cancelMutation) cancelFoodMutation();
+    if (linkedMealPlanMealId || linkedMealType) {
+      const nextSearchParams = new URLSearchParams(searchParams);
+      nextSearchParams.delete('mealPlanMealId');
+      nextSearchParams.delete('mealType');
+      setSearchParams(nextSearchParams, { replace: true });
+    }
     setDialogMealId(undefined);
     setDialogMode('create');
     setEditingLogId(undefined);
+    setEditingFoodLogItemId(undefined);
     setFoodName('');
     setFoodAmount('100');
     setFoodUnit('g');
@@ -659,15 +674,17 @@ export function DietRecordsPage() {
   };
 
   useEffect(() => {
-    if (
-      !isRealMode ||
-      !linkedMealPlanMealId ||
-      dialogMealId != null ||
-      !['breakfast', 'lunch', 'dinner', 'snack'].includes(linkedMealType ?? '')
-    )
+    const linkedDialogKey = `${linkedMealPlanMealId ?? ''}:${linkedMealType ?? ''}`;
+    const validLinkedMeal =
+      Boolean(isRealMode && linkedMealPlanMealId) &&
+      ['breakfast', 'lunch', 'dinner', 'snack'].includes(linkedMealType ?? '');
+    if (!validLinkedMeal) {
+      linkedDialogKeyRef.current = undefined;
       return;
+    }
+    if (dialogMealId != null || linkedDialogKeyRef.current === linkedDialogKey) return;
+    linkedDialogKeyRef.current = linkedDialogKey;
     // URL 参数驱动打开编辑对话框，属于外部导航状态同步，允许在此处更新表单状态。
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     openFoodDialog(linkedMealType as MealSection['id']);
   }, [dialogMealId, isRealMode, linkedMealPlanMealId, linkedMealType, openFoodDialog]);
 
@@ -740,6 +757,7 @@ export function DietRecordsPage() {
     const requestId = ++dishRequestId.current;
     setDishError(undefined);
     setEditingDishId(dish?.composite_dish_id);
+    setEditingDishRevision(dish?.revision);
     setDishDetailReady(!dish || !isRealMode);
     setDishLoading(Boolean(dish && isRealMode));
     populateDishEditor(dish);
@@ -758,6 +776,7 @@ export function DietRecordsPage() {
           return;
         }
         setEditingDishId(detail.composite_dish_id);
+        setEditingDishRevision(detail.revision);
         populateDishEditor(detail);
         setDishDetailReady(true);
       })
@@ -779,6 +798,7 @@ export function DietRecordsPage() {
     dishDetailAbortController.current = undefined;
     setDishDialogOpen(false);
     setEditingDishId(undefined);
+    setEditingDishRevision(undefined);
     setDishDetailReady(true);
     setDishLoading(false);
     setDishError(undefined);
@@ -834,7 +854,12 @@ export function DietRecordsPage() {
     setDishError(undefined);
     const mutation = beginDishMutation();
     const operation = editingDishId
-      ? updateCompositeDish(editingDishId, editingDish?.revision ?? 0, request, mutation.controller.signal)
+      ? updateCompositeDish(
+          editingDishId,
+          editingDishRevision ?? editingDish?.revision ?? 0,
+          request,
+          mutation.controller.signal,
+        )
       : createCompositeDish(request, mutation.controller.signal);
     void operation
       .then((saved) => {
@@ -918,7 +943,7 @@ export function DietRecordsPage() {
             items: selectedDish
               ? []
               : current.items.map((item, index) =>
-                  index === 0
+                  item.food_log_item_id === editingFoodLogItemId || (!editingFoodLogItemId && index === 0)
                     ? {
                         raw_name: name,
                         amount,
@@ -1216,7 +1241,7 @@ export function DietRecordsPage() {
                   type="button"
                   aria-label={`编辑${item.name}所在记录`}
                   title={`编辑${item.name}所在记录`}
-                  onClick={() => openEditDialog(item.logId as string)}
+                  onClick={() => openEditDialog(item.logId as string, item.id)}
                 >
                   <Pencil aria-hidden="true" />
                 </Button>
@@ -1609,7 +1634,7 @@ export function DietRecordsPage() {
             <DialogTitle>{dialogMode === 'edit' ? '编辑饮食记录' : '添加食物'}</DialogTitle>
             <DialogDescription>
               {dialogMode === 'edit'
-                ? '只修改当前记录的第一项食物，其余明细会保留。'
+                ? '只修改当前选中的食物，其余明细会保留。'
                 : `添加到 ${selectedMeal?.title ?? '当前餐次'}，营养值将在确认后估算。`}
             </DialogDescription>
           </DialogHeader>

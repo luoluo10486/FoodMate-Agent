@@ -1,6 +1,6 @@
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Button } from '@/components/ui/button';
 import {
@@ -46,6 +46,11 @@ function NavigationProbe() {
       </Button>
     </div>
   );
+}
+
+function RouteProbe() {
+  const location = useLocation();
+  return <div data-testid="route-probe">{location.pathname + location.search}</div>;
 }
 
 vi.mock('../../services/planningService', async (importOriginal) => {
@@ -119,6 +124,7 @@ function renderPage(initialEntry = '/planning', withNavigationProbe = false) {
           }
         />
         <Route path="/chat/:sessionId" element={<div data-testid="chat-route">chat</div>} />
+        <Route path="/analysis" element={<RouteProbe />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -209,6 +215,39 @@ describe('PlanningPage real mode', () => {
     expect(screen.queryByText('燕麦莓果碗')).not.toBeInTheDocument();
   });
 
+  it('opens the canonical diet records route with the linked meal query', async () => {
+    const user = userEvent.setup();
+    const recordablePlan = {
+      ...plan,
+      days_plan: [
+        {
+          ...plan.days_plan[0],
+          breakfast: { ...plan.days_plan[0].breakfast, meal_plan_meal_id: 'meal-701-breakfast' },
+        },
+      ],
+      meal_slots: [
+        {
+          meal_plan_meal_id: 'meal-701-breakfast',
+          day_index: 0,
+          meal_type: 'breakfast',
+          meal_name: '服务端燕麦碗',
+          meal: {},
+          food_log_count: 0,
+          completed: false,
+        },
+      ],
+    };
+    vi.mocked(loadMealPlans).mockResolvedValue([recordablePlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(recordablePlan);
+    renderPage('/planning?planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '记录这餐' }));
+
+    expect(await screen.findByTestId('route-probe')).toHaveTextContent(
+      '/analysis?view=records&mealPlanMealId=meal-701-breakfast&mealType=breakfast',
+    );
+  });
+
   it('opens the real plan editor when a server meal slot is empty', async () => {
     const user = userEvent.setup();
     const sparsePlan = {
@@ -228,6 +267,64 @@ describe('PlanningPage real mode', () => {
 
     expect(await screen.findByRole('heading', { name: '步骤 1: 设置基本目标' })).toBeInTheDocument();
     expect(updateMealPlan).not.toHaveBeenCalled();
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
+  it('fills an empty server meal slot and saves the existing plan draft', async () => {
+    const user = userEvent.setup();
+    const sparsePlan = {
+      ...plan,
+      days_plan: [{ ...plan.days_plan[0], lunch: undefined }],
+    };
+    const updatedPlan = {
+      ...sparsePlan,
+      revision: 4,
+      days_plan: [
+        {
+          ...sparsePlan.days_plan[0],
+          lunch: { name: '补充后的午餐', ingredients: [] },
+        },
+      ],
+    };
+    vi.mocked(loadMealPlans).mockResolvedValue([sparsePlan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(sparsePlan);
+    vi.mocked(updateMealPlan).mockResolvedValue(updatedPlan);
+    renderPage('/planning?planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '+ 计划' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 膳食约束' }));
+    await user.click(screen.getByRole('button', { name: '下一步: 确认并生成' }));
+    await user.type(screen.getByRole('textbox', { name: '第1天午餐名称' }), '补充后的午餐');
+    await user.click(screen.getByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() =>
+      expect(updateMealPlan).toHaveBeenCalledWith(
+        '701',
+        3,
+        expect.objectContaining({
+          days_plan: [
+            expect.objectContaining({
+              lunch: expect.objectContaining({ name: '补充后的午餐' }),
+            }),
+          ],
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+    expect(createMealPlan).not.toHaveBeenCalled();
+  });
+
+  it('uses the plan id from the wizard route after a refresh boundary', async () => {
+    const user = userEvent.setup();
+    vi.mocked(loadMealPlans).mockResolvedValue([plan]);
+    vi.mocked(loadMealPlan).mockResolvedValue(plan);
+    renderPage('/planning?state=wizard-step3&planId=701');
+
+    await user.click(await screen.findByRole('button', { name: '保存为草稿' }));
+
+    await waitFor(() =>
+      expect(updateMealPlan).toHaveBeenCalledWith('701', 3, expect.anything(), expect.any(AbortSignal)),
+    );
     expect(createMealPlan).not.toHaveBeenCalled();
   });
 
