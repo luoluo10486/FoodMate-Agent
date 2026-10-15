@@ -13,6 +13,7 @@ import os
 from typing import Any
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
+from prompt_templates import render_prompt
 
 
 MAX_SQL_LENGTH = 8_192
@@ -598,144 +599,10 @@ class ModelRouterSqlPlanner:
 
 def _planner_prompt(question: str, intent_hint: str | None) -> str:
     """只向模型提供已批准的只读 Schema，Java 仍是最终权威边界。"""
-    return json.dumps(
-        {
-            "task": "produce_database_query_plan",
-            "question": question,
-            "intent_hint": intent_hint,
-            "security_rules": [
-                "Return JSON only and never execute a query.",
-                "Use only the listed tables and columns.",
-                "Return one SELECT or WITH query ending in LIMIT <= 500, with no semicolon and no Markdown code fence.",
-                "Never select user_id, notes, items_json, nutrition_json, or any unlisted field.",
-                "Java adds the current-user and is_deleted predicates; do not invent another user or tenant.",
-                "A Java AST guard will reject writes, subqueries, unknown fields, sensitive fields, and unbounded queries.",
-            ],
-            "approved_schema": {
-                "food_logs": [
-                    "food_log_id",
-                    "meal_plan_meal_id",
-                    "meal_time",
-                    "meal_type",
-                    "is_deleted",
-                ],
-                "food_log_items": [
-                    "food_log_item_id",
-                    "food_log_id",
-                    "raw_name",
-                    "amount",
-                    "unit",
-                    "calories_kcal",
-                    "protein_g",
-                    "fat_g",
-                    "carbs_g",
-                    "nutrition_status",
-                    "is_deleted",
-                ],
-                "meal_plans": ["meal_plan_id", "plan_name", "days", "status", "updated_at", "is_deleted"],
-                "meal_plan_meals": [
-                    "meal_plan_meal_id",
-                    "meal_plan_id",
-                    "day_index",
-                    "meal_type",
-                    "meal_name",
-                    "is_deleted",
-                ],
-                "shopping_lists": ["shopping_list_id", "meal_plan_id", "status", "is_deleted"],
-                "shopping_list_items": [
-                    "shopping_list_item_id",
-                    "shopping_list_id",
-                    "meal_plan_id",
-                    "item_name",
-                    "amount",
-                    "unit",
-                    "purchased",
-                    "is_deleted",
-                ],
-                "nutrition_foods": [
-                    "nutrition_food_id",
-                    "standard_name",
-                    "chinese_name",
-                    "basis_unit",
-                    "calories_kcal_per_100",
-                    "protein_g_per_100",
-                    "fat_g_per_100",
-                    "carbs_g_per_100",
-                    "review_status",
-                    "is_deleted",
-                ],
-            },
-            "approved_sql_examples": {
-                "nutrition_summary": (
-                    "SELECT SUM(i.protein_g) AS protein_g FROM food_logs f "
-                    "JOIN food_log_items i ON i.food_log_id = f.food_log_id "
-                    "WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' "
-                    "LIMIT 500"
-                ),
-                "food_occurrence": (
-                    "SELECT i.raw_name AS food_name, COUNT(i.food_log_item_id) AS occurrence_count "
-                    "FROM food_logs f JOIN food_log_items i ON i.food_log_id = f.food_log_id "
-                    "WHERE f.meal_time >= CURRENT_TIMESTAMP - INTERVAL '7 days' "
-                    "AND i.raw_name = '鸡胸肉' GROUP BY i.raw_name "
-                    "ORDER BY COUNT(i.food_log_item_id) DESC LIMIT 500"
-                ),
-                "meal_plan_completion": (
-                    "SELECT p.meal_plan_id, p.plan_name, "
-                    "COUNT(DISTINCT m.meal_plan_meal_id) AS executable_meal_count, "
-                    "COUNT(DISTINCT f.meal_plan_meal_id) AS completed_meal_count, "
-                    "CASE WHEN COUNT(DISTINCT m.meal_plan_meal_id) = 0 THEN 0.0 "
-                    "ELSE COUNT(DISTINCT f.meal_plan_meal_id) * 1.0 / COUNT(DISTINCT m.meal_plan_meal_id) END "
-                    "AS completion_ratio FROM meal_plans p "
-                    "LEFT JOIN meal_plan_meals m ON m.meal_plan_id = p.meal_plan_id "
-                    "LEFT JOIN food_logs f ON f.meal_plan_meal_id = m.meal_plan_meal_id "
-                    "GROUP BY p.meal_plan_id, p.plan_name ORDER BY p.meal_plan_id DESC LIMIT 500"
-                ),
-                "shopping_list_missing": (
-                    "SELECT s.shopping_list_id, s.meal_plan_id, "
-                    "COUNT(CASE WHEN i.purchased = FALSE THEN i.shopping_list_item_id END) "
-                    "AS pending_item_count FROM shopping_lists s "
-                    "LEFT JOIN shopping_list_items i ON i.shopping_list_id = s.shopping_list_id "
-                    "GROUP BY s.shopping_list_id, s.meal_plan_id "
-                    "ORDER BY s.shopping_list_id DESC LIMIT 500"
-                ),
-                "meal_plan": "SELECT meal_plan_id, plan_name, days, status, updated_at FROM meal_plans ORDER BY updated_at DESC LIMIT 500",
-                "shopping_list": "SELECT shopping_list_id, meal_plan_id, status FROM shopping_lists ORDER BY shopping_list_id DESC LIMIT 500",
-                "nutrition_food": (
-                    "SELECT standard_name, basis_unit, calories_kcal_per_100, protein_g_per_100 "
-                    "FROM nutrition_foods WHERE review_status = 'approved' "
-                    "ORDER BY standard_name LIMIT 500"
-                ),
-            },
-            "sql_generation_constraints": [
-                "Copy the matching approved_sql_examples shape and change only approved columns or the relative day literal when needed.",
-                "Do not invent aliases, aggregate names, date functions, log_time, total_calories, total_protein_g, total_fat_g, or total_carbs_g.",
-                "For nutrition_summary, use meal_time for both the time filter and grouping when grouping is explicitly requested; otherwise return a total. log_time is not an approved field. Use only calories_kcal, protein_g, fat_g, or carbs_g aggregates.",
-                "For food_occurrence, use raw_name equality and COUNT(food_log_item_id); never use a fuzzy match or expose user_id.",
-                "For meal_plan_completion, count non-deleted meal_plan_meals as executable meals and distinct non-deleted food_logs linked by meal_plan_meal_id as completed meals; zero executable meals has a 0 ratio. Do not use meal plan lifecycle status as execution progress.",
-                "For shopping_list_missing, count shopping_list_items where purchased = false; this is a pending checklist count, not an inventory or stock count.",
-            ],
-            "allowed_intents": [
-                "nutrition_summary",
-                "food_occurrence",
-                "meal_plan_completion",
-                "shopping_list_missing",
-                "meal_plan",
-                "shopping_list",
-                "nutrition_food",
-            ],
-            "required_output": {
-                "status": "ready or need_clarification",
-                "intent": "approved intent",
-                "time_range": {"kind": "relative", "days": "integer string", "timezone": "IANA timezone"},
-                "metrics": ["approved metric names"],
-                "dimensions": ["approved dimension names"],
-                "filters": {"approved_field": "approved literal"},
-                "candidate_sql": "single SELECT/WITH SELECT ending in LIMIT <= 500",
-                "missing_slots": ["required clarification slots"],
-            },
-        },
-        ensure_ascii=False,
-        sort_keys=True,
+    return render_prompt(
+        "sql_planner",
+        question=question,
+        intent_hint=intent_hint,
     )
 
 
@@ -772,7 +639,7 @@ def planner_from_environment(
 ):
     """Build exactly one configured planner mode; local never falls back to stub."""
     env = environment if environment is not None else os.environ
-    mode = env.get("FOODMATE_SQL_PLANNER_MODE", "stub").strip().lower()
+    mode = env.get("FOODMATE_SQL_PLANNER_MODE", "local").strip().lower()
     if mode == "stub":
         return DeterministicSqlPlanner()
     if mode == "local":

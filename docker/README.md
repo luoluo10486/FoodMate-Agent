@@ -39,7 +39,7 @@ docker compose --env-file .env -f docker/compose.yml ps foodmate agent-runtime
 docker compose --env-file .env -f docker/compose.yml logs -f agent-runtime
 ```
 
-Java 容器使用 `local` profile，Python 容器默认使用 Redis-backed `stub` 索引；两者都只使用 deterministic 本地逻辑，不调用付费模型或 embedding 服务。应用容器不会自动执行 `script/sql/FoodMate` 迁移，迁移必须按版本人工执行并记录。
+Java 容器使用 `local` profile，Python 容器默认使用 Redis-backed `stub` 索引。按示例配置中的 `deterministic:local` 路由启动时，不会调用付费模型或 Embedding 服务；若把 SQL Planner 使用的共享 Chat tier 配置为云模型，分析请求会调用该模型。应用容器不会自动执行 `script/sql/FoodMate` 迁移，迁移必须按版本人工执行并记录。
 
 容器内 readiness：
 
@@ -48,7 +48,7 @@ Invoke-WebRequest http://localhost:8080/actuator/health/readiness
 Invoke-WebRequest http://localhost:9002/foodmate/internal/health/ready
 ```
 
- Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。Compose 默认将四档 Agent 模型路由设为 `deterministic:local`；需要真实 Chat 时，在被忽略的根目录 `.env` 中显式设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD/HIGH/EVAL=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。启用真实 SQL Agent 时再设置 `FOODMATE_DOCKER_SQL_PLANNER_MODE=local`，它复用同一套 Chat 路由和价格治理，不需要 SQL 专用 API Key。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
+Java 容器通过 Compose 网络访问 `agent-runtime:9000`，不应在容器配置中使用宿主机的 `localhost`。外层意图分类和 SQL Planner 都复用共享 Chat 路由；SQL Planner 默认处于 `local` 模式。要启用真实 LLM，请在被忽略的根目录 `.env` 中设置 `FOODMATE_DOCKER_MODEL_TIER_STANDARD=cloud_primary:<provider-model-id>`，并补齐 `FOODMATE_DOCKER_MODEL_PROVIDER_CLOUD_PRIMARY_*` 端点、API Key 和已审计价格配置。示例配置保留 `deterministic:local`，因此 LLM 意图分类会失败关闭并请求用户重述，SQL Planner 也不会回退到 stub；需要离线关键词路由时，显式设置 `FOODMATE_DOCKER_AGENT_INTENT_CLASSIFIER_MODE=stub`。该模式名表示启用模型路由，不表示模型在本机运行；不需要 SQL 专用 API Key。宿主机的同名非 Docker 变量不会自动进入容器，容器也不会从源码或镜像读取凭据。
 
 应用容器不会自动执行数据库迁移。启动前应确认 V16-V29 已按 `script/sql/FoodMate` 的顺序实际执行，启动后再检查 Java 和 Python readiness，以及应用日志中的 Outbox/Worker 状态。修改 Python 源码后必须重新执行 `up -d --build agent-runtime`，仅重启不会更新镜像内容。停止时使用 `docker compose ... down` 保留数据卷，除非明确需要销毁本地卷并另行确认。
 

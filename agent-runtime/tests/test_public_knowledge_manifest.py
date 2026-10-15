@@ -13,12 +13,12 @@ import validate_public_sources
 
 
 def test_public_source_manifest_is_complete_and_traceable() -> None:
-    """九份官方资料必须可追溯，索引状态允许随授权推进。"""
+    """公共资料必须可追溯，索引状态允许等待重建。"""
     root = SCRIPT_DIRECTORY / "public"
     report = validate_public_sources.validate(root)
-    assert report["document_count"] == 9
-    assert report["embedding_status"] in {"未构建向量", "已完成真实向量索引"}
-    assert len(report["documents"]) == 9
+    assert report["document_count"] == 15
+    assert report["embedding_status"] in {"未构建向量", "待重建向量索引", "已完成真实向量索引"}
+    assert len(report["documents"]) == 15
 
 
 def test_public_source_urls_are_unique_who_pages() -> None:

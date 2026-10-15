@@ -13,6 +13,7 @@
 - 对多意图请求提供明确策略：支持拆分为有序子任务，或安全地请求用户选择；不静默丢弃次要意图。
 - 保留规则和模型输出的可测试性、可观测性及版本追踪。
 - LLM 只负责语义理解和提出结构化分类；权限、工具可用性、SQL 执行和业务写入仍由 Java 控制面决定。
+- SQL 生成从“固定业务模板或模型直接拼接 SQL”演进为“结构化查询计划优先、受限 SQL 生成、Java 最终校验执行”。
 
 ## 待办
 
@@ -26,6 +27,34 @@
 - [ ] 指标至少覆盖意图准确率、各类 Precision/Recall、混淆矩阵、澄清率、错误工具提案率、分类延迟和模型成本；按分类器版本记录结果。
 - [ ] 为模型不可用、超时、结构化输出无效、低置信度和上下文不足补充回归测试及可观测错误码。
 - [ ] 通过离线评测和本地业务回归后，再决定是否将模型辅助分类设为默认路径；切换前保留可回滚配置。
+
+## SQL 生成约束改进
+
+当前 `DeterministicSqlPlanner` 使用经过审查的固定 SQL 模板，`ModelRouterSqlPlanner` 可以让模型输出候选 SQL。固定模板有利于早期稳定性，但表达能力有限；模型直接输出完整 SQL 又会带来字段幻觉、复杂查询失控、提示注入和 Catalog 不同步等风险。
+
+后续应采用以下分层方式：
+
+```text
+用户问题
+  -> 意图和实体识别
+  -> 结构化 QueryPlan
+  -> QueryPlan Schema/业务规则校验
+  -> 根据当前 Catalog 生成受限 SQL
+  -> Java AST Guard、用户范围、软删除、LIMIT、超时
+  -> 执行并审计
+```
+
+待办：
+
+- [ ] 定义版本化 `QueryPlan`，至少包含 `intent`、`metrics`、`dimensions`、`filters`、`time_range`、`group_by`、`sort`、`limit` 和 `expected_shape`。
+- [ ] 将 QueryPlan 的可选意图、指标、维度、过滤字段和聚合函数全部绑定到 Java Catalog，不允许模型自由添加表名、字段名或函数名。
+- [ ] 模型只输出结构化 QueryPlan；是否允许模型输出 `candidate_sql` 需要单独配置，默认不把模型 SQL 当作可信输入。
+- [ ] 由 Java 或受控 SQL Composer 根据已校验 QueryPlan 和当前 Catalog 生成参数化 SQL，用户输入只作为绑定参数，不能直接拼入 SQL。
+- [ ] 对每个业务意图定义结果列和 `expected_shape`，避免模型生成语义正确但结果结构不稳定的查询。
+- [ ] 保留 deterministic 模板作为降级和回归基线，但不把模板数量扩展成覆盖所有自然语言表达的主要方案。
+- [ ] 让 Java 根据 PostgreSQL 当前 Catalog 生成最小 schema snapshot，替代 Python 中可能过期的固定 `approved_schema`；snapshot 版本进入 QueryPlan/Proposal 摘要。
+- [ ] 对复杂查询采用有限的查询算子组合，例如单表、批准的 JOIN、聚合、分组、排序和时间过滤；拒绝递归、任意子查询、窗口函数和未评审算子，除非先扩展 Catalog 与 AST 规则。
+- [ ] 增加 SQL 生成安全回归：字段幻觉、表越权、跨用户查询、敏感字段、无界查询、注释绕过、注入字符、错误 JOIN、错误聚合和结果列不匹配。
 
 ## 建议分类契约草案
 
@@ -45,7 +74,7 @@
 }
 ```
 
-该草案用于讨论契约边界，不代表当前代码已经实现。正式字段、置信度阈值、多意图执行顺序和降级规则需要通过样本评测确定。
+当前 Python 分类器已经实现相同方向的严格契约，并增加 `clarification_question`，供模型直接给出简短澄清问题；多意图请求会进入澄清，不会静默选择其中一项。Prompt 模板、示例和完整字段约束位于 `agent-runtime/intent_classifier.py`。
 
 ## 验收标准
 
@@ -55,6 +84,7 @@
 4. 分类输出不能扩大 Java 授权上下文、工具白名单、SQL schema 或用户数据范围。
 5. 模型路由、预算、deadline、失败审计和 deterministic 回归路径均有自动化测试。
 6. 完成受影响的 Python、Java 契约和端到端测试，并在 TODO 中记录实际运行命令与结果后，才可勾选完成。
+7. SQL 生成只能从通过 QueryPlan 和 Catalog 校验的结构中产生；模型直接生成的未校验 SQL 不能进入执行器。
 
 ## 关联实现
 
@@ -65,4 +95,4 @@
 
 ## 当前状态
 
-待评审、未实现。本条记录的是已识别的改进需求，不代表现有规则路由已经完成模型化，也不改变当前已验证 SQL Agent 的实现状态。
+外层意图分类已由共享 ModelRouter 的 LLM 分类器执行；默认模式为 `FOODMATE_AGENT_INTENT_CLASSIFIER_MODE=llm`。无效输出、低置信度、多意图或模型不可用时进入澄清，不回退到关键词规则；`stub` 仅供离线测试显式使用。当前分类结果只选择既有 Workflow，Java 仍负责每个工具的授权和执行。离线评测集、指标、真实模型评测以及 QueryPlan 到受限 SQL Composer 仍未完成；SQL Planner 的候选 SQL 仍必须通过 Java Catalog、权限、AST 和执行校验。

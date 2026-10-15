@@ -20,6 +20,28 @@ from langgraph_adapter import build_graph
 
 
 class RuntimeContractTests(unittest.TestCase):
+    def test_public_knowledge_search_is_limited_to_sensitive_knowledge_questions(self):
+        self.assertTrue(
+            runtime_server._should_search_public_knowledge(
+                RouteDecision("knowledge_qna", "simple", "high")
+            )
+        )
+        self.assertFalse(
+            runtime_server._should_search_public_knowledge(
+                RouteDecision("knowledge_qna", "simple", "low")
+            )
+        )
+        self.assertFalse(
+            runtime_server._should_search_public_knowledge(
+                RouteDecision("planning", "complex", "high")
+            )
+        )
+        self.assertFalse(
+            runtime_server._should_search_public_knowledge(
+                RouteDecision("knowledge_qna", "simple", "high", ("details",))
+            )
+        )
+
     def setUp(self):
         runtime_server._cancelled.clear()
         runtime_server._dispatches.clear()
@@ -346,6 +368,66 @@ class RuntimeContractTests(unittest.TestCase):
         self.assertIsNotNone(checkpoint)
         self.assertEqual("execution", checkpoint[1]["current_node"])
 
+    def test_llm_clarification_preserves_question_and_model_usage_audit(self):
+        entities = {
+            "metric": None,
+            "food_name": "牛肉",
+            "time_range": "today",
+            "meal_type": None,
+            "operation": None,
+            "days": None,
+        }
+        response = json.dumps(
+            {
+                "status": "needs_clarification",
+                "intents": [{"name": "record", "confidence": 0.54, "entities": entities}],
+                "missing_slots": ["intent"],
+                "clarification_question": "你是想记录这条饮食，还是查询它的营养信息？",
+                "reason_code": "LOW_CONFIDENCE",
+                "classifier_version": "intent-v1",
+            },
+            ensure_ascii=False,
+        )
+
+        class ClarificationProvider(ModelProvider):
+            provider_code = "test"
+
+            def complete(self, model_name, request):
+                return ModelResponse(response, 120, 30, "intent-clarification-request")
+
+        runtime_server._model_router = ModelRouter(
+            {"FOODMATE_MODEL_TIER_STANDARD": "test:chat"},
+            lambda _: ClarificationProvider(),
+        )
+        events = []
+        command = {
+            "run_id": "llm-clarification-run",
+            "dispatch_id": "llm-clarification-dispatch",
+            "deadline_at": "2099-01-01T00:00:00Z",
+            "attempt": 1,
+            "message": {"role": "user", "content": "我今天吃了牛肉"},
+        }
+
+        with patch.dict("os.environ", {"FOODMATE_AGENT_INTENT_CLASSIFIER_MODE": "llm"}):
+            with patch.object(
+                runtime_server,
+                "emit",
+                side_effect=lambda *args: events.append((args[3], args[4])),
+            ):
+                runtime_server.execute(command)
+
+        event_types = [event_type for event_type, _ in events]
+        self.assertIn("run.model_usage", event_types)
+        self.assertEqual("run.clarification_requested", event_types[-1])
+        usage = next(payload for event_type, payload in events if event_type == "run.model_usage")
+        self.assertEqual("intent_classifier", usage["scene"])
+        clarification = events[-1][1]
+        self.assertEqual(
+            "你是想记录这条饮食，还是查询它的营养信息？",
+            clarification["clarification_question"],
+        )
+        self.assertEqual(["record"], clarification["intent_candidates"])
+
     def test_food_log_approval_enters_waiting_user_without_republishing_proposal(self):
         events = []
         published = []
@@ -466,7 +548,7 @@ class RuntimeContractTests(unittest.TestCase):
                 "message_id": ["message-1", "message-current"],
                 "summary_id": ["summary-1"],
                 "memory_id": ["memory-1"],
-                "citation_id": ["citation-1"],
+                "citation_id": [],
             },
             context_event["source_ids"],
         )
@@ -1166,6 +1248,9 @@ class RuntimeContractTests(unittest.TestCase):
 
         self.assertGreaterEqual(len(provider.requests), 1)
         self.assertEqual({"enable_thinking": False}, provider.requests[0].extra_body)
+        composer_prompt = json.loads(provider.requests[0].prompt)
+        self.assertEqual("zh-CN", composer_prompt["language"])
+        self.assertIn("请使用简体中文", " ".join(composer_prompt["rules"]))
 
     def test_cancel_is_observed_before_execution(self):
         events = []

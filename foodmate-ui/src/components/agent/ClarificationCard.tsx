@@ -113,6 +113,7 @@ export function ClarificationCard({
         {state === 'error' ? '追问失败' : '需要补充'}
       </Badge>
       <h3>{state === 'error' ? errorText : title}</h3>
+      {state !== 'error' && question ? <p className={styles.question}>{question}</p> : null}
       {fields.length ? (
         <div className={styles.form}>
           {fields.map((field) => (

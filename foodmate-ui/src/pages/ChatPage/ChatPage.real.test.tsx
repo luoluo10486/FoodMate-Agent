@@ -369,7 +369,7 @@ describe('ChatPage 真实历史会话回放', () => {
       </MemoryRouter>,
     );
 
-    await screen.findByText('运行失败（错误码：INVALID_REQUEST）。');
+    await screen.findByText('这次请求暂时没有完成，请稍后重试。');
     expect(screen.queryByRole('button', { name: '重试' })).not.toBeInTheDocument();
   });
 
@@ -408,8 +408,48 @@ describe('ChatPage 真实历史会话回放', () => {
       </MemoryRouter>,
     );
 
-    expect(await screen.findByText('兼容流工具查询超时')).toBeInTheDocument();
+    expect(await screen.findByText('这次请求暂时没有完成，请稍后重试。')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '重试' })).toBeInTheDocument();
+  });
+
+  it('意图不明确时展示澄清问题和可选目标，不暴露内部错误码', async () => {
+    openAgentRunStream.mockImplementation(
+      (_runId: string, onEvent: (type: string, payload: unknown, eventId?: string) => void) => {
+        onEvent(
+          'run.clarification_requested',
+          {
+            event_type: 'run.clarification_requested',
+            clarification_question: '你想分析已有记录，还是制定新的餐食计划？',
+            intent_candidates: ['analysis', 'planning'],
+          },
+          'clarification-event',
+        );
+        return { close: vi.fn(), getConnection: () => ({ state: 'closed', attempt: 1, maxAttempts: 5 }) };
+      },
+    );
+    loadSessionMessages.mockResolvedValue([
+      {
+        message_id: 'message-1',
+        session_id: 'session-1',
+        agent_run_id: 'run-1',
+        role: 'user',
+        content: '帮我处理一下饮食',
+        sequence_no: 1,
+        created_at: '2026-09-06T10:00:00Z',
+      },
+    ]);
+
+    render(
+      <MemoryRouter initialEntries={['/chat/session-1?run_id=run-1']}>
+        <Routes>
+          <Route path="/chat/:session_id" element={<ChatPage />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText('你想分析已有记录，还是制定新的餐食计划？')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '分析已有饮食数据' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '制定餐食计划' })).toBeInTheDocument();
   });
 
   it('安全降级结果保留追问入口但隐藏完整引用', async () => {

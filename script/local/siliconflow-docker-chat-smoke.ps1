@@ -113,7 +113,7 @@ if not separator or provider != "cloud_primary" or not model or not base_url or 
     raise SystemExit("Docker Chat provider configuration is incomplete")
 payload = json.dumps({
     "model": model,
-    "messages": [{"role": "user", "content": "Return one short Chinese smoke-test sentence."}],
+    "messages": [{"role": "user", "content": "请用中文返回一句简短的连通性测试结果。"}],
     "temperature": 0,
     "max_tokens": 32,
     "enable_thinking": False,

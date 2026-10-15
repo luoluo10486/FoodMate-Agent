@@ -20,8 +20,8 @@ def test_public_knowledge_r5_business_report_passes_without_paid_services() -> N
     assert report["mode"] == "local-stub"
     assert report["embedding_called"] is False
     assert report["milvus_written"] is False
-    assert report["source"]["document_count"] == 9
-    assert report["source"]["embedding_status"] in {"未构建向量", "已完成真实向量索引"}
+    assert report["source"]["document_count"] == 15
+    assert report["source"]["embedding_status"] in {"未构建向量", "待重建向量索引", "已完成真实向量索引"}
     assert all(item["complete"] for item in report["topic_coverage"].values())
 
 

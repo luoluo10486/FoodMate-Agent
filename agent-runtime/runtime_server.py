@@ -19,7 +19,14 @@ load_project_env()
 
 LOGGER = logging.getLogger("foodmate.agent-runtime")
 
-from agent_core import DeterministicPlanner, DeterministicRouter, InMemoryCheckpoint, run_deterministic, split_answer
+from agent_core import (
+    DeterministicPlanner,
+    InMemoryCheckpoint,
+    RouteDecision,
+    classify_route,
+    run_deterministic,
+    split_answer,
+)
 from eval.metrics import EvalMetrics, RuntimeMetrics
 from model_provider import ModelProviderError, ModelRouter
 from sql_planner import SqlPlannerError
@@ -78,9 +85,10 @@ _checkpoint = _new_checkpoint()
 
 
 def _route_payload(command: dict) -> dict[str, object]:
-    """Build the stable route fact before any model or tool call can fail."""
-    content = str((command.get("message") or {}).get("content", ""))
-    route = DeterministicRouter().route(content)
+    """Expose the validated classifier result without user content or prompt data."""
+    route = command.get("_classified_route")
+    if not isinstance(route, RouteDecision):
+        raise RuntimeError("INTENT_CLASSIFICATION_MISSING")
     plan = DeterministicPlanner().plan(route)
     return {
         "status": "routed",
@@ -88,8 +96,19 @@ def _route_payload(command: dict) -> dict[str, object]:
         "complexity": route.complexity,
         "risk_level": route.risk_level,
         "missing_slots": list(route.missing_slots),
+        "confidence": route.confidence,
+        "reason_code": route.reason_code,
+        "classifier_version": route.classifier_version,
+        "entities": route.entities,
+        "intent_candidates": list(route.intent_candidates),
+        "clarification_question": route.clarification_question,
         "plan_version": plan.plan_version,
     }
+
+
+def _should_search_public_knowledge(route: RouteDecision) -> bool:
+    """Search only for sensitive-topic knowledge questions that passed classification."""
+    return route.intent == "knowledge_qna" and route.risk_level == "high" and not route.missing_slots
 
 
 def _record_execution_eval(execution, elapsed_ms: int) -> None:
@@ -642,10 +661,16 @@ def execute(command):
             emit(command, prefix + "-cancel-ack", 2, "run.cancel_acknowledged", {"reason": "user_requested"})
             emit(command, prefix + "-cancelled", 3, "run.cancelled", {"reason": "user_requested"})
             return
-        # Java requires contiguous event_seq. Publish the route fact before
-        # recovery, tools, and model calls so failures cannot create a gap.
-        emit(command, prefix + "-routed", 2, "run.routed", _route_payload(command))
-        command = _attach_public_citations(command)
+        route, intent_attempts = classify_route(command, _model_router)
+        command = dict(command)
+        command["_classified_route"] = route
+        command["_intent_attempts"] = intent_attempts
+        if _should_search_public_knowledge(route):
+            command = _attach_public_citations(command)
+        else:
+            authorized = dict(command.get("authorized_context") or {})
+            authorized["citations"] = []
+            command["authorized_context"] = authorized
         recovered = validate_recovery_command(command, _checkpoint)
         if recovered is not None:
             authorized = dict(command.get("authorized_context") or {})
@@ -654,6 +679,9 @@ def execute(command):
                 authorized["tool_results"] = completed_results
             command = dict(command)
             command["authorized_context"] = authorized
+        # Classification is the first model call. Emit its route fact before
+        # context assembly and any tool proposal; failures still use contiguous event ids.
+        emit(command, prefix + "-routed", 2, "run.routed", _route_payload(command))
         execution_command = dict(command)
         execution_command["_checkpoint_key"] = (
             str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
@@ -810,6 +838,7 @@ def execute(command):
                 return
             _mark_tool_results_applied(command, all_results)
             resumed = dict(command)
+            resumed["_intent_attempts"] = []
             resumed["_checkpoint_key"] = (
                 str(command["run_id"]) + ":" + str(command["dispatch_id"]) + ":state"
             )
@@ -835,6 +864,10 @@ def execute(command):
             follow_up.usage.cost_cny += execution.usage.cost_cny
             follow_up.usage.model_calls += execution.usage.model_calls
             execution = follow_up
+        _record_model_attempts(execution.model_attempts)
+        for index, attempt in enumerate(execution.model_attempts, start=1):
+            emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
+            next_sequence += 1
         missing_slots = tuple(getattr(execution.route, "missing_slots", ()))
         if missing_slots:
             _record_execution_eval(execution, int((time.monotonic() - started) * 1000))
@@ -846,12 +879,12 @@ def execute(command):
             emit(command, prefix + "-clarification", next_sequence, "run.clarification_requested", {
                 "missing_slots": list(missing_slots),
                 "reason": "REQUIRED_PARAMETER_MISSING",
+                "reason_code": execution.route.reason_code,
+                "intent": execution.route.intent,
+                "intent_candidates": list(execution.route.intent_candidates),
+                "clarification_question": execution.route.clarification_question,
             })
             return
-        _record_model_attempts(execution.model_attempts)
-        for index, attempt in enumerate(execution.model_attempts, start=1):
-            emit(command, prefix + f"-model-{index}", next_sequence, "run.model_usage", attempt.event_payload())
-            next_sequence += 1
         emit(command, prefix + "-eval", next_sequence, "run.eval_decided", _eval_payload(execution))
         next_sequence += 1
         if command["run_id"] in _cancelled:

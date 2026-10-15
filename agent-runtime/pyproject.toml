@@ -14,7 +14,11 @@ dependencies = [
 ]
 
 [tool.setuptools]
-py-modules = ["runtime_server", "runtime_env", "mq_runtime", "agent_core", "model_provider", "paid_execution", "proposal_protocol", "sql_planner", "knowledge_rag", "knowledge_worker", "nutrition_catalog_rag"]
+py-modules = ["runtime_server", "runtime_env", "mq_runtime", "agent_core", "intent_classifier", "model_provider", "paid_execution", "proposal_protocol", "sql_planner", "knowledge_rag", "knowledge_worker", "nutrition_catalog_rag", "prompt_templates"]
+packages = ["foodmate_agent_runtime"]
+
+[tool.setuptools.package-data]
+foodmate_agent_runtime = ["prompts/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

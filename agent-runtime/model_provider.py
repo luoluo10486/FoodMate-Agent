@@ -122,6 +122,17 @@ class DeterministicModelProvider(ModelProvider):
     def complete(self, model_name: str, request: ModelRequest) -> ModelResponse:
         # Prompt contains only Java-authorized context assembled by agent_core.
         content = request.prompt
+        if request.scene == "composer":
+            try:
+                composer_prompt = json.loads(request.prompt)
+            except json.JSONDecodeError:
+                composer_prompt = None
+            if (
+                isinstance(composer_prompt, dict)
+                and composer_prompt.get("task") == "组织面向用户的答复"
+                and isinstance(composer_prompt.get("candidate_answer"), str)
+            ):
+                content = composer_prompt["candidate_answer"]
         if request.scene == "eval":
             # 本地 Judge 只返回结构化规则结果，避免把本地 stub 伪装成云端 LLM。
             content = '{"passed": true, "score": 1.0, "reason": "LOCAL_DETERMINISTIC_JUDGE"}'

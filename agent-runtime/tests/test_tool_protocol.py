@@ -1,3 +1,4 @@
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -34,13 +35,17 @@ class ToolProtocolTests(unittest.TestCase):
 
     def test_real_model_food_log_candidate_is_strict_and_requires_java_confirmation(self):
         class Router:
+            def __init__(self):
+                self.requests = []
+
             def tier_for(self, *_args):
                 return "high"
 
             def fallback_tiers_for(self, _tier):
                 return ()
 
-            def invoke(self, *_args, **_kwargs):
+            def invoke(self, request, *_args, **_kwargs):
+                self.requests.append(request)
                 return (
                     ModelResponse(
                         '{"operation":"create","meal_time":"2026-09-04T04:00:00Z",'
@@ -53,6 +58,7 @@ class ToolProtocolTests(unittest.TestCase):
                 )
 
         route = DeterministicRouter().route("记录午餐：米饭 150g")
+        router = Router()
         proposals, attempts = generate_food_log_writer_proposal(
             {
                 "run_id": "run-1",
@@ -62,9 +68,14 @@ class ToolProtocolTests(unittest.TestCase):
                 "authorized_context": {"food_log_writer_authorized": True},
             },
             route,
-            Router(),
+            router,
         )
 
+        prompt = json.loads(router.requests[0].prompt)
+        self.assertIn("只返回 JSON 对象", " ".join(prompt["rules"]))
+        self.assertIn("必须使用 breakfast、lunch、dinner、snack", " ".join(prompt["rules"]))
+        self.assertIn("自由文本字段使用简体中文", " ".join(prompt["rules"]))
+        self.assertGreaterEqual(len(prompt["examples"]), 2)
         self.assertEqual([], attempts)
         self.assertEqual("food_log_writer", proposals[0]["tool_name"])
         self.assertTrue(proposals[0]["requires_confirmation"])
@@ -155,13 +166,17 @@ class ToolProtocolTests(unittest.TestCase):
 
     def test_real_model_meal_plan_candidate_stops_at_java_validation(self):
         class Router:
+            def __init__(self):
+                self.requests = []
+
             def tier_for(self, *_args):
                 return "high"
 
             def fallback_tiers_for(self, _tier):
                 return ()
 
-            def invoke(self, *_args, **_kwargs):
+            def invoke(self, request, *_args, **_kwargs):
+                self.requests.append(request)
                 return (
                     ModelResponse(
                         '{"operation":"create","plan":{"plan_name":"一日均衡餐",'
@@ -177,6 +192,7 @@ class ToolProtocolTests(unittest.TestCase):
                 )
 
         route = DeterministicRouter().route("计划 1 天三餐，预算 80 元，忌口香菜")
+        router = Router()
         proposals, attempts = generate_meal_plan_proposal(
             {
                 "run_id": "run-plan-1",
@@ -186,9 +202,14 @@ class ToolProtocolTests(unittest.TestCase):
                 "authorized_context": {"meal_plan_writer_authorized": True},
             },
             route,
-            Router(),
+            router,
         )
 
+        prompt = json.loads(router.requests[0].prompt)
+        self.assertIn("只返回 JSON 对象", " ".join(prompt["rules"]))
+        self.assertIn("自由文本字段使用简体中文", " ".join(prompt["rules"]))
+        self.assertGreaterEqual(len(prompt["examples"]), 2)
+        self.assertEqual("简短的中文计划名称", prompt["required_output"]["plan"]["plan_name"])
         self.assertEqual([], attempts)
         self.assertEqual("plan_validator", proposals[0]["tool_name"])
         self.assertFalse(proposals[0]["requires_confirmation"])

@@ -1,18 +1,79 @@
 {
   "dataset": "FoodMate public nutrition knowledge",
-  "dataset_version": "2026-09-06",
-  "purpose": "公共知识库业务验收与本地 RAG 资料基线",
-  "embedding_status": "已完成真实向量索引",
+  "dataset_version": "2026-10-15",
+  "purpose": "特殊健康主题与基础营养公共资料",
+  "embedding_status": "待重建向量索引",
   "embedding_mode": "local-openai-compatible",
   "embedding_provider": "SiliconFlow",
   "embedding_model": "Qwen/Qwen3-Embedding-0.6B",
   "embedding_collection": "foodmate_knowledge_chunks_qwen3_embedding_0_6b",
   "embedding_batch_id": "354847677655027712",
-  "embedding_chunk_count": 49,
+  "embedding_chunk_count": 74,
+  "reindex_required": true,
   "embedding_token_count": 3088,
   "embedding_cost_cny": "0.00021616",
   "embedding_indexed_at": "2026-09-08T21:41:01+08:00",
   "documents": [
+    {
+      "file": "who-alcohol-zh.md",
+      "title": "酒精",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/news-room/fact-sheets/detail/alcohol",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "91225bbdfb9a22710dca47d9396aa83c6cad0d158cf745a08961bc1cb60ce894",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
+    {
+      "file": "who-anaemia-zh.md",
+      "title": "贫血",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/news-room/fact-sheets/detail/anaemia",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "393b8b71a313c66af0acd827a8f5a5c4cc23ebd88d5a82baca7b3776dbacd2bb",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
+    {
+      "file": "who-diabetes-zh.md",
+      "title": "糖尿病",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/news-room/fact-sheets/detail/diabetes",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "9d3260f547c7cdb7520fe97bd786b9a36671b13cc0a257dd8300cdb677a425d8",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
+    {
+      "file": "who-hypertension-zh.md",
+      "title": "高血压",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/news-room/fact-sheets/detail/hypertension",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "ef4aa2166674cd45444823d767aec73efd97d544affdf5cf18f33d8222a2e5aa",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
+    {
+      "file": "who-micronutrients-zh.md",
+      "title": "微量营养素",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/health-topics/micronutrients",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "b1a288c8e0d6afd190ff24960043b252bdf74652f61f085c02342c43c540b3cb",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
+    {
+      "file": "who-maternal-health-zh.md",
+      "title": "产妇保健",
+      "source_name": "世界卫生组织",
+      "source_url": "https://www.who.int/zh/health-topics/maternal-health",
+      "source_version": "checked-2026-10-15-snapshot",
+      "retrieved_at": "2026-10-15",
+      "sha256": "5523859bf25b7a29abbced35d84ca9d02c01daa3cfbaadbb334eb2494dec6e89",
+      "license_notice": "保留官方来源链接，仅用于个人项目本地知识库；不代表世界卫生组织认可 FoodMate。"
+    },
     {
       "file": "who-healthy-diet-zh.md",
       "title": "健康饮食",

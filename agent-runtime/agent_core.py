@@ -17,7 +17,15 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 
 from model_provider import ModelProviderError, ModelRequest, ModelRouter, ProviderAttempt
+from intent_classifier import (
+    CLASSIFIER_VERSION,
+    MAX_CONTEXT_MESSAGE_CHARS,
+    MAX_CONTEXT_MESSAGES,
+    IntentClassificationError,
+    classify_intent,
+)
 from proposal_protocol import Proposal, validate_proposal
+from prompt_templates import render_prompt
 from sql_planner import SqlPlan, SqlPlannerError, planner_from_environment
 
 
@@ -90,6 +98,12 @@ class RouteDecision:
     complexity: str
     risk_level: str
     missing_slots: tuple[str, ...] = ()
+    confidence: float | None = None
+    reason_code: str = "UNSPECIFIED"
+    classifier_version: str = "unknown"
+    entities: dict[str, str | None] = field(default_factory=dict)
+    clarification_question: str | None = None
+    intent_candidates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -155,6 +169,7 @@ class Context:
     estimated_tokens: int = 0
     tool_results: tuple[dict[str, Any], ...] = ()
     analysis_plan: dict[str, Any] | None = None
+    citations: tuple[dict[str, Any], ...] = ()
 
 
 class ContextBuilder:
@@ -311,16 +326,17 @@ class ContextBuilder:
             + len(json.dumps(citations, ensure_ascii=False)),
             tool_results,
             analysis_plan if isinstance(analysis_plan, dict) else None,
+            citations,
         )
 
 
 class DeterministicRouter:
-    """M1-4 初始路由器，输出结构化决策，不调用模型。"""
+    """Explicit offline/test route; production classification uses the shared LLM route."""
 
     def route(self, content: str) -> RouteDecision:
         text = content.strip()
         lower = text.lower()
-        risk = "high" if any(word in text for word in ("疾病", "诊断", "处方", "过敏反应")) else "low"
+        risk = _risk_level(text)
         if re.fullmatch(r"[0-9\s.+\-*/%()]+", text) or (
             "计算" in text and any(character.isdigit() for character in text)
         ):
@@ -345,6 +361,150 @@ class DeterministicRouter:
         if any(word in text for word in ("记录", "吃了", "早餐", "午餐", "晚餐")):
             return RouteDecision("record", "complex" if len(text) > 60 else "simple", risk)
         return RouteDecision("knowledge_qna", "simple", risk)
+
+
+def classify_route(
+    command: dict[str, Any], model_router: ModelRouter | None = None
+) -> tuple[RouteDecision, list[ProviderAttempt]]:
+    """Classify the outer workflow with the LLM; failures stop at clarification."""
+    content = str((command.get("message") or {}).get("content", "")).strip()
+    risk = _risk_level(content)
+    mode = os.getenv("FOODMATE_AGENT_INTENT_CLASSIFIER_MODE", "llm").strip().lower()
+    if mode == "stub":
+        route = DeterministicRouter().route(content)
+        return (
+            RouteDecision(
+                route.intent,
+                route.complexity,
+                route.risk_level,
+                route.missing_slots,
+                None,
+                "LOCAL_RULE_STUB",
+                "deterministic-stub-v1",
+                {},
+                None,
+                (route.intent,),
+            ),
+            [],
+        )
+    if mode != "llm":
+        return _classification_clarification(risk, "INTENT_CLASSIFIER_MODE_INVALID"), []
+
+    options = command.get("runtime_options") or {}
+    budget = BudgetSnapshot.from_command(command)
+    if budget.max_model_calls <= 0:
+        return _classification_clarification(risk, "INTENT_CLASSIFIER_BUDGET_EXHAUSTED"), []
+    try:
+        result, attempts = classify_intent(
+            content,
+            _intent_context(command),
+            model_router or ModelRouter(),
+            governed_route=options.get("model_snapshot")
+            if isinstance(options.get("model_snapshot"), dict)
+            else None,
+            deadline_at=command.get("deadline_at"),
+        )
+    except ModelProviderError as error:
+        return _classification_clarification(risk, error.code), list(error.attempts)
+    except IntentClassificationError as error:
+        return _classification_clarification(risk, error.code), list(error.attempts)
+
+    if result.status == "needs_clarification":
+        candidate_names = tuple(item["name"] for item in result.intents)
+        return (
+            RouteDecision(
+                candidate_names[0] if len(candidate_names) == 1 else "clarification",
+                "simple",
+                risk,
+                result.missing_slots,
+                max((item["confidence"] for item in result.intents), default=None),
+                result.reason_code,
+                result.classifier_version,
+                result.intents[0]["entities"] if result.intents else {},
+                result.clarification_question,
+                candidate_names,
+            ),
+            attempts,
+        )
+
+    classified = result.intents[0]
+    intent = classified["name"]
+    complexity = (
+        "simple"
+        if intent == "knowledge_qna" or (intent == "record" and len(content) <= 60)
+        else "complex"
+    )
+    return (
+        RouteDecision(
+            intent,
+            complexity,
+            risk,
+            (),
+            classified["confidence"],
+            result.reason_code,
+            result.classifier_version,
+            classified["entities"],
+            None,
+            (intent,),
+        ),
+        attempts,
+    )
+
+
+def _risk_level(content: str) -> str:
+    # High-risk wording remains a deterministic safety signal, separate from intent selection.
+    sensitive_topics = (
+        "疾病", "诊断", "处方", "过敏", "孕期", "孕妇", "备孕", "哺乳", "婴幼儿",
+        "儿童", "老人", "糖尿病", "肾病", "慢性病", "肾脏", "血压", "补充剂", "保健品",
+        "药物", "酒精", "戒断", "咖啡因", "能量饮料", "食物中毒",
+    )
+    return "high" if any(word in content for word in sensitive_topics) else "low"
+
+
+def _classification_clarification(
+    risk_level: str, reason_code: str
+) -> RouteDecision:
+    return RouteDecision(
+        "clarification",
+        "simple",
+        risk_level,
+        ("intent",),
+        0.0,
+        reason_code,
+        CLASSIFIER_VERSION,
+        {},
+        "我暂时无法可靠判断你希望我执行哪类操作，请重新描述你的目标。",
+    )
+
+
+def _intent_context(command: dict[str, Any]) -> list[dict[str, str]]:
+    authorized = command.get("authorized_context") or {}
+    raw_messages = list(authorized.get("recent_messages") or [])
+    current = command.get("message") or {}
+    current_id = current.get("message_id")
+    if current and (
+        current_id is None
+        or not any(
+            isinstance(item, dict) and str(item.get("message_id")) == str(current_id)
+            for item in raw_messages
+        )
+    ):
+        raw_messages.append(current)
+    context: list[dict[str, str]] = []
+    for item in raw_messages[-MAX_CONTEXT_MESSAGES:]:
+        if not isinstance(item, dict):
+            continue
+        role = str(item.get("role") or "").lower()
+        content = str(item.get("content") or "").strip()
+        if role not in {"user", "assistant", "human", "ai"} or not content:
+            continue
+        context.append({"role": role, "content": content[:MAX_CONTEXT_MESSAGE_CHARS]})
+    summary = authorized.get("session_summary")
+    if isinstance(summary, dict):
+        text = str(summary.get("summary") or summary.get("content") or "").strip()
+        if text:
+            context.insert(0, {"role": "session_summary", "content": text[:MAX_CONTEXT_MESSAGE_CHARS]})
+    return context[-MAX_CONTEXT_MESSAGES:]
 
 
 class DeterministicPlanner:
@@ -457,7 +617,11 @@ class Reflector:
             return ReflectionResult(False, "REFLECTION_ANSWER_EMPTY")
         if len(answer) > self.MAX_ANSWER_CHARS:
             return ReflectionResult(False, "REFLECTION_ANSWER_TOO_LONG")
-        if route.missing_slots and not all(slot in answer for slot in route.missing_slots):
+        if (
+            route.missing_slots
+            and not route.clarification_question
+            and not all(slot in answer for slot in route.missing_slots)
+        ):
             return ReflectionResult(False, "REFLECTION_CLARIFICATION_MISSING_SLOT")
         if route.complexity == "complex" and not context.messages:
             return ReflectionResult(False, "REFLECTION_NO_AUTHORIZED_SOURCE")
@@ -474,6 +638,8 @@ class Reflector:
 class DeterministicComposer:
     def compose(self, content: str, route: RouteDecision, context: Context, budget_mode: str) -> str:
         if route.missing_slots:
+            if route.clarification_question:
+                return route.clarification_question
             return "为了继续处理，请补充以下信息：" + "、".join(route.missing_slots) + "。"
         if route.intent == "analysis" and context.tool_results:
             analysis = self._compose_analysis(context, budget_mode)
@@ -503,6 +669,22 @@ class DeterministicComposer:
         tool_note = ""
         if context.tool_results:
             tool_note = f"已回注 {len(context.tool_results)} 个 Java 工具结果。"
+        if route.intent == "knowledge_qna" and context.citations:
+            evidence = [
+                {
+                    "资料": str(item.get("title") or "公共资料"),
+                    "章节": str(item.get("section_path") or ""),
+                    "片段": str(item.get("snippet") or ""),
+                }
+                for item in context.citations
+                if item.get("snippet")
+            ]
+            if evidence:
+                return (
+                    "请根据用户问题作答。以下是公共知识库检索证据，"
+                    "只在片段支持时引用其内容；证据不足时明确说明。\n"
+                    + json.dumps(evidence, ensure_ascii=False)
+                )
         evidence_note = f"已检索到 {len(context.sources['citation_id'])} 条公共知识库证据。" if context.sources["citation_id"] else ""
         return f"{prefix}已完成{route.intent}请求的受控分析，已读取当前会话中的 {recent} 条有效消息。{tool_note}{evidence_note}"
 
@@ -1173,30 +1355,11 @@ def generate_food_log_writer_proposal(
         return [], []
     question = str((command.get("message") or {}).get("content", "")).strip()
     today = datetime.now(timezone.utc).date().isoformat()
-    prompt = json.dumps(
-        {
-            "task": "extract_food_log_candidate",
-            "current_date_utc": today,
-            "user_message": question,
-            "rules": [
-                "Only create a candidate for a food log create operation.",
-                "Return JSON only and no markdown.",
-                "meal_time must be an ISO-8601 UTC instant; infer a stated relative day from current_date_utc.",
-                "meal_type must be one of breakfast, lunch, dinner, snack.",
-                "items must contain the food name, a positive numeric amount and a unit.",
-                "If food items, amount, meal type or time cannot be determined, return needs_clarification with the missing field names.",
-            ],
-            "required_output": {
-                "operation": "create",
-                "meal_time": "ISO-8601 UTC string",
-                "meal_type": "breakfast|lunch|dinner|snack",
-                "notes": "short optional string",
-                "items": [{"name": "food", "amount": 100, "unit": "g"}],
-                "needs_clarification": [],
-            },
-        },
-        ensure_ascii=False,
-        sort_keys=True,
+    prompt = render_prompt(
+        "food_log_writer",
+        current_date_utc=today,
+        user_timezone="Asia/Shanghai",
+        user_message=question,
     )
     tier = router.tier_for("tool_proposal", route.complexity, route.risk_level, "normal")
     try:
@@ -1282,46 +1445,9 @@ def generate_meal_plan_proposal(
     if route.intent != "planning" or authorized.get("meal_plan_writer_authorized") is not True:
         return [], []
     question = str((command.get("message") or {}).get("content", "")).strip()
-    prompt = json.dumps(
-        {
-            "task": "generate_meal_plan_candidate",
-            "user_goal": question,
-            "rules": [
-                "Return JSON only and no markdown.",
-                "Generate a complete plan with breakfast, lunch and dinner for every day.",
-                "Respect all explicitly stated allergens and dislikes; never add an allergen.",
-                "Keep people between 1 and 20 and days between 1 and 7.",
-                "Use estimated_cost, calories_kcal and protein_g when known, and include ingredients for shopping list generation.",
-                "Do not claim the plan is saved or validated; it is only a candidate for Java validation.",
-            ],
-            "required_output": {
-                "operation": "create",
-                "plan": {
-                    "plan_name": "short plan name",
-                    "people": 1,
-                    "days": 1,
-                    "budget": 100,
-                    "calorie_target": 1800,
-                    "protein_target": 100,
-                    "allergens": [],
-                    "dislikes": [],
-                    "days_plan": [
-                        {
-                            "breakfast": {
-                                "name": "meal",
-                                "ingredients": [{"name": "food", "amount": 100, "unit": "g", "estimated_cost": 5}],
-                                "calories_kcal": 500,
-                                "protein_g": 25,
-                            },
-                            "lunch": {},
-                            "dinner": {},
-                        }
-                    ],
-                },
-            },
-        },
-        ensure_ascii=False,
-        sort_keys=True,
+    prompt = render_prompt(
+        "meal_plan_generator",
+        user_goal=question,
     )
     tier = router.tier_for("tool_proposal", route.complexity, route.risk_level, "normal")
     try:
@@ -1472,7 +1598,11 @@ def run_deterministic(
     """执行 M1-4 内核；默认本地 provider，云模型由环境别名显式启用。"""
     content = str((command.get("message") or {}).get("content", ""))
     budget = BudgetSnapshot.from_command(command)
-    route = DeterministicRouter().route(content)
+    route = command.get("_classified_route")
+    if isinstance(route, RouteDecision):
+        intent_attempts = list(command.get("_intent_attempts") or [])
+    else:
+        route, intent_attempts = classify_route(command, model_router)
     options = command.get("runtime_options") or {}
     context = ContextBuilder(
         int(options.get("context_max_recent_messages", 8)),
@@ -1502,7 +1632,12 @@ def run_deterministic(
         if graph.terminal_reason is None:
             advance("eval")
         advance("terminal")
-    usage = Usage(steps=len(graph.nodes))
+    usage = Usage(
+        steps=len(graph.nodes),
+        tokens=sum(attempt.total_tokens or 0 for attempt in intent_attempts),
+        cost_cny=float(sum((attempt.cost_cny or 0) for attempt in intent_attempts)),
+        model_calls=len(intent_attempts),
+    )
     policy = budget_policy(usage, budget)
     mode = policy.mode
     if graph.terminal_reason is not None:
@@ -1514,7 +1649,7 @@ def run_deterministic(
                 "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
                 "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
             })
-        return AgentExecution(route, plan, context, answer, decision, usage, mode, [], [], policy.as_dict(), graph.as_dict())
+        return AgentExecution(route, plan, context, answer, decision, usage, mode, [], intent_attempts, policy.as_dict(), graph.as_dict())
     try:
         StepValidator().validate(route, plan, context)
     except ValueError as error:
@@ -1526,7 +1661,7 @@ def run_deterministic(
                 "budget": budget.__dict__, "eval": decision.__dict__, "workflow": graph.as_dict(),
                 "context": {"estimated_tokens": context.estimated_tokens, "sources": context.sources},
             })
-        return AgentExecution(route, plan, context, answer, decision, Usage(steps=len(graph.nodes)), mode, [], [], policy.as_dict(), graph.as_dict())
+        return AgentExecution(route, plan, context, answer, decision, usage, mode, [], intent_attempts, policy.as_dict(), graph.as_dict())
     if route.missing_slots:
         # 缺少业务参数时只生成澄清候选，不调用模型，也不发布回答正文。
         answer = DeterministicComposer().compose(content, route, context, mode)
@@ -1539,7 +1674,22 @@ def run_deterministic(
             usage,
             mode,
             [],
+            intent_attempts,
+            policy.as_dict(),
+            graph.as_dict(),
             [],
+        )
+    if not policy.allow_new_model_call:
+        return AgentExecution(
+            route,
+            plan,
+            context,
+            "意图已识别，但当前模型调用预算不足，已停止后续处理。",
+            EvalDecision("degrade", "BUDGET_EXHAUSTED_AFTER_CLASSIFICATION"),
+            usage,
+            mode,
+            [],
+            intent_attempts,
             policy.as_dict(),
             graph.as_dict(),
             [],
@@ -1593,7 +1743,7 @@ def run_deterministic(
                 usage,
                 policy.mode,
                 [],
-                proposal_attempts,
+                intent_attempts + proposal_attempts,
                 policy.as_dict(),
                 graph.as_dict(),
                 proposals,
@@ -1604,6 +1754,10 @@ def run_deterministic(
             "SQL_PLANNER_FOOD_NAME_REQUIRED",
             "SQL_PLANNER_FIELD_UNSUPPORTED",
         }:
+            usage.tokens += sum(attempt.total_tokens or 0 for attempt in proposal_attempts)
+            usage.cost_cny += float(sum((attempt.cost_cny or 0) for attempt in proposal_attempts))
+            usage.model_calls += len(proposal_attempts)
+            policy = budget_policy(usage, budget)
             answer = _sql_clarification_answer(error)
             decision = EvalDecision("pass", error.code)
             return AgentExecution(
@@ -1615,13 +1769,19 @@ def run_deterministic(
                 usage,
                 mode,
                 [],
-                proposal_attempts,
+                intent_attempts + proposal_attempts,
                 policy.as_dict(),
                 graph.as_dict(),
                 [],
             )
         raise
     candidate = DeterministicComposer().compose(content, route, context, mode)
+    composer_prompt = render_prompt(
+        "composer",
+        intent=route.intent,
+        user_question=content,
+        candidate_answer=candidate,
+    )
     tier = router.tier_for("composer", route.complexity, route.risk_level, mode)
     deadline_at = command.get("deadline_at")
     composer_timeout = _model_timeout_seconds("COMPOSER", 45.0)
@@ -1629,7 +1789,7 @@ def run_deterministic(
         response, composer_attempts = router.invoke(
             ModelRequest(
                 scene="composer",
-                prompt=candidate,
+                prompt=composer_prompt,
                 extra_body={"enable_thinking": False},
                 deadline_at=deadline_at,
                 timeout_seconds=composer_timeout,
@@ -1641,10 +1801,10 @@ def run_deterministic(
     except ModelProviderError:
         # 不能静默伪造云模型回答；上层会把该失败写为可观测终态。
         raise
-    attempts = list(proposal_attempts) + list(composer_attempts)
+    attempts = intent_attempts + list(proposal_attempts) + list(composer_attempts)
     usage.tokens = sum(attempt.total_tokens or 0 for attempt in attempts)
     usage.cost_cny = float(sum((attempt.cost_cny or 0) for attempt in attempts))
-    usage.model_calls = len(proposal_attempts) + 1
+    usage.model_calls = len(attempts)
     policy = budget_policy(usage, budget)
     mode = policy.mode
     answer = response.content
@@ -1658,19 +1818,13 @@ def run_deterministic(
             decision = EvalDecision("degrade", "BUDGET_EXHAUSTED_BEFORE_EVAL")
         else:
             eval_tier = "eval"
-            eval_prompt = json.dumps({
-                "task": "evaluate_candidate_answer",
-                "question": content,
-                "candidate_answer": answer,
-                "risk_level": route.risk_level,
-                "rubric": [
-                    "answer addresses the user request",
-                    "do not invent facts, tool results, or authorization",
-                    "high-risk requests must not be presented as professional diagnosis",
-                    "answer is complete enough for the requested task",
-                ],
-                "required_output": {"passed": "boolean", "score": "0..1", "reason": "short code"},
-            }, ensure_ascii=False, sort_keys=True)
+            eval_prompt = render_prompt(
+                "answer_evaluator",
+                intent=route.intent,
+                question=content,
+                candidate_answer=answer,
+                risk_level=route.risk_level,
+            )
             try:
                 judge_response, judge_attempts = router.invoke(
                 ModelRequest(

@@ -28,6 +28,9 @@ export type AgentRunEvent = {
   text?: string;
   answer?: string;
   reason?: string;
+  clarification_question?: string;
+  missing_slots?: string[];
+  intent_candidates?: string[];
   checkpoint_version?: number;
   checkpoint_digest?: string;
   completed_invocation_ids?: string[];

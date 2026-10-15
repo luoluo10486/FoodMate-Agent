@@ -1,0 +1,103 @@
+{
+  "metadata": {
+    "template_id": "meal_plan_generator",
+    "template_version": "meal-plan-generator-v1.1.0",
+    "dynamic_fields": ["user_goal"]
+  },
+  "payload": {
+    "task": "生成餐食计划候选",
+    "language": "zh-CN",
+    "user_goal": null,
+    "tool_description": "生成待校验的餐食计划候选；Java 负责校验，用户确认后才会保存。",
+    "rules": [
+      "只返回 JSON 对象，不要输出 Markdown 或额外解释。",
+      "为计划中的每一天都生成早餐、午餐和晚餐。",
+      "严格遵守用户明确说明的过敏原和忌口，不要加入用户过敏的食材。",
+      "人数必须在 1 到 20 之间，天数必须在 1 到 7 天之间。",
+      "已知时填写 estimated_cost、calories_kcal 和 protein_g；为生成购物清单，必须列出食材。",
+      "计划名称、餐食名称、食材名称、过敏原和忌口等自由文本字段使用简体中文；字段名和固定餐次键保持原样。",
+      "不得声称计划已保存或已通过校验；此内容只是等待 Java 校验的候选计划。"
+    ],
+    "output_contract": {
+      "format": "只返回 JSON 对象，不返回其他文本。",
+      "exact_root_keys": ["operation", "plan"],
+      "operation": "固定为 create。",
+      "plan_keys": ["plan_name", "people", "days", "budget", "calorie_target", "protein_target", "allergens", "dislikes", "days_plan"],
+      "days_plan": "长度必须等于 days；每天都必须包含 breakfast、lunch、dinner。每餐包含 name、ingredients，可提供 calories_kcal 和 protein_g。",
+      "ingredient_keys": ["name", "amount", "unit", "estimated_cost"]
+    },
+    "required_output": {
+      "operation": "create",
+      "plan": {
+        "plan_name": "简短的中文计划名称",
+        "people": 1,
+        "days": 1,
+        "budget": 100,
+        "calorie_target": 1800,
+        "protein_target": 100,
+        "allergens": [],
+        "dislikes": [],
+        "days_plan": [
+          {
+            "breakfast": {"name": "餐食名称", "ingredients": [{"name": "食材名称", "amount": 100, "unit": "g", "estimated_cost": 5}], "calories_kcal": 500, "protein_g": 25},
+            "lunch": {"name": "餐食名称", "ingredients": [{"name": "食材名称", "amount": 100, "unit": "g", "estimated_cost": 5}], "calories_kcal": 600, "protein_g": 30},
+            "dinner": {"name": "餐食名称", "ingredients": [{"name": "食材名称", "amount": 100, "unit": "g", "estimated_cost": 5}], "calories_kcal": 550, "protein_g": 28}
+          }
+        ]
+      }
+    },
+    "examples": [
+      {
+        "user_goal": "制定1天、2人份的均衡餐食计划，预算不超过200元；对花生过敏，不吃香菜。",
+        "output": {
+          "operation": "create",
+          "plan": {
+            "plan_name": "一日均衡餐",
+            "people": 2,
+            "days": 1,
+            "budget": 200,
+            "calorie_target": 1800,
+            "protein_target": 100,
+            "allergens": ["花生"],
+            "dislikes": ["香菜"],
+            "days_plan": [
+              {
+                "breakfast": {"name": "燕麦牛奶鸡蛋", "ingredients": [{"name": "燕麦", "amount": 80, "unit": "g", "estimated_cost": 8}, {"name": "牛奶", "amount": 400, "unit": "ml", "estimated_cost": 10}, {"name": "鸡蛋", "amount": 2, "unit": "个", "estimated_cost": 4}], "calories_kcal": 520, "protein_g": 28},
+                "lunch": {"name": "鸡胸肉糙米饭", "ingredients": [{"name": "鸡胸肉", "amount": 250, "unit": "g", "estimated_cost": 25}, {"name": "糙米", "amount": 160, "unit": "g", "estimated_cost": 8}, {"name": "西兰花", "amount": 200, "unit": "g", "estimated_cost": 10}], "calories_kcal": 680, "protein_g": 52},
+                "dinner": {"name": "番茄豆腐鱼片汤", "ingredients": [{"name": "鱼片", "amount": 200, "unit": "g", "estimated_cost": 30}, {"name": "豆腐", "amount": 200, "unit": "g", "estimated_cost": 8}, {"name": "番茄", "amount": 200, "unit": "g", "estimated_cost": 8}], "calories_kcal": 560, "protein_g": 43}
+              }
+            ]
+          }
+        }
+      },
+      {
+        "user_goal": "安排2天的素食菜单，1人，预算每天100元，不吃香菜。",
+        "output": {
+          "operation": "create",
+          "plan": {
+            "plan_name": "两日清爽素食",
+            "people": 1,
+            "days": 2,
+            "budget": 200,
+            "calorie_target": 1800,
+            "protein_target": 80,
+            "allergens": [],
+            "dislikes": ["香菜"],
+            "days_plan": [
+              {
+                "breakfast": {"name": "豆浆全麦面包", "ingredients": [{"name": "豆浆", "amount": 300, "unit": "ml", "estimated_cost": 5}, {"name": "全麦面包", "amount": 80, "unit": "g", "estimated_cost": 6}], "calories_kcal": 420, "protein_g": 18},
+                "lunch": {"name": "香菇豆腐盖饭", "ingredients": [{"name": "豆腐", "amount": 180, "unit": "g", "estimated_cost": 7}, {"name": "香菇", "amount": 100, "unit": "g", "estimated_cost": 8}, {"name": "米饭", "amount": 180, "unit": "g", "estimated_cost": 3}], "calories_kcal": 620, "protein_g": 25},
+                "dinner": {"name": "藜麦蔬菜碗", "ingredients": [{"name": "藜麦", "amount": 80, "unit": "g", "estimated_cost": 12}, {"name": "西兰花", "amount": 150, "unit": "g", "estimated_cost": 8}, {"name": "毛豆", "amount": 100, "unit": "g", "estimated_cost": 8}], "calories_kcal": 560, "protein_g": 24}
+              },
+              {
+                "breakfast": {"name": "燕麦香蕉豆浆", "ingredients": [{"name": "燕麦", "amount": 60, "unit": "g", "estimated_cost": 5}, {"name": "香蕉", "amount": 1, "unit": "根", "estimated_cost": 3}, {"name": "豆浆", "amount": 300, "unit": "ml", "estimated_cost": 5}], "calories_kcal": 430, "protein_g": 18},
+                "lunch": {"name": "番茄鹰嘴豆烩饭", "ingredients": [{"name": "鹰嘴豆", "amount": 100, "unit": "g", "estimated_cost": 8}, {"name": "番茄", "amount": 180, "unit": "g", "estimated_cost": 6}, {"name": "米饭", "amount": 180, "unit": "g", "estimated_cost": 3}], "calories_kcal": 640, "protein_g": 23},
+                "dinner": {"name": "豆腐蔬菜炒面", "ingredients": [{"name": "豆腐", "amount": 150, "unit": "g", "estimated_cost": 6}, {"name": "全麦面", "amount": 100, "unit": "g", "estimated_cost": 5}, {"name": "彩椒", "amount": 100, "unit": "g", "estimated_cost": 6}], "calories_kcal": 590, "protein_g": 25}
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

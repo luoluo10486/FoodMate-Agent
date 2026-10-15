@@ -150,11 +150,21 @@ function runtimeErrorMessage(payload: { code?: string; error_message?: string; m
   if (payload.code === 'RUNTIME_CAPACITY_EXCEEDED') return '当前运行队列已满，请稍后重试。';
   if (payload.code === 'RUNTIME_QUEUE_TIMEOUT') return '请求排队超时，请稍后重试。';
   if (payload.code === 'MODEL_PROVIDER_UNAVAILABLE') return '模型服务暂时不可用，请稍后重试。';
-  return (
-    payload.error_message ??
-    payload.message ??
-    (payload.code ? `运行失败（错误码：${payload.code}）。` : 'Agent 运行失败。')
-  );
+  return '这次请求暂时没有完成，请稍后重试。';
+}
+
+const intentLabels: Record<string, string> = {
+  analysis: '分析已有饮食数据',
+  planning: '制定餐食计划',
+  record: '记录或修改饮食',
+  calculation: '计算已提供的数值',
+  knowledge_qna: '询问一般饮食知识',
+};
+
+function clarificationOptions(candidates?: string[]) {
+  return (candidates ?? [])
+    .map((candidate) => intentLabels[candidate] ?? candidate)
+    .filter(Boolean);
 }
 
 function messageMutationError(reason: unknown, fallback: string) {
@@ -2997,6 +3007,8 @@ function RealChatPage() {
   const [assistantTime, setAssistantTime] = useState('');
   const [assistantMessageId, setAssistantMessageId] = useState<string>();
   const [error, setError] = useState<string>();
+  const [clarificationQuestion, setClarificationQuestion] = useState<string>();
+  const [clarificationChoices, setClarificationChoices] = useState<string[]>([]);
   const [retryAvailable, setRetryAvailable] = useState(false);
   const [retrying, setRetrying] = useState(false);
   const [safetyDegraded, setSafetyDegraded] = useState(false);
@@ -3409,6 +3421,8 @@ function RealChatPage() {
           if (budgetConfirmationRequested(normalizedPayload)) setBudgetConfirmation(true);
           const failureMessage = runtimeErrorMessage(normalizedPayload);
           setError(failureMessage);
+          setClarificationQuestion(undefined);
+          setClarificationChoices([]);
           void settleTerminal('failed', failureMessage, normalizedPayload.retryable === true);
           return;
         }
@@ -3438,6 +3452,11 @@ function RealChatPage() {
         }
         if (normalizedEventType === 'run.clarification_requested') {
           updateRunStatus('waiting_user');
+          setError(undefined);
+          setClarificationQuestion(
+            normalizedPayload.clarification_question || '为了继续处理，请补充或选择你想完成的操作。',
+          );
+          setClarificationChoices(clarificationOptions(normalizedPayload.intent_candidates));
           if (normalizedPayload.approval_request_id) {
             setCheckpointAvailable(false);
             setApproval({
@@ -3535,6 +3554,8 @@ function RealChatPage() {
     const content = input.trim();
     if (!content || sending) return;
     setError(undefined);
+    setClarificationQuestion(undefined);
+    setClarificationChoices([]);
     setSending(true);
     setRetryAvailable(false);
     setSafetyDegraded(false);
@@ -3863,6 +3884,17 @@ function RealChatPage() {
       {loading ? <p className={styles.systemMessage}>正在加载消息...</p> : null}
       {!loading && mappedMessages.length === 0 ? (
         <p className={styles.systemMessage}>暂无消息，发送第一条内容开始会话。</p>
+      ) : null}
+      {clarificationQuestion ? (
+        <div className={styles.cardWrap}>
+          <ClarificationCard
+            title="需要确认你的目标"
+            question={clarificationQuestion}
+            options={clarificationChoices}
+            onSelect={(value) => setInput(value)}
+            errorText="暂时无法加载澄清选项，请直接在输入框补充你的目标。"
+          />
+        </div>
       ) : null}
       {error ? (
         <div className={styles.runtimeErrorBlock}>

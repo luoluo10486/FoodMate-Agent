@@ -149,13 +149,17 @@ class OpenAICompatibleSqlPlannerTests(TestCase):
     def test_prompt_pins_sql_to_the_authorized_schema_examples(self):
         prompt = _planner_prompt("最近7天蛋白质摄入", None)
 
-        self.assertIn("meal_time for both the time filter and grouping", prompt)
+        self.assertIn("同时使用 meal_time 进行时间筛选和分组", prompt)
         self.assertIn("log_time", prompt)
         self.assertIn("SELECT SUM(i.protein_g) AS protein_g", prompt)
 
     def test_missing_shared_chat_route_fails_without_stub_fallback(self):
         with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
             planner_from_environment({"FOODMATE_SQL_PLANNER_MODE": "local"})
+
+    def test_default_mode_is_local_and_requires_a_shared_model_route(self):
+        with self.assertRaisesRegex(SqlPlannerError, "SQL_PLANNER_CONFIG_MISSING"):
+            planner_from_environment({})
 
     def test_invalid_model_json_fails_closed(self):
         planner = OpenAICompatibleSqlPlanner(self.Provider("not-json"), "local-model")

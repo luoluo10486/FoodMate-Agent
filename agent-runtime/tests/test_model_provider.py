@@ -7,8 +7,9 @@ from pathlib import Path
 from unittest import TestCase
 
 sys.path.append(str(Path(__file__).parents[1]))
-from model_provider import (ModelProvider, ModelProviderError, ModelRequest,
+from model_provider import (DeterministicModelProvider, ModelProvider, ModelProviderError, ModelRequest,
                             ModelResponse, ModelRouter, OpenAICompatibleModelProvider)
+from prompt_templates import render_prompt
 
 
 class FakeProvider(ModelProvider):
@@ -23,6 +24,22 @@ class FakeProvider(ModelProvider):
         if self.error:
             raise self.error
         return self.response or ModelResponse("ok", 3, 2, "provider-request-1")
+
+
+class DeterministicModelProviderTests(TestCase):
+    def test_composer_returns_candidate_answer_from_structured_prompt(self):
+        prompt = render_prompt(
+            "composer",
+            intent="analysis",
+            user_question="今天的热量是多少？",
+            candidate_answer="今天的热量汇总是 1800 kcal。",
+        )
+
+        response = DeterministicModelProvider().complete(
+            "local", ModelRequest("composer", prompt)
+        )
+
+        self.assertEqual("今天的热量汇总是 1800 kcal。", response.content)
 
 
 class ModelRouterTests(TestCase):

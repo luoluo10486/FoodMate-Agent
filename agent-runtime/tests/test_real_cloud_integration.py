@@ -10,6 +10,7 @@ import time
 import pytest
 
 from model_provider import ModelRequest, ModelRouter
+from prompt_templates import render_prompt
 
 
 def _env(name: str, fallback: str = "") -> str:
@@ -101,7 +102,16 @@ def test_real_primary_and_eval_provider_contract():
     router = ModelRouter(environment)
     started = time.perf_counter()
     response, attempts = router.invoke(
-        ModelRequest("composer", "请只返回一句简短的中文测试结果。", max_output_tokens=32),
+        ModelRequest(
+            "composer",
+            render_prompt(
+                "composer",
+                intent="knowledge_qna",
+                user_question="请用一句简短中文反馈联调结果。",
+                candidate_answer="模型调用正常。",
+            ),
+            max_output_tokens=32,
+        ),
         "standard",
     )
     composer_latency_ms = round((time.perf_counter() - started) * 1000, 2)
@@ -120,7 +130,13 @@ def test_real_primary_and_eval_provider_contract():
     eval_response, eval_attempts = router.invoke(
         ModelRequest(
             "eval",
-            '{"answer":"测试答案","criteria":["可读"]}',
+            render_prompt(
+                "answer_evaluator",
+                intent="knowledge_qna",
+                question="请回答一条简短的测试问题。",
+                candidate_answer="测试答案清晰可读。",
+                risk_level="low",
+            ),
             max_output_tokens=128,
             response_format={"type": "json_object"},
             extra_body={"enable_thinking": False},

@@ -31,6 +31,7 @@ TOPIC_RULES = (
     ("meal_composition", "三餐与加餐搭配", ("餐次与搭配", "早餐", "午餐", "晚餐", "加餐")),
     ("nutrition_topics", "控盐糖、纤维与蛋白", ("钠", "游离糖", "膳食纤维", "蛋白质")),
     ("food_safety", "食品安全", ("食品安全", "食源性危害")),
+    ("sensitive_topics", "敏感健康主题", ("酒精", "孕期", "贫血", "补充剂")),
 )
 
 
@@ -146,7 +147,7 @@ def validate() -> dict[str, object]:
     for item in manifest_documents:
         path = root / str(item["file"])
         documents.append({**item, "text": parse_document(path.name, path.read_bytes())})
-    if source_report["embedding_status"] not in {"未构建向量", "已完成真实向量索引"}:
+    if source_report["embedding_status"] not in {"未构建向量", "待重建向量索引", "已完成真实向量索引"}:
         raise AssertionError("公共资料 embedding_status 不是受支持的业务状态")
 
     coverage = _topic_coverage(documents)
@@ -164,6 +165,8 @@ def validate() -> dict[str, object]:
         ("身体活动", "who-physical-activity-zh.md"),
         ("膳食纤维", "who-healthy-diet-zh.md"),
         ("早餐 午餐 晚餐 加餐", "who-healthy-diet-zh.md"),
+        ("孕期 饮酒 胎儿", "who-alcohol-zh.md"),
+        ("孕妇 贫血 缺铁", "who-anaemia-zh.md"),
     )
     search_results = []
     for query, expected_document in fixed_queries:

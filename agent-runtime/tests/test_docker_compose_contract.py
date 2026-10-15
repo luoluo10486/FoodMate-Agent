@@ -63,10 +63,10 @@ class DockerComposeContractTests(TestCase):
         example = (self.ROOT / "docker" / ".env.example").read_text(encoding="utf-8")
 
         self.assertIn(
-            "FOODMATE_SQL_PLANNER_MODE: ${FOODMATE_DOCKER_SQL_PLANNER_MODE:-stub}",
+            "FOODMATE_SQL_PLANNER_MODE: ${FOODMATE_DOCKER_SQL_PLANNER_MODE:-local}",
             compose,
         )
-        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_MODE=stub", example)
+        self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_MODE=local", example)
         self.assertIn("FOODMATE_DOCKER_SQL_PLANNER_TIER=standard", example)
         self.assertNotIn("FOODMATE_SQL_PLANNER_API_KEY", compose)
         self.assertNotIn("FOODMATE_DOCKER_SQL_PLANNER_API_KEY", example)
