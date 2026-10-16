@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2500" height="1500" viewBox="0 0 2500 1500">
+  <defs>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 30px 'Microsoft YaHei',sans-serif;fill:#0f172a}.h{font:700 18px 'Microsoft YaHei',sans-serif;fill:#0f172a}.t{font:15px 'Microsoft YaHei',sans-serif;fill:#334155}.s{font:13px 'Microsoft YaHei',sans-serif;fill:#475569}.box{stroke:#64748b;stroke-width:2;rx:12}.edge{stroke:#475569;stroke-width:2.3;fill:none;marker-end:url(#a)}.dashed{stroke-dasharray:8 7}.branch{font:700 16px 'Microsoft YaHei',sans-serif;fill:#7c2d12}
+    </style>
+  </defs>
+  <rect width="2500" height="1500" fill="#f8fafc"/>
+  <text x="55" y="50" class="title">FoodMate Agent 运行闭环（当前实现，详细左→右）</text>
+  <text x="55" y="80" class="s">核心：Outbox 可靠发送、Redis Inbox 幂等、固定 Workflow、Proposal 由 Java 执行、RunEvent 经 Event Inbox/SSE 投影</text>
+
+  <rect x="55" y="150" width="240" height="110" class="box" fill="#dbeafe"/><text x="175" y="185" text-anchor="middle" class="h">用户 / 前端</text><text x="175" y="215" text-anchor="middle" class="t">Message</text><text x="175" y="240" text-anchor="middle" class="s">POST Chat API</text>
+  <rect x="350" y="120" width="330" height="170" class="box" fill="#dcfce7"/><text x="515" y="155" text-anchor="middle" class="h">Java 事务 Transaction</text><text x="515" y="188" text-anchor="middle" class="t">写 Message</text><text x="515" y="214" text-anchor="middle" class="t">创建 AgentRun</text><text x="515" y="240" text-anchor="middle" class="t">创建 active Dispatch</text><text x="515" y="266" text-anchor="middle" class="t">写 immutable RunCommand Outbox</text>
+  <rect x="735" y="150" width="260" height="110" class="box" fill="#fef3c7"/><text x="865" y="185" text-anchor="middle" class="h">Relay Publisher</text><text x="865" y="215" text-anchor="middle" class="t">每 500ms 查询 pending</text><text x="865" y="240" text-anchor="middle" class="s">lease 30s / 重试</text>
+  <rect x="1050" y="150" width="260" height="110" class="box" fill="#fce7f3"/><text x="1180" y="185" text-anchor="middle" class="h">传输 Transport</text><text x="1180" y="215" text-anchor="middle" class="t">RocketMQ command topic</text><text x="1180" y="240" text-anchor="middle" class="t">或 HTTP 202</text>
+  <rect x="1365" y="110" width="400" height="190" class="box" fill="#ede9fe"/><text x="1565" y="145" text-anchor="middle" class="h">Python 接收</text><text x="1565" y="178" text-anchor="middle" class="t">RedisCommandInbox.claim</text><text x="1565" y="205" text-anchor="middle" class="t">dispatch_id + request_hash</text><text x="1565" y="232" text-anchor="middle" class="t">claimed / duplicate / conflict</text><text x="1565" y="270" text-anchor="middle" class="s">run.accepted</text>
+  <path d="M295 205 H350" class="edge"/><path d="M680 205 H735" class="edge"/><path d="M995 205 H1050" class="edge"/><path d="M1310 205 H1365" class="edge"/>
+
+  <rect x="1840" y="90" width="300" height="100" class="box" fill="#e0f2fe"/><text x="1990" y="125" text-anchor="middle" class="h">Router 路由</text><text x="1990" y="153" text-anchor="middle" class="t">意图 / 复杂度 / 风险</text><text x="1990" y="177" text-anchor="middle" class="s">missing_slots</text><text x="2160" y="110" class="s" fill="#7c3aed">LLM：默认调用</text>
+  <rect x="1840" y="240" width="300" height="100" class="box" fill="#e0f2fe"/><text x="1990" y="275" text-anchor="middle" class="h">ContextBuilder</text><text x="1990" y="303" text-anchor="middle" class="t">消息 / 摘要 / 授权记忆</text><text x="1990" y="327" text-anchor="middle" class="s">Tool Result / citations</text>
+  <path d="M1765 160 H1840" class="edge"/><path d="M1990 190 V240" class="edge"/>
+
+  <rect x="1800" y="410" width="380" height="130" class="box" fill="#fff7ed"/><text x="1990" y="447" text-anchor="middle" class="h">Planner 计划</text><text x="1990" y="475" text-anchor="middle" class="t">clarify / compose</text><text x="1990" y="502" text-anchor="middle" class="t">retrieve_authorized_context</text><text x="1990" y="528" text-anchor="middle" class="t">validate_facts</text>
+  <path d="M1990 340 V410" class="edge"/>
+
+  <text x="420" y="620" class="branch">分支 A：简单请求</text>
+  <rect x="420" y="650" width="270" height="100" class="box" fill="#dcfce7"/><text x="555" y="687" text-anchor="middle" class="h">Plan = compose</text><text x="555" y="718" text-anchor="middle" class="t">信息足够，直接组织回答</text>
+  <rect x="760" y="650" width="270" height="100" class="box" fill="#dcfce7"/><text x="895" y="687" text-anchor="middle" class="h">Validator</text><text x="895" y="718" text-anchor="middle" class="t">计划和上下文合法</text>
+  <rect x="1100" y="650" width="270" height="100" class="box" fill="#dcfce7"/><text x="1235" y="687" text-anchor="middle" class="h">Composer</text><text x="1235" y="718" text-anchor="middle" class="t">生成候选答案</text><text x="1235" y="740" text-anchor="middle" class="s" fill="#7c3aed">LLM：通常调用</text>
+  <path d="M1800 475 C1400 475 1150 600 690 700" class="edge"/><path d="M690 700 H760" class="edge"/><path d="M1030 700 H1100" class="edge"/>
+
+  <text x="420" y="820" class="branch">分支 B：缺参数 / 需要澄清</text>
+  <rect x="420" y="850" width="270" height="100" class="box" fill="#fee2e2"/><text x="555" y="887" text-anchor="middle" class="h">Plan = clarify</text><text x="555" y="918" text-anchor="middle" class="t">missing_slots 不为空</text>
+  <rect x="760" y="850" width="270" height="100" class="box" fill="#fee2e2"/><text x="895" y="887" text-anchor="middle" class="h">澄清问题</text><text x="895" y="918" text-anchor="middle" class="t">不能执行副作用</text>
+  <rect x="1100" y="850" width="300" height="100" class="box" fill="#fee2e2"/><text x="1250" y="887" text-anchor="middle" class="h">run.clarification_requested</text><text x="1250" y="918" text-anchor="middle" class="t">Run A -> waiting_user</text>
+  <rect x="1470" y="850" width="360" height="100" class="box" fill="#fee2e2"/><text x="1650" y="887" text-anchor="middle" class="h">用户补充后</text><text x="1650" y="918" text-anchor="middle" class="t">新 Message + continuation Run B</text>
+  <path d="M1800 475 C1450 540 1100 800 690 900" class="edge"/><path d="M690 900 H760" class="edge"/><path d="M1030 900 H1100" class="edge"/><path d="M1400 900 H1470" class="edge"/><path d="M1650 850 C1650 500 1900 330 1990 340" class="edge dashed"/>
+
+  <text x="420" y="1020" class="branch">分支 C：复杂请求 / Tool / SQL</text>
+  <rect x="420" y="1050" width="280" height="110" class="box" fill="#fef3c7"/><text x="560" y="1087" text-anchor="middle" class="h">Plan = validate_facts</text><text x="560" y="1118" text-anchor="middle" class="t">复杂请求必须验证事实</text>
+  <rect x="760" y="1050" width="280" height="110" class="box" fill="#fef3c7"/><text x="900" y="1087" text-anchor="middle" class="h">Proposal</text><text x="900" y="1118" text-anchor="middle" class="t">database_query / Tool</text><text x="900" y="1142" text-anchor="middle" class="s">保存 checkpoint</text><text x="900" y="1160" text-anchor="middle" class="s" fill="#7c3aed">LLM：生成 Proposal</text>
+  <rect x="1100" y="1050" width="280" height="110" class="box" fill="#fef3c7"/><text x="1240" y="1087" text-anchor="middle" class="h">Java Tool Gateway</text><text x="1240" y="1118" text-anchor="middle" class="t">权限 / schema / 风险</text><text x="1240" y="1142" text-anchor="middle" class="s">执行 Tool 或只读 SQL</text>
+  <rect x="1440" y="1050" width="280" height="110" class="box" fill="#fef3c7"/><text x="1580" y="1087" text-anchor="middle" class="h">ToolResult / SqlResult</text><text x="1580" y="1118" text-anchor="middle" class="t">Result Inbox 去重</text><text x="1580" y="1142" text-anchor="middle" class="s">放回上下文</text>
+  <rect x="1780" y="1050" width="280" height="110" class="box" fill="#dcfce7"/><text x="1920" y="1087" text-anchor="middle" class="h">恢复原 Run</text><text x="1920" y="1118" text-anchor="middle" class="t">重新进入 Composer</text><text x="1920" y="1142" text-anchor="middle" class="s">不是用户新 Run</text>
+  <path d="M1800 510 C1450 650 1100 1000 700 1100" class="edge"/><path d="M700 1100 H760" class="edge"/><path d="M1040 1100 H1100" class="edge"/><path d="M1380 1100 H1440" class="edge"/><path d="M1720 1100 H1780" class="edge"/>
+
+  <rect x="1100" y="1240" width="300" height="100" class="box" fill="#f1f5f9"/><text x="1250" y="1277" text-anchor="middle" class="h">Reflector + Eval</text><text x="1250" y="1308" text-anchor="middle" class="t">答案非空、预算、风险</text><text x="1250" y="1330" text-anchor="middle" class="s">确定性规则：不调用 LLM</text>
+  <rect x="1470" y="1240" width="300" height="100" class="box" fill="#f1f5f9"/><text x="1620" y="1277" text-anchor="middle" class="h">可选 LLM Eval</text><text x="1620" y="1308" text-anchor="middle" class="t">Judge score / passed</text><text x="1620" y="1330" text-anchor="middle" class="s" fill="#7c3aed">LLM：按配置调用</text>
+  <rect x="1840" y="1240" width="300" height="100" class="box" fill="#dcfce7"/><text x="1990" y="1277" text-anchor="middle" class="h">RunEvent</text><text x="1990" y="1308" text-anchor="middle" class="t">eval_decided / answer_stream</text>
+  <rect x="2200" y="1240" width="240" height="100" class="box" fill="#dbeafe"/><text x="2320" y="1277" text-anchor="middle" class="h">Java Event Inbox</text><text x="2320" y="1308" text-anchor="middle" class="t">SSE → 前端</text>
+  <path d="M1370 700 C1400 900 1350 1120 1250 1240" class="edge"/><path d="M2060 1100 C2000 1160 1800 1240 1770 1290" class="edge"/><path d="M1400 1290 H1470" class="edge"/><path d="M1770 1290 H1840" class="edge"/><path d="M2140 1290 H2200" class="edge"/>
+  <text x="55" y="1410" class="s" fill="#7c3aed">LLM 调用点：Router 默认分类；Proposal 生成；Composer 生成答案；LLM Eval 为可选 Judge。FOODMATE_AGENT_INTENT_CLASSIFIER_MODE=stub 时 Router 使用规则。</text>
+  <text x="55" y="1450" class="s">关键：clarification 等用户会创建 continuation Run；Tool/SQL 等待通过 checkpoint 恢复原 Run；RocketMQ 至少一次投递由 Inbox/Result Inbox 幂等吸收重复。</text>
+</svg>

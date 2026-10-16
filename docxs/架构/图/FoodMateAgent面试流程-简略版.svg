@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="620" viewBox="0 0 1800 620">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L10,3 L0,6 Z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 28px 'Microsoft YaHei',sans-serif;fill:#0f172a}.h{font:700 18px 'Microsoft YaHei',sans-serif;fill:#0f172a}.t{font:15px 'Microsoft YaHei',sans-serif;fill:#334155}.small{font:13px 'Microsoft YaHei',sans-serif;fill:#475569}.box{stroke:#64748b;stroke-width:2;rx:12}.edge{stroke:#475569;stroke-width:2.5;fill:none;marker-end:url(#arrow)}
+    </style>
+  </defs>
+  <rect width="1800" height="620" fill="#f8fafc"/>
+  <text x="60" y="55" class="title">FoodMate Agent 主流程（当前实现，左→右）</text>
+  <text x="60" y="84" class="small">Java 负责业务真值与权限；Python 负责 Workflow；MQ/HTTP 为可切换传输；事件最终经 Java SSE 推给前端</text>
+
+  <rect x="60" y="190" width="190" height="130" class="box" fill="#dbeafe"/><text x="155" y="225" text-anchor="middle" class="h">用户请求</text><text x="155" y="255" text-anchor="middle" class="t">Message</text><text x="155" y="281" text-anchor="middle" class="small">聊天输入</text>
+  <rect x="320" y="150" width="280" height="210" class="box" fill="#dcfce7"/><text x="460" y="190" text-anchor="middle" class="h">Java 本地事务</text><text x="460" y="225" text-anchor="middle" class="t">Message + AgentRun</text><text x="460" y="253" text-anchor="middle" class="t">active Dispatch</text><text x="460" y="281" text-anchor="middle" class="t">Dispatch Outbox</text><text x="460" y="322" text-anchor="middle" class="small">Commit 后才发送</text>
+  <rect x="670" y="190" width="190" height="130" class="box" fill="#fef3c7"/><text x="765" y="225" text-anchor="middle" class="h">Relay</text><text x="765" y="255" text-anchor="middle" class="t">500ms 轮询</text><text x="765" y="281" text-anchor="middle" class="small">pending → leased</text>
+  <rect x="930" y="190" width="190" height="130" class="box" fill="#fce7f3"/><text x="1025" y="225" text-anchor="middle" class="h">传输</text><text x="1025" y="255" text-anchor="middle" class="t">RocketMQ / HTTP</text><text x="1025" y="281" text-anchor="middle" class="small">RunCommand</text>
+  <rect x="1190" y="130" width="300" height="250" class="box" fill="#ede9fe"/><text x="1340" y="170" text-anchor="middle" class="h">Python Runtime</text><text x="1340" y="205" text-anchor="middle" class="t">Redis Inbox 幂等</text><text x="1340" y="235" text-anchor="middle" class="t">Router → Planner</text><text x="1340" y="265" text-anchor="middle" class="t">Proposal / Workflow</text><text x="1340" y="295" text-anchor="middle" class="t">Validator → Eval</text><text x="1340" y="340" text-anchor="middle" class="small">RunEvent / Event Outbox</text>
+  <rect x="1560" y="190" width="180" height="130" class="box" fill="#fee2e2"/><text x="1650" y="225" text-anchor="middle" class="h">Java Event</text><text x="1650" y="255" text-anchor="middle" class="t">Event Inbox</text><text x="1650" y="281" text-anchor="middle" class="small">SSE → 前端</text>
+
+  <path d="M250 255 H320" class="edge"/><path d="M600 255 H670" class="edge"/><path d="M860 255 H930" class="edge"/><path d="M1120 255 H1190" class="edge"/><path d="M1490 255 H1560" class="edge"/>
+  <text x="1275" y="470" class="small">简单请求：直接回答</text><text x="1275" y="495" class="small">复杂请求：Proposal → Java Tool/SQL Result → 恢复 Workflow</text><text x="1275" y="520" class="small">缺参数：clarification → 新 continuation Run</text>
+</svg>
